@@ -46,11 +46,15 @@ Return JSON {"steps": string[], "tools": string[], "historyRefs": string[]}.`;
 
 /** Returns raw JSON; the caller validates it. */
 export async function styleLooks(closet: Garment[], profile: StyleProfile, occasion?: string): Promise<unknown> {
-  const prompt = `Suggest outfits using ONLY garments from this closet, referencing them by id.
-Respect the style profile and avoid the listed colors. Do not mention stores or shopping.
-Closet: ${JSON.stringify(closet.map((g) => ({ id: g.id, name: g.name, category: g.category, tags: g.tags })))}
+  const prompt = `Suggest 3 outfits using ONLY garments from this closet, referencing them by id.
+Rules:
+- Each outfit uses 2 to 4 different garments.
+- If any garment has "upcycled": true, every outfit must include at least one of them.
+- Respect the style profile and avoid the listed colors.
+- Never mention stores, shopping, buying, brands or links.
+Closet: ${JSON.stringify(closet.map((g) => ({ id: g.id, name: g.name, category: g.category, tags: g.tags, upcycled: g.isUpcycled })))}
 Style profile: ${JSON.stringify(profile)}
 Occasion: ${occasion ?? 'everyday'}
-Return JSON {"looks": [{"name": string, "garmentIds": string[], "note": string}]}.`;
+Return JSON {"looks": [{"name": string, "garmentIds": string[], "reason": string}]} where "reason" is one short sentence.`;
   return jsonCall(prompt);
 }

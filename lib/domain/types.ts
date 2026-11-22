@@ -53,3 +53,6 @@ export type MatchResult = {
   freeRecipeId: string | null;
   styleQuestions: { style: string; confidence: number }[];
 };
+
+/** An outfit the Wardrobe OS styled from pieces the user owns. */
+export type Look = { name: string; reason: string; garmentIds: string[] };
