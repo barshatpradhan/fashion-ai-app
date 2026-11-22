@@ -6,7 +6,8 @@ import {
 
 export type CreditKind = 'upload' | 'look';
 export type SpendReceipt = { userId: string; kind: CreditKind; pool: Pool };
-export type CreditRow = { tier: Tier; state: AllowanceState };
+/** rawRefillAt is the refill column exactly as the database returned it (never re-serialised). */
+export type CreditRow = { tier: Tier; state: AllowanceState; rawRefillAt: string | null };
 
 export class OutOfCreditsError extends Error {
   constructor(public nextCreditAt: Date) {
@@ -26,6 +27,7 @@ export interface CreditRepo {
   /** Writes `next` only if the row still holds ALL of `expectedOld`. Returns whether a row was updated. */
   conditionalUpdate(
     userId: string, kind: CreditKind, expectedOld: AllowanceState, next: AllowanceState,
+    expectedRawRefillAt: string | null,
   ): Promise<boolean>;
 }
 
@@ -54,9 +56,10 @@ export function adminCreditRepo(): CreditRepo {
           credits: row[c.credits] as number,
           refillAt: refill ? new Date(refill) : null,
         },
+        rawRefillAt: refill,
       };
     },
-    async conditionalUpdate(userId, kind, old, next) {
+    async conditionalUpdate(userId, kind, old, next, rawRefill) {
       const c = COLS[kind];
       let q = db
         .from('profiles')
@@ -68,7 +71,7 @@ export function adminCreditRepo(): CreditRepo {
         .eq('id', userId)
         .eq(c.used, old.freeUsed)
         .eq(c.credits, old.credits);
-      q = old.refillAt ? q.eq(c.refill, old.refillAt.toISOString()) : q.is(c.refill, null);
+      q = rawRefill !== null ? q.eq(c.refill, rawRefill) : q.is(c.refill, null);
       const { data, error } = await q.select('id');
       if (error) throw new Error(`credit update failed: ${error.message}`);
       return (data?.length ?? 0) > 0;
@@ -81,11 +84,11 @@ export async function spendCredit(
   userId: string, kind: CreditKind, now: Date = new Date(), repo: CreditRepo = adminCreditRepo(),
 ): Promise<SpendReceipt> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { tier, state } = await repo.read(userId, kind);
+    const { tier, state, rawRefillAt } = await repo.read(userId, kind);
     const r = spend(state, now, tier);
     if (!r.ok) throw new OutOfCreditsError(r.nextCreditAt);
     if (r.pool === 'unlimited') return { userId, kind, pool: 'unlimited' };
-    if (await repo.conditionalUpdate(userId, kind, state, r.state)) {
+    if (await repo.conditionalUpdate(userId, kind, state, r.state, rawRefillAt)) {
       return { userId, kind, pool: r.pool };
     }
   }
@@ -98,10 +101,10 @@ export async function refundCredit(
 ): Promise<void> {
   if (receipt.pool === 'unlimited') return;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { state } = await repo.read(receipt.userId, receipt.kind);
+    const { state, rawRefillAt } = await repo.read(receipt.userId, receipt.kind);
     const next = refund(state, receipt.pool);
     if (next === state || (next.freeUsed === state.freeUsed && next.credits === state.credits)) return;
-    if (await repo.conditionalUpdate(receipt.userId, receipt.kind, state, next)) return;
+    if (await repo.conditionalUpdate(receipt.userId, receipt.kind, state, next, rawRefillAt)) return;
   }
   throw new ConcurrentSpendError();
 }

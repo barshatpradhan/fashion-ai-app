@@ -62,22 +62,28 @@ describe('allowance pure functions', () => {
   });
 });
 
-function fakeRepo(initial: CreditRow) {
-  let row = { ...initial };
+function fakeRepo(initial: { tier: Tier; state: AllowanceState; raw?: string | null }) {
+  let state = { ...initial.state };
+  let raw: string | null =
+    initial.raw !== undefined ? initial.raw : (initial.state.refillAt?.toISOString() ?? null);
+  const seenRaw: (string | null)[] = [];
   const repo: CreditRepo = {
-    async read() { await Promise.resolve(); return { ...row }; },
-    async conditionalUpdate(_u, _k, old, next) {
+    async read() {
       await Promise.resolve();
-      if (
-        row.state.freeUsed !== old.freeUsed ||
-        row.state.credits !== old.credits ||
-        row.state.refillAt?.getTime() !== old.refillAt?.getTime()
-      ) return false;
-      row = { ...row, state: { ...next } };
+      return { tier: initial.tier, state: { ...state }, rawRefillAt: raw };
+    },
+    async conditionalUpdate(_u, _k, old, next, expectedRaw) {
+      await Promise.resolve();
+      seenRaw.push(expectedRaw);
+      if (state.freeUsed !== old.freeUsed || state.credits !== old.credits || raw !== expectedRaw) {
+        return false;
+      }
+      state = { ...next };
+      raw = next.refillAt ? next.refillAt.toISOString() : null;
       return true;
     },
   };
-  return { repo, get: () => row };
+  return { repo, seenRaw, get: () => ({ state, raw }) };
 }
 
 describe('spendCredit / refundCredit', () => {
@@ -103,5 +109,18 @@ describe('spendCredit / refundCredit', () => {
     expect(f.get().state.credits).toBe(0);
     await refundCredit(receipt, f.repo);
     expect(f.get().state.credits).toBe(1);
+  });
+
+  it('compares the raw microsecond refill_at, not a re-serialised Date', async () => {
+    const rawTs = '2026-12-01T00:00:00.123456+00:00';
+    const f = fakeRepo({
+      tier: free,
+      state: { freeUsed: 10, credits: 1, refillAt: new Date(rawTs) },
+      raw: rawTs,
+    });
+    const receipt = await spendCredit('u', 'look', T, f.repo);
+    expect(receipt.pool).toBe('weekly');
+    expect(f.seenRaw).toEqual([rawTs]);
+    expect(f.get().state.credits).toBe(0);
   });
 });
