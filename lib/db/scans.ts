@@ -1,4 +1,5 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 import { adminClient } from '@/lib/db/admin';
 import { getEnv } from '@/lib/env';
 import { analyzeImage } from '@/lib/ai/vision';
@@ -8,6 +9,24 @@ import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/err
 import { matchEntries } from '@/lib/domain/matching';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry, MatchResult } from '@/lib/domain/types';
+
+export const SCAN_ERRORS = {
+  unauthorized: 'unauthorized',
+  badRequest: 'bad_request',
+  imageNotFound: 'image_not_found',
+  notAGarment: 'not_a_garment',
+  dailyCap: 'daily_cap',
+  aiBusy: 'ai_busy',
+  serverError: 'server_error',
+} as const;
+
+/** Thrown by a ScanRepo when the Storage object is missing or unreadable. */
+export class ImageNotFoundError extends Error {
+  constructor(cause?: unknown) {
+    super('image_not_found', { cause });
+    this.name = 'ImageNotFoundError';
+  }
+}
 
 export const DAILY_SCAN_CAP = 20;
 export const FABRIC_CONFIRM_THRESHOLD = 0.7;
@@ -62,12 +81,12 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
     !b || typeof b.imagePath !== 'string' || typeof b.cutoutPath !== 'string' ||
     typeof b.imageHash !== 'string' || !b.imageHash
   ) {
-    return fail(400, 'bad_request');
+    return fail(400, SCAN_ERRORS.badRequest);
   }
   const { imagePath, cutoutPath, imageHash } = b as { imagePath: string; cutoutPath: string; imageHash: string };
   const prefix = `${userId}/`;
   const ok = (p: string) => p.startsWith(prefix) && !p.includes('..');
-  if (!ok(imagePath) || !ok(cutoutPath)) return fail(400, 'bad_request');
+  if (!ok(imagePath) || !ok(cutoutPath)) return fail(400, SCAN_ERRORS.badRequest);
   const { repo } = deps;
 
   const respond = (scanId: string, vision: VisionResult, entries: KbEntry[]): AnalyzeResult => ({
@@ -80,36 +99,54 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
     },
   });
 
+  let jpeg: Uint8Array;
+  try {
+    jpeg = await repo.download(imagePath);
+  } catch (err) {
+    if (err instanceof ImageNotFoundError) return fail(400, SCAN_ERRORS.imageNotFound);
+    throw err;
+  }
+  // Server-side hash of the actual bytes; the client-supplied imageHash is never trusted.
+  const hash = createHash('sha256').update(jpeg).digest('hex');
+
   // Hash cache first: no cap check, no AI call.
-  const existing = await repo.findByHash(userId, imageHash);
-  if (existing) return respond(existing.id, existing.vision, await repo.loadReviewedEntries());
+  const existing = await repo.findByHash(userId, hash);
+  if (existing) {
+    if (!existing.vision.is_garment) return fail(422, SCAN_ERRORS.notAGarment);
+    return respond(existing.id, existing.vision, await repo.loadReviewedEntries());
+  }
 
   const demo = await repo.isDemo(userId);
   if (!demo) {
     const n = deps.now();
     const dayStart = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
-    if ((await repo.countSince(userId, dayStart)) >= DAILY_SCAN_CAP) return fail(429, 'daily_cap');
+    if ((await repo.countSince(userId, dayStart)) >= DAILY_SCAN_CAP) return fail(429, SCAN_ERRORS.dailyCap);
   }
 
   let vision: VisionResult;
   try {
-    const jpeg = await repo.download(imagePath);
-    vision = await deps.guard(`scan:${imageHash}`, () => deps.analyze(jpeg), { timeoutMs: deps.timeoutMs, demo });
+    vision = await deps.guard(`scan:${hash}`, () => deps.analyze(jpeg), { timeoutMs: deps.timeoutMs, demo });
   } catch (err) {
     if (err instanceof AiRateLimitError || err instanceof AiTimeoutError || err instanceof AiBadOutputError) {
-      return fail(503, 'ai_busy');
+      return fail(503, SCAN_ERRORS.aiBusy);
     }
     throw err;
   }
-  if (!vision.is_garment) return fail(422, 'not_a_garment');
 
-  const entries = await repo.loadReviewedEntries();
-  const result = respond('', vision, entries);
-  const scanId = await repo.insertScan({
-    userId, imagePath, cutoutPath, imageHash, vision,
+  const newScan = (): NewScan => ({
+    userId, imagePath, cutoutPath, imageHash: hash, vision,
     fabricFinal: vision.fabric_guess.value, fabricSource: 'vision',
     modelName: GEMINI_VISION_MODEL, modelVersion: GEMINI_VISION_MODEL,
   });
+  if (!vision.is_garment) {
+    // Persist so the attempt counts toward the daily cap and a re-upload hits the cache.
+    await repo.insertScan(newScan());
+    return fail(422, SCAN_ERRORS.notAGarment);
+  }
+
+  const entries = await repo.loadReviewedEntries();
+  const result = respond('', vision, entries);
+  const scanId = await repo.insertScan(newScan());
   const rows = toMatchRows((result.body as { match: MatchResult }).match);
   if (rows.length) await repo.insertMatches(scanId, rows);
   return { ...result, body: { ...(result.body as object), scanId } } as AnalyzeResult;
@@ -153,7 +190,7 @@ export function supabaseScanRepo(): ScanRepo {
     },
     async download(path) {
       const { data, error } = await db.storage.from(BUCKET).download(path);
-      if (error || !data) throw error ?? new Error('download failed');
+      if (error || !data) throw new ImageNotFoundError(error);
       return new Uint8Array(await data.arrayBuffer());
     },
     async insertScan(s) {

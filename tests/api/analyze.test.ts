@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { runAnalyze, type AnalyzeDeps, type ScanRepo, type ScanRow } from '@/lib/db/scans';
+import { createHash } from 'node:crypto';
+import { runAnalyze, ImageNotFoundError, type AnalyzeDeps, type ScanRepo, type ScanRow } from '@/lib/db/scans';
 import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
 
 const U = 'user-1';
 const body = { imagePath: `${U}/a.jpg`, cutoutPath: `${U}/a-cut.png`, imageHash: 'h1' };
+const BYTES = new Uint8Array([1, 2, 3]);
+const SHASH = createHash('sha256').update(BYTES).digest('hex');
 const NOW = new Date('2026-11-22T15:30:00Z');
 
 const vision = (over: Partial<VisionResult> = {}, conf = 0.9): VisionResult => ({
@@ -22,7 +25,7 @@ function setup(opts: { count?: number; demo?: boolean; existing?: ScanRow | null
     isDemo: vi.fn(async () => opts.demo ?? false),
     findByHash: vi.fn(async () => opts.existing ?? null),
     countSince: vi.fn(async () => opts.count ?? 0),
-    download: vi.fn(async () => new Uint8Array([1, 2, 3])),
+    download: vi.fn(async () => BYTES),
     insertScan: vi.fn(async () => 'scan-new'),
     insertMatches: vi.fn(async () => {}),
     loadReviewedEntries: vi.fn(async () => opts.entries ?? []),
@@ -35,12 +38,45 @@ function setup(opts: { count?: number; demo?: boolean; existing?: ScanRow | null
 describe('runAnalyze', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('422 not_a_garment and writes nothing', async () => {
+  it('422 not_a_garment persists a scan (counts to cap) but no matches', async () => {
     const s = setup({ analyze: async () => vision({ is_garment: false }) });
     const r = await runAnalyze(U, body, s.deps);
     expect(r).toEqual({ status: 422, body: { error: 'not_a_garment' } });
-    expect(s.repo.insertScan).not.toHaveBeenCalled();
+    expect(s.repo.insertScan).toHaveBeenCalledTimes(1);
     expect(s.repo.insertMatches).not.toHaveBeenCalled();
+  });
+
+  it('re-upload of a non-garment hits the cache: 422, no AI call', async () => {
+    const s = setup({ existing: { id: 'old', vision: vision({ is_garment: false }) } });
+    const r = await runAnalyze(U, body, s.deps);
+    expect(r).toEqual({ status: 422, body: { error: 'not_a_garment' } });
+    expect(s.analyze).not.toHaveBeenCalled();
+  });
+
+  it('missing storage object -> 400 image_not_found', async () => {
+    const s = setup();
+    (s.repo.download as ReturnType<typeof vi.fn>).mockRejectedValue(new ImageNotFoundError());
+    const r = await runAnalyze(U, body, s.deps);
+    expect(r).toEqual({ status: 400, body: { error: 'image_not_found' } });
+    expect(s.analyze).not.toHaveBeenCalled();
+  });
+
+  it('uses the server sha256, not the client hash, for lookup, guard key and insert', async () => {
+    const s = setup();
+    const guard = vi.fn(async (_k: string, fn: () => Promise<unknown>) => fn());
+    await runAnalyze(U, { ...body, imageHash: 'client-lies' }, { ...s.deps, guard: guard as unknown as AnalyzeDeps['guard'] });
+    expect(s.repo.findByHash).toHaveBeenCalledWith(U, SHASH);
+    expect(guard.mock.calls[0][0]).toBe(`scan:${SHASH}`);
+    expect(s.repo.insertScan).toHaveBeenCalledWith(expect.objectContaining({ imageHash: SHASH }));
+  });
+
+  it('mismatched client hash still resolves the cached scan by server hash', async () => {
+    const s = setup({ existing: { id: 'scan-old', vision: vision() } });
+    (s.repo.findByHash as ReturnType<typeof vi.fn>).mockImplementation(async (_u: string, h: string) =>
+      h === SHASH ? { id: 'scan-old', vision: vision() } : null);
+    const r = await runAnalyze(U, { ...body, imageHash: 'wrong' }, s.deps);
+    expect((r.body as { scanId: string }).scanId).toBe('scan-old');
+    expect(s.analyze).not.toHaveBeenCalled();
   });
 
   it.each([new AiRateLimitError(), new AiTimeoutError(), new AiBadOutputError()])('503 ai_busy on %s, nothing written', async (err) => {
@@ -77,7 +113,7 @@ describe('runAnalyze', () => {
     const s = setup({ demo: true });
     const guard = vi.fn(async (_k: string, fn: () => Promise<unknown>) => fn());
     await runAnalyze(U, body, { ...s.deps, guard: guard as unknown as AnalyzeDeps['guard'] });
-    expect(guard).toHaveBeenCalledWith('scan:h1', expect.any(Function), { timeoutMs: 1000, demo: true });
+    expect(guard).toHaveBeenCalledWith(`scan:${SHASH}`, expect.any(Function), { timeoutMs: 1000, demo: true });
   });
 
   it('repeated imageHash returns earlier scan with no AI call, even over the cap', async () => {
@@ -117,7 +153,7 @@ describe('runAnalyze', () => {
     expect(r.status).toBe(200);
     expect((r.body as { scanId: string }).scanId).toBe('scan-new');
     expect(s.repo.insertScan).toHaveBeenCalledWith(expect.objectContaining({
-      userId: U, imagePath: body.imagePath, cutoutPath: body.cutoutPath, imageHash: 'h1',
+      userId: U, imagePath: body.imagePath, cutoutPath: body.cutoutPath, imageHash: SHASH,
       fabricFinal: 'denim', fabricSource: 'vision', modelName: expect.any(String), modelVersion: expect.any(String),
     }));
     const call = (s.repo.insertMatches as ReturnType<typeof vi.fn>).mock.calls[0];
