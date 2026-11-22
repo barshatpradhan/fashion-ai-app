@@ -61,4 +61,17 @@ describe('messageForError', () => {
     expect(messageForError(undefined)).toBe(MESSAGES.uploadFailed);
     expect(messageForError('unsupported_format')).toBe("This photo format isn't supported. Try a JPG or PNG.");
   });
+
+  it('gives non-upload codes their own copy instead of the upload message', () => {
+    expect(messageForError('not_found', 'guide')).toBe('This guide changed after your edit — go back to the result.');
+    expect(messageForError('concurrent_spend')).toBe('Please try again.');
+    expect(messageForError('premium_required')).toMatch(/Premium/);
+    expect(messageForError('no_uploads')).toMatch(/out of uploads/);
+    expect(messageForError('no_looks')).toMatch(/out of looks/);
+    expect(messageForError('invalid_style')).toMatch(/question/i);
+    expect(messageForError('not_found')).not.toBe(MESSAGES.uploadFailed);
+    for (const code of ['not_found', 'concurrent_spend', 'premium_required', 'no_uploads', 'no_looks', 'invalid_style']) {
+      expect(messageForError(code)).not.toBe(MESSAGES.uploadFailed);
+    }
+  });
 });

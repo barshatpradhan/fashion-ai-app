@@ -49,7 +49,7 @@ export default function GuidePage() {
       setRenderState('idle');
       setShowAfter(true);
     } catch (err) {
-      setRenderError(messageForError((err as Error).message));
+      setRenderError(messageForError((err as Error).message, 'guide'));
       setRenderState('error');
     }
   }, [scanId, recipeId]);
@@ -63,7 +63,7 @@ export default function GuidePage() {
         if (!alive) return;
         if (r.status === 402) return setLoad({ kind: 'locked' });
         if (r.status !== 200 || !Array.isArray(r.json.steps)) {
-          return setLoad({ kind: 'error', message: messageForError(r.json.error) });
+          return setLoad({ kind: 'error', message: messageForError(r.json.error, 'guide') });
         }
         setLoad({ kind: 'ready', guide: r.json });
         // Before image: the scan's cut-out (RLS: own scans and own storage folder only).
