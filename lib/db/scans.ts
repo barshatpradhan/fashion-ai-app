@@ -35,7 +35,8 @@ export const DAILY_SCAN_CAP = 20;
 export const FABRIC_CONFIRM_THRESHOLD = 0.7;
 const BUCKET = 'garments';
 
-export type ScanRow = { id: string; vision: VisionResult };
+/** imagePath / cutoutPath are null once the user deleted the scan's images (closet delete / delete_scan). */
+export type ScanRow = { id: string; vision: VisionResult; imagePath?: string | null; cutoutPath?: string | null };
 export type NewScan = {
   userId: string; imagePath: string; cutoutPath: string; imageHash: string; vision: VisionResult;
   fabricFinal: string; fabricSource: 'vision'; modelName: string; modelVersion: string;
@@ -50,6 +51,8 @@ export interface ScanRepo {
   countSince(userId: string, since: Date): Promise<number>;
   download(path: string): Promise<Uint8Array>;
   insertScan(scan: NewScan): Promise<string>;
+  /** Re-attach freshly uploaded images to a cached scan whose images were deleted. */
+  attachImages(scanId: string, imagePath: string, cutoutPath: string): Promise<void>;
   insertMatches(scanId: string, rows: MatchRow[]): Promise<void>;
   loadReviewedEntries(): Promise<KbEntry[]>;
   /** Corrections for a scan, oldest first (later rows win). */
@@ -140,6 +143,10 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   const existing = await repo.findByHash(userId, hash);
   if (existing) {
     if (!existing.vision.is_garment) return fail(422, SCAN_ERRORS.notAGarment);
+    // The user deleted this scan's images earlier: this request's upload becomes the scan's images again.
+    if (existing.imagePath === null || existing.cutoutPath === null) {
+      await repo.attachImages(existing.id, imagePath, cutoutPath);
+    }
     // Rebuild from the scan's corrections so a re-upload shows what the user already confirmed.
     const [entries, corrections] = await Promise.all([repo.loadReviewedEntries(), repo.listCorrections(existing.id)]);
     return build(existing.vision, entries, corrections).respond(existing.id);
@@ -225,11 +232,16 @@ export function supabaseScanRepo(): ScanRepo {
     isDemo: (userId) => loadIsDemo(db, userId),
     isPremium: (userId) => loadIsPremium(db, userId),
     async findByHash(userId, imageHash) {
-      const { data, error } = await db.from('scans').select('id, vision_json')
+      const { data, error } = await db.from('scans').select('id, vision_json, image_path, cutout_path')
         .eq('user_id', userId).eq('image_hash', imageHash).not('vision_json', 'is', null)
         .order('created_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
-      return data ? { id: data.id as string, vision: data.vision_json as VisionResult } : null;
+      return data
+        ? {
+            id: data.id as string, vision: data.vision_json as VisionResult,
+            imagePath: (data.image_path as string | null) ?? null, cutoutPath: (data.cutout_path as string | null) ?? null,
+          }
+        : null;
     },
     async countSince(userId, since) {
       const { count, error } = await db.from('scans').select('id', { count: 'exact', head: true })
@@ -250,6 +262,11 @@ export function supabaseScanRepo(): ScanRepo {
       }).select('id').single();
       if (error) throw error;
       return data.id as string;
+    },
+    async attachImages(scanId, imagePath, cutoutPath) {
+      const { error } = await db.from('scans').update({ image_path: imagePath, cutout_path: cutoutPath })
+        .eq('id', scanId).or('image_path.is.null,cutout_path.is.null');
+      if (error) throw error;
     },
     async insertMatches(scanId, rows) {
       const { error } = await db.from('scan_matches').insert(

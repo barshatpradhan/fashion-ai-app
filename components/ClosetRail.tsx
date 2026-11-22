@@ -77,7 +77,7 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
                 className={`${c.piece} ${g.id === activeId ? c.active : ''}`}
                 aria-pressed={g.id === activeId}
                 aria-controls={g.id === activeId ? detailId : undefined}
-                aria-label={`${g.name}${g.category === 'accessory' ? ', accessory' : ''}${g.isUpcycled ? ', reworked' : ''}`}
+                aria-label={`${g.name}${g.category === 'accessory' ? ', accessory' : ''}${g.isUpcycled ? ', reworked' : ''}${g.imageKind === 'concept' ? ', concept image' : ''}`}
                 onClick={() => choose(g.id)}
                 onKeyDown={(e) => onKeyDown(e, i)}
               >
@@ -90,8 +90,11 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
                     <span className={c.placeholder} />
                   )}
                 </span>
-                {g.isUpcycled ? <span className={c.flag}>Reworked</span> : null}
-                {!g.isUpcycled && g.category === 'accessory' ? <span className={c.flag}>Accessory</span> : null}
+                <span className={c.flags}>
+                  {g.imageKind === 'concept' ? <span className={`${c.flag} ${c.flagConcept}`}>Concept</span> : null}
+                  {g.isUpcycled ? <span className={c.flag}>Reworked</span> : null}
+                  {!g.isUpcycled && g.category === 'accessory' ? <span className={c.flag}>Accessory</span> : null}
+                </span>
                 <span className={c.pieceName} aria-hidden="true">{g.name}</span>
               </button>
             </li>
@@ -108,7 +111,10 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
             {active.status === 'transformed' ? ' · given a second life' : ''}
           </p>
           {active.imageKind === 'concept' ? (
-            <p className={c.meta}>Shown with its AI concept picture, not a photo of the finished piece.</p>
+            <p className={c.meta}>
+              <span className={`${c.flag} ${c.flagConcept} ${c.flagInline}`}>Concept</span>{' '}
+              Shown with its AI concept picture, not a photo of the finished piece.
+            </p>
           ) : null}
           {active.tags.length ? (
             <ul className={c.tags} aria-label="Tags">

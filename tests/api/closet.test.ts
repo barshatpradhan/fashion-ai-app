@@ -8,6 +8,7 @@ import type { AllowanceState } from '@/lib/domain/allowance';
 import { REFILL_MS } from '@/lib/domain/allowance';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { CorrectionRow } from '@/lib/domain/corrections';
+import { runAnalyze, type ScanRepo } from '@/lib/db/scans';
 
 const U = 'user-1';
 const OTHER = 'user-2';
@@ -310,6 +311,42 @@ describe('delete', () => {
     const scan = w.scans.get('scan-1')!;
     expect(scan).toMatchObject({ imagePath: null, cutoutPath: null });
     expect(scan.corrections).toHaveLength(1);
+  });
+
+  it('delete garment → re-scan the same image (cache hit) → save_scan succeeds again', async () => {
+    const w = world();
+    w.addScan('scan-1');
+    expect((await post(w, { action: 'save_scan', scanId: 'scan-1' })).status).toBe(200);
+    const [g] = [...w.garments.values()];
+    expect((await post(w, { action: 'delete', garmentId: g.id })).status).toBe(200);
+    expect(w.scans.get('scan-1')).toMatchObject({ imagePath: null, cutoutPath: null });
+
+    // The same photo uploaded again: analyze hits the hash cache for scan-1 (shared fake store).
+    const scanRepo: ScanRepo = {
+      isDemo: async () => false, isPremium: async () => false,
+      findByHash: async () => {
+        const s = w.scans.get('scan-1')!;
+        return { id: s.id, vision: s.vision, imagePath: s.imagePath, cutoutPath: s.cutoutPath };
+      },
+      countSince: async () => 0, download: async () => new Uint8Array([1]),
+      insertScan: vi.fn(async () => 'scan-new'), insertMatches: async () => {},
+      attachImages: async (id, imagePath, cutoutPath) => {
+        w.scans.set(id, { ...w.scans.get(id)!, imagePath, cutoutPath });
+        w.storage.add(imagePath);
+        w.storage.add(cutoutPath);
+      },
+      loadReviewedEntries: async () => [], listCorrections: async () => [],
+    };
+    const analyze = vi.fn();
+    const a = await runAnalyze(U, { imagePath: `${U}/again.jpg`, cutoutPath: `${U}/again-cut.png`, imageHash: 'x' },
+      { repo: scanRepo, analyze, now: () => NOW, timeoutMs: 1000, guard: async (_k, fn) => fn() });
+    expect(a.status).toBe(200);
+    expect(analyze).not.toHaveBeenCalled();
+    expect(w.scans.get('scan-1')).toMatchObject({ imagePath: `${U}/again.jpg`, cutoutPath: `${U}/again-cut.png` });
+
+    const r = await post(w, { action: 'save_scan', scanId: 'scan-1' });
+    expect(r.status).toBe(200);
+    expect([...w.garments.values()][0]).toMatchObject({ scanId: 'scan-1', cutoutPath: `${U}/again-cut.png` });
   });
 
   it('does not remove a concept image (it belongs to the guide)', async () => {

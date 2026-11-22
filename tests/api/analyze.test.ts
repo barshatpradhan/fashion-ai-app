@@ -32,6 +32,7 @@ function setup(opts: {
     countSince: vi.fn(async () => opts.count ?? 0),
     download: vi.fn(async () => BYTES),
     insertScan: vi.fn(async () => 'scan-new'),
+    attachImages: vi.fn(async () => {}),
     insertMatches: vi.fn(async () => {}),
     loadReviewedEntries: vi.fn(async () => opts.entries ?? []),
     listCorrections: vi.fn(async () => opts.corrections ?? []),
@@ -57,6 +58,22 @@ describe('runAnalyze', () => {
     const r = await runAnalyze(U, body, s.deps);
     expect(r).toEqual({ status: 422, body: { error: 'not_a_garment' } });
     expect(s.analyze).not.toHaveBeenCalled();
+  });
+
+  it('cache hit on a scan whose images were deleted re-attaches this upload, no AI call', async () => {
+    const s = setup({ existing: { id: 'scan-old', vision: vision(), imagePath: null, cutoutPath: null } });
+    const r = await runAnalyze(U, body, s.deps);
+    expect(r.status).toBe(200);
+    expect((r.body as { scanId: string }).scanId).toBe('scan-old');
+    expect(s.repo.attachImages).toHaveBeenCalledWith('scan-old', body.imagePath, body.cutoutPath);
+    expect(s.analyze).not.toHaveBeenCalled();
+    expect(s.repo.insertScan).not.toHaveBeenCalled();
+  });
+
+  it('cache hit on a scan that still has its images leaves the paths alone', async () => {
+    const s = setup({ existing: { id: 'scan-old', vision: vision(), imagePath: `${U}/old.jpg`, cutoutPath: `${U}/old-cut.png` } });
+    expect((await runAnalyze(U, body, s.deps)).status).toBe(200);
+    expect(s.repo.attachImages).not.toHaveBeenCalled();
   });
 
   it('missing storage object -> 400 image_not_found', async () => {

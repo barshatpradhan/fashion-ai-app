@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
 import { ClosetRail } from '@/components/ClosetRail';
 import { AllowanceBadge } from '@/components/AllowanceBadge';
 import type { ClosetGarment } from '@/lib/db/closet';
@@ -44,6 +44,18 @@ describe('ClosetRail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith('a'));
     expect(confirmSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('Concept label', () => {
+  it('a concept-image garment shows a visible "Concept" flag on its tile and in the selected view', () => {
+    render(<ClosetRail garments={[g('c', { imageKind: 'concept', isUpcycled: true }), g('p')]} label="Rail" />);
+    const tile = screen.getByRole('button', { name: 'Piece c, reworked, concept image' });
+    expect(within(tile).getByText('Concept')).toBeTruthy();
+    expect(screen.getAllByText('Concept')).toHaveLength(1); // the photo piece has none
+    fireEvent.click(tile);
+    const detail = screen.getByRole('region', { name: 'Piece c details' });
+    expect(within(detail).getByText('Concept')).toBeTruthy();
   });
 });
 
