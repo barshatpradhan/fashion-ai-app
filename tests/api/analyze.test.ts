@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto';
 import { runAnalyze, ImageNotFoundError, type AnalyzeDeps, type ScanRepo, type ScanRow } from '@/lib/db/scans';
 import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
-import type { KbEntry } from '@/lib/domain/types';
+import type { KbEntry, MatchResult } from '@/lib/domain/types';
+import type { CorrectionRow } from '@/lib/domain/corrections';
 
 const U = 'user-1';
 const body = { imagePath: `${U}/a.jpg`, cutoutPath: `${U}/a-cut.png`, imageHash: 'h1' };
@@ -20,7 +21,10 @@ const kb = (id: string, kind: KbEntry['kind'], tags: string[]): KbEntry => ({
   id, kind, title: id, body: '', tags, status: 'reviewed',
 });
 
-function setup(opts: { count?: number; demo?: boolean; existing?: ScanRow | null; entries?: KbEntry[]; analyze?: () => Promise<VisionResult> } = {}) {
+function setup(opts: {
+  count?: number; demo?: boolean; existing?: ScanRow | null; entries?: KbEntry[];
+  analyze?: () => Promise<VisionResult>; corrections?: CorrectionRow[];
+} = {}) {
   const repo: ScanRepo = {
     isDemo: vi.fn(async () => opts.demo ?? false),
     findByHash: vi.fn(async () => opts.existing ?? null),
@@ -29,6 +33,7 @@ function setup(opts: { count?: number; demo?: boolean; existing?: ScanRow | null
     insertScan: vi.fn(async () => 'scan-new'),
     insertMatches: vi.fn(async () => {}),
     loadReviewedEntries: vi.fn(async () => opts.entries ?? []),
+    listCorrections: vi.fn(async () => opts.corrections ?? []),
   };
   const analyze = vi.fn(opts.analyze ?? (async () => vision()));
   const deps: AnalyzeDeps = { repo, analyze, now: () => NOW, timeoutMs: 1000, guard: async (_k, fn) => fn() };
@@ -162,5 +167,60 @@ describe('runAnalyze', () => {
     expect(call[1].every((m: { score: number }) => m.score > 0)).toBe(true);
     // The repo exposes no credit/profile-writing method at all.
     expect(Object.keys(s.repo).some((k) => /credit|spend|refill/i.test(k))).toBe(false);
+  });
+
+  describe('cache hit reflects stored corrections', () => {
+    const entries = [
+      kb('r-denim', 'redesign', ['denim', 'jacket']),
+      kb('r-wool', 'redesign', ['wool', 'jacket-x']),
+      kb('h-tartan', 'history', ['tartan']),
+      kb('f-wool', 'fabric', ['wool']),
+    ];
+    const lowConf = vision({ named_styles: [{ style: 'tartan', confidence: 0.6 }] }, 0.5);
+
+    it('without corrections: vision fabric, confirm prompt and style question as before', async () => {
+      const s = setup({ existing: { id: 'scan-old', vision: lowConf }, entries });
+      const r = await runAnalyze(U, body, s.deps);
+      const b = r.body as { match: MatchResult; needsFabricConfirm: boolean };
+      expect(b.needsFabricConfirm).toBe(true);
+      expect(b.match.recipes.map((e) => e.id)).toEqual(['r-denim']);
+      expect(b.match.styleQuestions.map((q) => q.style)).toEqual(['tartan']);
+      expect(s.repo.listCorrections).toHaveBeenCalledWith('scan-old');
+    });
+
+    it('re-matches with the corrected fabric and accepted style; no fabric confirm once corrected', async () => {
+      const s = setup({
+        existing: { id: 'scan-old', vision: lowConf }, entries,
+        corrections: [
+          { field: 'fabric', aiValue: 'denim', userValue: 'wool' },
+          { field: 'named_style', aiValue: 'tartan', userValue: 'yes' },
+        ],
+      });
+      const r = await runAnalyze(U, body, s.deps);
+      const b = r.body as { match: MatchResult; needsFabricConfirm: boolean; fabric: string };
+      expect(r.status).toBe(200);
+      expect(b.needsFabricConfirm).toBe(false);
+      expect(b.fabric).toBe('wool');
+      expect(b.match.fabricNotes.map((e) => e.id)).toEqual(['f-wool']);
+      expect(b.match.history.map((e) => e.id)).toEqual(['h-tartan']);
+      expect(b.match.styleQuestions).toEqual([]);
+      expect(s.analyze).not.toHaveBeenCalled();
+    });
+
+    it('a rejected style is not asked again on a cache hit', async () => {
+      const s = setup({
+        existing: { id: 'scan-old', vision: lowConf }, entries,
+        corrections: [{ field: 'named_style', aiValue: 'tartan', userValue: 'no' }],
+      });
+      const b = (await runAnalyze(U, body, s.deps)).body as { match: MatchResult; needsFabricConfirm: boolean };
+      expect(b.match.styleQuestions).toEqual([]);
+      expect(b.match.history).toEqual([]);
+      expect(b.needsFabricConfirm).toBe(true);
+    });
+  });
+
+  it('fresh scans report the vision fabric as the effective fabric', async () => {
+    const r = await runAnalyze(U, body, setup().deps);
+    expect((r.body as { fabric: string }).fabric).toBe('denim');
   });
 });

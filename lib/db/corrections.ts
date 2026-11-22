@@ -1,6 +1,9 @@
 import 'server-only';
 import { adminClient } from '@/lib/db/admin';
-import { SCAN_ERRORS, FABRIC_CONFIRM_THRESHOLD, toMatchRows, toKbEntry, type MatchRow } from '@/lib/db/scans';
+import {
+  SCAN_ERRORS, FABRIC_CONFIRM_THRESHOLD, toMatchRows, toKbEntry, listCorrectionRows, type MatchRow,
+} from '@/lib/db/scans';
+import { confirmedFromCorrections, hasFabricCorrection, type CorrectionRow } from '@/lib/domain/corrections';
 import { matchEntries } from '@/lib/domain/matching';
 import { FABRICS } from '@/lib/domain/vocabulary';
 import type { VisionResult } from '@/lib/ai/visionSchema';
@@ -8,16 +11,7 @@ import type { KbEntry, Confirmed, MatchResult } from '@/lib/domain/types';
 
 export const CORRECT_ERRORS = { notFound: 'not_found', invalidStyle: 'invalid_style' } as const;
 
-/**
- * Storage encoding (corrections table):
- * - fabric / garment_type: ai_value = value before the correction, user_value = the new value.
- * - named_style: ai_value = the lowercased style name, user_value = 'yes' | 'no'.
- */
-export type CorrectionRow = {
-  field: 'fabric' | 'garment_type' | 'named_style';
-  aiValue: string | null;
-  userValue: string | null;
-};
+export { confirmedFromCorrections, type CorrectionRow };
 
 export type StoredScan = { id: string; userId: string; vision: VisionResult; fabricFinal: string | null };
 
@@ -34,22 +28,6 @@ export interface CorrectionRepo {
 
 const lc = (s: string) => s.trim().toLowerCase();
 
-/** Effective Confirmed state: the latest correction per field / style wins. */
-export function confirmedFromCorrections(rows: CorrectionRow[]): Confirmed {
-  let fabric: string | undefined;
-  let garmentType: string | undefined;
-  const styles = new Map<string, boolean>();
-  for (const r of rows) {
-    if (r.field === 'fabric' && r.userValue) fabric = r.userValue;
-    else if (r.field === 'garment_type' && r.userValue) garmentType = r.userValue;
-    else if (r.field === 'named_style' && r.aiValue) styles.set(lc(r.aiValue), r.userValue === 'yes');
-  }
-  const namedStyles: string[] = [];
-  const rejectedStyles: string[] = [];
-  for (const [style, accepted] of styles) (accepted ? namedStyles : rejectedStyles).push(style);
-  return { ...(fabric ? { fabric } : {}), ...(garmentType ? { garmentType } : {}), namedStyles, rejectedStyles };
-}
-
 export type ScanState = {
   scan: StoredScan;
   confirmed: Confirmed;
@@ -65,7 +43,7 @@ export async function loadScanState(repo: CorrectionRepo, scanId: string): Promi
   return {
     scan, corrections,
     confirmed: confirmedFromCorrections(corrections),
-    hasFabricCorrection: corrections.some((c) => c.field === 'fabric'),
+    hasFabricCorrection: hasFabricCorrection(corrections),
   };
 }
 
@@ -134,16 +112,7 @@ export function supabaseCorrectionRepo(): CorrectionRepo {
         vision: data.vision_json as VisionResult, fabricFinal: (data.fabric_final as string | null) ?? null,
       };
     },
-    async listCorrections(scanId) {
-      const { data, error } = await db.from('corrections').select('field, ai_value, user_value, created_at')
-        .eq('scan_id', scanId).order('created_at', { ascending: true });
-      if (error) throw error;
-      return (data ?? []).map((r) => ({
-        field: r.field as CorrectionRow['field'],
-        aiValue: (r.ai_value as string | null) ?? null,
-        userValue: (r.user_value as string | null) ?? null,
-      }));
-    },
+    listCorrections: (scanId) => listCorrectionRows(db, scanId),
     async insertCorrection(scanId, row) {
       const { error } = await db.from('corrections').insert({
         scan_id: scanId, field: row.field, ai_value: row.aiValue, user_value: row.userValue,

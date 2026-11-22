@@ -8,7 +8,9 @@ import { withGuard } from '@/lib/ai/guard';
 import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/errors';
 import { matchEntries } from '@/lib/domain/matching';
 import type { VisionResult } from '@/lib/ai/visionSchema';
+import { confirmedFromCorrections, hasFabricCorrection, type CorrectionRow } from '@/lib/domain/corrections';
 import type { KbEntry, MatchResult } from '@/lib/domain/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const SCAN_ERRORS = {
   unauthorized: 'unauthorized',
@@ -48,6 +50,8 @@ export interface ScanRepo {
   insertScan(scan: NewScan): Promise<string>;
   insertMatches(scanId: string, rows: MatchRow[]): Promise<void>;
   loadReviewedEntries(): Promise<KbEntry[]>;
+  /** Corrections for a scan, oldest first (later rows win). */
+  listCorrections(scanId: string): Promise<CorrectionRow[]>;
 }
 
 export type AnalyzeDeps = {
@@ -59,7 +63,11 @@ export type AnalyzeDeps = {
 };
 
 export type AnalyzeResult =
-  | { status: 200; body: { scanId: string; vision: VisionResult; match: MatchResult; needsFabricConfirm: boolean } }
+  | {
+      status: 200;
+      /** `fabric` is the effective fabric: the latest user correction, else the vision guess. */
+      body: { scanId: string; vision: VisionResult; match: MatchResult; needsFabricConfirm: boolean; fabric: string };
+    }
   | { status: 400 | 422 | 429 | 503; body: { error: string } };
 
 const fail = (status: 400 | 422 | 429 | 503, error: string): AnalyzeResult => ({ status, body: { error } });
@@ -89,15 +97,21 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   if (!ok(imagePath) || !ok(cutoutPath)) return fail(400, SCAN_ERRORS.badRequest);
   const { repo } = deps;
 
-  const respond = (scanId: string, vision: VisionResult, entries: KbEntry[]): AnalyzeResult => ({
-    status: 200,
-    body: {
-      scanId,
-      vision,
-      match: matchEntries(vision, { namedStyles: [] }, entries),
-      needsFabricConfirm: vision.fabric_guess.confidence < FABRIC_CONFIRM_THRESHOLD,
-    },
-  });
+  const respond = (scanId: string, vision: VisionResult, entries: KbEntry[], corrections: CorrectionRow[] = []): AnalyzeResult => {
+    const confirmed = confirmedFromCorrections(corrections);
+    return {
+      status: 200,
+      body: {
+        scanId,
+        vision,
+        match: matchEntries(vision, confirmed, entries),
+        needsFabricConfirm: hasFabricCorrection(corrections)
+          ? false
+          : vision.fabric_guess.confidence < FABRIC_CONFIRM_THRESHOLD,
+        fabric: confirmed.fabric ?? vision.fabric_guess.value,
+      },
+    };
+  };
 
   let jpeg: Uint8Array;
   try {
@@ -113,7 +127,9 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   const existing = await repo.findByHash(userId, hash);
   if (existing) {
     if (!existing.vision.is_garment) return fail(422, SCAN_ERRORS.notAGarment);
-    return respond(existing.id, existing.vision, await repo.loadReviewedEntries());
+    // Rebuild from the scan's corrections so a re-upload shows what the user already confirmed.
+    const [entries, corrections] = await Promise.all([repo.loadReviewedEntries(), repo.listCorrections(existing.id)]);
+    return respond(existing.id, existing.vision, entries, corrections);
   }
 
   const demo = await repo.isDemo(userId);
@@ -167,6 +183,17 @@ export function toKbEntry(r: Record<string, unknown>): KbEntry {
   };
 }
 
+export async function listCorrectionRows(db: SupabaseClient, scanId: string): Promise<CorrectionRow[]> {
+  const { data, error } = await db.from('corrections').select('field, ai_value, user_value, created_at')
+    .eq('scan_id', scanId).order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    field: r.field as CorrectionRow['field'],
+    aiValue: (r.ai_value as string | null) ?? null,
+    userValue: (r.user_value as string | null) ?? null,
+  }));
+}
+
 export function supabaseScanRepo(): ScanRepo {
   const db = adminClient();
   return {
@@ -213,6 +240,7 @@ export function supabaseScanRepo(): ScanRepo {
       if (error) throw error;
       return (data ?? []).map(toKbEntry);
     },
+    listCorrections: (scanId) => listCorrectionRows(db, scanId),
   };
 }
 

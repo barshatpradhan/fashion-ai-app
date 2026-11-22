@@ -9,5 +9,7 @@ export default defineConfig({
       'server-only': path.resolve(__dirname, 'tests/stubs/server-only.ts'),
     },
   },
-  test: { environment: 'node', include: ['tests/**/*.test.ts'] },
+  // tsconfig keeps jsx: preserve for Next; tests need the automatic runtime transform.
+  oxc: { jsx: { runtime: 'automatic' } },
+  test: { environment: 'node', include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'] },
 });

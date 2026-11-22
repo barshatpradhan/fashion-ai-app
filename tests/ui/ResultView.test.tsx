@@ -1,0 +1,70 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { ResultView, type AnalyzeResponse } from '@/components/ResultView';
+import type { KbEntry } from '@/lib/domain/types';
+import type { VisionResult } from '@/lib/ai/visionSchema';
+
+vi.mock('next/link', () => ({
+  default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a>,
+}));
+
+const recipe = (id: string, difficulty: KbEntry['difficulty'], body: string): KbEntry =>
+  ({ id, kind: 'redesign', title: `Recipe ${id}`, body, tags: [], difficulty, status: 'reviewed' });
+
+const vision: VisionResult = {
+  is_garment: true, garment_type: 'shirt', category: 'top', parts: { collar: 'point-collar' }, pattern: 'stripes',
+  colors: [{ name: 'Navy', hex: '#1f2a44' }], fabric_guess: { value: 'linen', confidence: 0.5, alternatives: ['cotton', 'silk'] },
+  condition_notes: '', visible_techniques: [], tags: [], named_styles: [{ style: 'breton-stripe', confidence: 0.6 }],
+};
+
+const base: AnalyzeResponse = {
+  scanId: 'scan-1', vision, needsFabricConfirm: true, fabric: 'linen',
+  match: {
+    history: [], fabricNotes: [], freeRecipeId: 'a',
+    recipes: [recipe('a', 'beginner', 'Crop it. Then hem.'), recipe('b', 'advanced', 'Rebuild the yoke. Long steps follow.')],
+    styleQuestions: [{ style: 'breton-stripe', confidence: 0.6 }],
+  },
+};
+
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+describe('ResultView', () => {
+  it('renders the hero, swatches, prompts, empty history copy, free and locked recipes', () => {
+    render(<ResultView result={base} heroSrc="blob:x" isCutout isPremium={false} />);
+    expect(screen.getByRole('img', { name: 'Your shirt' })).toBeTruthy();
+    expect(screen.getByText('Navy')).toBeTruthy();
+    expect(screen.getByText('Which fabric is it?')).toBeTruthy();
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Linen', 'Cotton', 'Silk', 'Yes', 'No']);
+    expect(screen.getByText('Is this Breton stripe?')).toBeTruthy();
+    expect(screen.getByText('No verified history for this piece yet.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /open the free guide/i }).getAttribute('href')).toBe('/guide/scan-1/a');
+    const locked = screen.getByRole('article', { name: 'Recipe b (Premium)' });
+    expect(locked.textContent).toContain('Rebuild the yoke.');
+    expect(locked.textContent).not.toContain('Long steps follow.');
+    expect(locked.querySelector('a')).toBeNull();
+  });
+
+  it('premium users get open cards for every recipe', () => {
+    render(<ResultView result={base} heroSrc="blob:x" isCutout isPremium />);
+    expect(screen.getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/guide/scan-1/a', '/guide/scan-1/b']);
+  });
+
+  it('history shows its sources', () => {
+    const h: KbEntry = { id: 'h', kind: 'history', title: 'The Breton shirt', body: 'Navy issue, 1858.', tags: [], status: 'reviewed',
+      sources: [{ citation: 'Museum record', url: 'https://example.org/breton', accessed: '2026-11-01' }] };
+    render(<ResultView result={{ ...base, match: { ...base.match, history: [h] } }} heroSrc="blob:x" isCutout isPremium={false} />);
+    expect(screen.getByRole('link', { name: 'Museum record' }).getAttribute('href')).toBe('https://example.org/breton');
+    expect(screen.queryByText('No verified history for this piece yet.')).toBeNull();
+  });
+
+  it('confirming a fabric posts a correction and hides the prompt', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ match: base.match, needsFabricConfirm: false }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<ResultView result={base} heroSrc="blob:x" isCutout isPremium={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Cotton' }));
+    await waitFor(() => expect(screen.queryByText('Which fabric is it?')).toBeNull());
+    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string))
+      .toEqual({ scanId: 'scan-1', field: 'fabric', value: 'cotton' });
+  });
+});

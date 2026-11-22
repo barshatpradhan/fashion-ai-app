@@ -1,0 +1,155 @@
+'use client';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { browserClient, ensureSession, loadIsPremium } from '@/lib/db/browser';
+import { prepareImage, removeBackground, UnsupportedImageError } from '@/lib/image/prepare';
+import { MESSAGES, messageForError } from '@/lib/ui/messages';
+import { ResultView, type AnalyzeResponse } from '@/components/ResultView';
+import s from '@/components/result.module.css';
+
+const BUCKET = 'garments';
+
+type Phase =
+  | { kind: 'idle' }
+  | { kind: 'working'; step: string }
+  | { kind: 'done'; result: AnalyzeResponse; heroSrc: string; isCutout: boolean };
+
+class ApiError extends Error {}
+
+export default function ScanPage() {
+  const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
+  const [error, setError] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const objectUrl = useRef<string | null>(null);
+
+  // Anonymous start: no sign-up wall. Premium defaults to free until the profile says otherwise.
+  useEffect(() => {
+    let alive = true;
+    ensureSession()
+      .then((uid) => loadIsPremium(uid))
+      .then((p) => alive && setIsPremium(p))
+      .catch((err) => console.warn('session start failed', err));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => () => {
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+  }, []);
+
+  function setHero(blob: Blob): string {
+    if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+    objectUrl.current = URL.createObjectURL(blob);
+    return objectUrl.current;
+  }
+
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow picking the same file again
+    if (!file) return;
+    setError(null);
+    try {
+      setPhase({ kind: 'working', step: 'Preparing your photo' });
+      const userId = await ensureSession();
+      const prepared = await prepareImage(file);
+
+      setPhase({ kind: 'working', step: 'Lifting the garment from the background' });
+      const cutout = await removeBackground(prepared.jpeg);
+
+      setPhase({ kind: 'working', step: 'Uploading' });
+      const storage = browserClient().storage.from(BUCKET);
+      const id = crypto.randomUUID();
+      const imagePath = `${userId}/${id}.jpg`;
+      const up = await storage.upload(imagePath, prepared.jpeg, { contentType: 'image/jpeg', upsert: false });
+      if (up.error) throw new ApiError('image_not_found');
+      // Without a cut-out the original stands in, so no second upload is needed.
+      let cutoutPath = imagePath;
+      if (cutout) {
+        const p = `${userId}/${id}-cutout.png`;
+        const upCut = await storage.upload(p, cutout, { contentType: 'image/png', upsert: false });
+        if (!upCut.error) cutoutPath = p;
+      }
+
+      setPhase({ kind: 'working', step: 'Reading the garment' });
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ imagePath, cutoutPath, imageHash: prepared.hash }),
+      });
+      const json = (await res.json().catch(() => ({}))) as Partial<AnalyzeResponse> & { error?: string };
+      if (!res.ok || !json.scanId || !json.vision || !json.match) throw new ApiError(json.error ?? 'server_error');
+
+      const usedCutout = cutoutPath !== imagePath && cutout !== null;
+      const heroSrc = setHero(usedCutout ? cutout : prepared.jpeg);
+      setPhase({ kind: 'done', result: json as AnalyzeResponse, heroSrc, isCutout: usedCutout });
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      console.error('scan failed', err);
+      setError(
+        err instanceof UnsupportedImageError
+          ? MESSAGES.unsupportedFormat
+          : messageForError(err instanceof ApiError ? err.message : null),
+      );
+      setPhase({ kind: 'idle' });
+    }
+  }
+
+  const working = phase.kind === 'working';
+
+  const upload = (label: string, ghost = false) => (
+    <div className={s.upload}>
+      <input
+        id="garment-photo"
+        className={s.fileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+        onChange={onFile}
+        disabled={working}
+      />
+      <label htmlFor="garment-photo" className={`${s.button} ${ghost ? s.ghost : ''}`} aria-disabled={working}>
+        {label}
+      </label>
+      <p className={s.hint}>Photograph the garment only, no faces, please.</p>
+    </div>
+  );
+
+  return (
+    <main className={s.page}>
+      <p className={s.brand}>Revivo</p>
+
+      {phase.kind === 'done' ? (
+        <>
+          <ResultView
+            key={phase.result.scanId}
+            result={phase.result}
+            heroSrc={phase.heroSrc}
+            isCutout={phase.isCutout}
+            isPremium={isPremium}
+          />
+          <div className={s.again}>{upload('Scan another garment', true)}</div>
+        </>
+      ) : (
+        <section aria-labelledby="scan-title">
+          <p className={s.eyebrow}>Scan</p>
+          <h1 id="scan-title" className={s.title}>Every garment has a second life.</h1>
+          <p className={s.lede}>
+            Lay the piece flat or hang it in good light. We will read its fabric, its story and what it could become.
+          </p>
+          {upload('Upload a photo')}
+        </section>
+      )}
+
+      {working ? (
+        <p className={s.status} role="status" aria-live="polite">
+          <span className={s.pulse} aria-hidden="true" />
+          {phase.step}…
+        </p>
+      ) : null}
+      {error ? (
+        <p className={s.error} role="alert">
+          {error}
+        </p>
+      ) : null}
+    </main>
+  );
+}
