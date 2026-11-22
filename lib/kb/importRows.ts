@@ -24,19 +24,36 @@ export function parseKbCsv(text: string): KbCsvRow[] {
 
 type Source = { citation: string; url: string; accessed: string };
 
+/** Shape check for an already-parsed sources value. Null when fine. */
+export function sourcesShapeError(v: unknown): string | null {
+  if (!Array.isArray(v)) return 'sources must be a JSON array';
+  for (const [i, s] of v.entries()) {
+    const o = s as Partial<Source> | null;
+    if (!o || typeof o.citation !== 'string' || !o.citation.trim()) return `sources[${i}] needs a citation`;
+    if (typeof o.accessed !== 'string' || !o.accessed.trim()) return `sources[${i}] needs an accessed date`;
+    if (typeof o.url !== 'string' || !/^https?:\/\/\S+$/i.test(o.url)) return `sources[${i}] needs an http(s) url`;
+  }
+  return null;
+}
+
+/** Tag rules shared by import and review. */
+export function tagErrors(kind: string, tags: string[]): string[] {
+  const errors: string[] = [];
+  for (const t of tags) {
+    if (t !== t.toLowerCase()) errors.push(`tag "${t}" must be lowercase`);
+    else if (!allowed.has(t)) errors.push(`tag "${t}" is not in the vocabulary`);
+    else if (kind === 'history' && !named.has(t)) errors.push(`history tag "${t}" must be a Named Style`);
+  }
+  return errors;
+}
+
 /** Returns the parsed sources, or an error string. */
 function parseSources(raw: string): { sources: Source[] } | { error: string } {
   if (!raw.trim()) return { sources: [] };
   let v: unknown;
   try { v = JSON.parse(raw); } catch { return { error: 'sources is not valid JSON' }; }
-  if (!Array.isArray(v)) return { error: 'sources must be a JSON array' };
-  for (const [i, s] of v.entries()) {
-    const o = s as Partial<Source> | null;
-    if (!o || typeof o.citation !== 'string' || !o.citation.trim()) return { error: `sources[${i}] needs a citation` };
-    if (typeof o.accessed !== 'string' || !o.accessed.trim()) return { error: `sources[${i}] needs an accessed date` };
-    if (typeof o.url !== 'string' || !/^https?:\/\/\S+$/i.test(o.url)) return { error: `sources[${i}] needs an http(s) url` };
-  }
-  return { sources: v as Source[] };
+  const err = sourcesShapeError(v);
+  return err ? { error: err } : { sources: v as Source[] };
 }
 
 export function validateRow(row: KbCsvRow): string[] {
@@ -45,11 +62,7 @@ export function validateRow(row: KbCsvRow): string[] {
   if (!row.title.trim()) errors.push('title is required');
   if (!KINDS.includes(row.kind)) errors.push(`kind must be one of ${KINDS.join('|')} (got "${row.kind}")`);
 
-  for (const t of splitList(row.tags)) {
-    if (t !== t.toLowerCase()) errors.push(`tag "${t}" must be lowercase`);
-    else if (!allowed.has(t)) errors.push(`tag "${t}" is not in the vocabulary`);
-    else if (row.kind === 'history' && !named.has(t)) errors.push(`history tag "${t}" must be a Named Style`);
-  }
+  errors.push(...tagErrors(row.kind, splitList(row.tags)));
 
   if (row.kind === 'redesign') {
     if (!DIFFICULTIES.includes(row.difficulty)) errors.push(`redesign difficulty must be one of ${DIFFICULTIES.join('|')}`);
@@ -82,11 +95,26 @@ export function toDbRow(row: KbCsvRow) {
   };
 }
 
-/** Validates every row first; writes nothing if any row is bad. */
-export async function importRows(
-  rows: KbCsvRow[],
-  upsert: (dbRows: ReturnType<typeof toDbRow>[]) => Promise<void>,
-): Promise<number> {
+export type DbRow = ReturnType<typeof toDbRow>;
+export type StoredRow = Partial<Omit<DbRow, 'status'>> & { slug: string };
+
+const norm = (r: Partial<DbRow>) => JSON.stringify([
+  r.kind ?? null, r.title ?? null, r.body ?? null, r.tags ?? [], r.difficulty ?? null, r.tools ?? null,
+  r.steps ?? null,
+  Array.isArray(r.sources) ? r.sources.map((x) => [x.citation, x.url, x.accessed]) : null,
+]);
+
+export type ImportIo = {
+  fetchExisting: (slugs: string[]) => Promise<StoredRow[]>;
+  upsert: (dbRows: (DbRow & { reviewed_by: null })[]) => Promise<void>;
+};
+export type ImportResult = { inserted: number; updated: number; unchanged: number };
+
+/**
+ * Validates every row first; writes nothing if any row is bad. Unchanged rows are skipped so
+ * reviewed rows stay reviewed. New and changed rows are written as draft with reviewed_by cleared.
+ */
+export async function importRows(rows: KbCsvRow[], io: ImportIo): Promise<ImportResult> {
   const problems: string[] = [];
   const seen = new Set<string>();
   for (const r of rows) {
@@ -95,15 +123,31 @@ export async function importRows(
     for (const e of validateRow(r)) problems.push(`${r.id || '(no id)'}: ${e}`);
   }
   if (problems.length) throw new Error(`KB import refused:\n${problems.join('\n')}`);
-  await upsert(rows.map(toDbRow));
-  return rows.length;
+
+  const incoming = rows.map(toDbRow);
+  const existing = new Map((await io.fetchExisting(incoming.map((r) => r.slug))).map((e) => [e.slug, e]));
+  const toWrite: (DbRow & { reviewed_by: null })[] = [];
+  let inserted = 0, updated = 0, unchanged = 0;
+  for (const r of incoming) {
+    const old = existing.get(r.slug);
+    if (!old) inserted++;
+    else if (norm(old) === norm(r)) { unchanged++; continue; }
+    else updated++;
+    toWrite.push({ ...r, reviewed_by: null });
+  }
+  if (toWrite.length) await io.upsert(toWrite);
+  return { inserted, updated, unchanged };
 }
 
-/** Why a row may not be marked reviewed, or null if it may. */
-export function reviewBlocker(entry: { kind: string; sources: unknown } | null): string | null {
+/** Why a row may not be marked reviewed, or null if it may. Re-checks the stored row. */
+export function reviewBlocker(entry: { kind: string; tags?: string[] | null; sources: unknown } | null): string | null {
   if (!entry) return 'unknown slug';
-  if (entry.kind === 'history') {
-    if (!Array.isArray(entry.sources) || entry.sources.length === 0) return 'history entry has no sources; add a verifiable source or drop the entry';
+  const problems = tagErrors(entry.kind, entry.tags ?? []);
+  if (entry.kind === 'history' && (!Array.isArray(entry.sources) || entry.sources.length === 0)) {
+    problems.push('history entry has no sources; add a verifiable source or drop the entry');
+  } else if (entry.sources != null) {
+    const e = sourcesShapeError(entry.sources);
+    if (e) problems.push(e);
   }
-  return null;
+  return problems.length ? problems.join('; ') : null;
 }

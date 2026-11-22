@@ -4,7 +4,7 @@ This is the team's curated, source-cited content. Every history claim in the app
 
 ## Editing
 
-Edit `entries.csv` in a spreadsheet or text editor, then import it. Importing always writes rows as `draft`; it never changes `reviewed_by`. Re-importing a row with the same `id` updates it instead of duplicating it. The whole file is validated first, and nothing is written if any row is invalid.
+Edit `entries.csv` in a spreadsheet or text editor, then import it. Re-importing matches rows by `id`. Unchanged rows are skipped, so reviewed rows stay reviewed. A new row is inserted as `draft`. A changed row is updated and reset to `draft` with `reviewed_by` cleared, so it needs review again. The import prints inserted / updated / unchanged counts. The whole file is validated first, and nothing is written if any row is invalid.
 
 Rows titled `[DEV] ...` are development placeholders, not real content. Do not review them.
 
@@ -30,7 +30,7 @@ npm run kb:import                                  # upsert content/kb/entries.c
 npm run kb:review -- <id> "<reviewer name>"        # mark one row reviewed
 ```
 
-Both need the Supabase service credentials in the environment. `kb:review` refuses an unknown id and refuses a `history` row without sources. Check each source link yourself before reviewing.
+Both need the Supabase service credentials in the environment. `kb:review` re-validates the stored row: it refuses an unknown id, a history row without sources, a malformed source (needs citation, accessed date, http(s) url), and a history tag that is not a Named Style. Check each source link yourself before reviewing.
 
 ## Rule: unverifiable sources
 

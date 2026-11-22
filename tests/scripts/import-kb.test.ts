@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { parseKbCsv, validateRow, toDbRow, importRows, type KbCsvRow } from '@/lib/kb/importRows';
+import { parseKbCsv, validateRow, toDbRow, importRows, reviewBlocker, type KbCsvRow, type StoredRow } from '@/lib/kb/importRows';
 
 const SRC = JSON.stringify([{ citation: 'Example', url: 'https://example.org/x', accessed: '2026-11-22' }]);
 const HEADER = 'id,kind,title,body,tags,difficulty,tools,steps,sources';
@@ -58,10 +58,9 @@ describe('validateRow', () => {
 });
 
 describe('toDbRow', () => {
-  it('always writes draft and never reviewed_by', () => {
+  it('writes draft status', () => {
     const d = toDbRow(row({ kind: 'redesign', tags: 'shirt', difficulty: 'beginner', tools: 'a|b', steps: 'x|y', sources: '' }));
     expect(d.status).toBe('draft');
-    expect('reviewed_by' in d).toBe(false);
     expect(d.slug).toBe('h-1');
     expect(d.tags).toEqual(['shirt']);
     expect(d.steps).toEqual(['x', 'y']);
@@ -69,27 +68,68 @@ describe('toDbRow', () => {
   });
 });
 
-describe('importRows', () => {
-  it('upserts by slug so re-importing does not duplicate', async () => {
-    const store = new Map<string, Record<string, unknown>>();
-    const upsert = async (rows: Record<string, unknown>[]) => {
+function fakeDb() {
+  const store = new Map<string, Record<string, unknown>>();
+  const io = {
+    fetchExisting: async (slugs: string[]) => slugs.filter((s) => store.has(s)).map((s) => store.get(s) as unknown as StoredRow),
+    upsert: async (rows: Record<string, unknown>[]) => {
       for (const r of rows) store.set(r.slug as string, { ...store.get(r.slug as string), ...r });
-    };
-    const rows = [row(), row({ id: 'h-2' })];
-    await importRows(rows, upsert);
-    await importRows([row({ title: 'Changed' })], upsert);
+    },
+  };
+  return { store, io };
+}
+
+describe('importRows', () => {
+  it('inserts new rows as draft and re-import updates without duplicating', async () => {
+    const { store, io } = fakeDb();
+    expect(await importRows([row(), row({ id: 'h-2' })], io)).toEqual({ inserted: 2, updated: 0, unchanged: 0 });
+    expect(await importRows([row({ title: 'Changed' })], io)).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
     expect(store.size).toBe(2);
     expect(store.get('h-1')!.title).toBe('Changed');
     expect([...store.values()].every((r) => r.status === 'draft')).toBe(true);
   });
+  it('skips unchanged rows and keeps them reviewed', async () => {
+    const { store, io } = fakeDb();
+    await importRows([row()], io);
+    store.set('h-1', { ...store.get('h-1'), status: 'reviewed', reviewed_by: 'Ana' });
+    const r = await importRows([row(), row({ id: 'h-2' })], io);
+    expect(r).toEqual({ inserted: 1, updated: 0, unchanged: 1 });
+    expect(store.get('h-1')).toMatchObject({ status: 'reviewed', reviewed_by: 'Ana' });
+    expect(store.get('h-2')).toMatchObject({ status: 'draft', reviewed_by: null });
+  });
+  it('a changed row goes back to draft and loses its reviewer', async () => {
+    const { store, io } = fakeDb();
+    await importRows([row()], io);
+    store.set('h-1', { ...store.get('h-1'), status: 'reviewed', reviewed_by: 'Ana' });
+    await importRows([row({ body: 'New body' })], io);
+    expect(store.get('h-1')).toMatchObject({ status: 'draft', reviewed_by: null, body: 'New body' });
+  });
   it('refuses the whole import when any row is invalid and writes nothing', async () => {
-    let called = false;
-    await expect(importRows([row(), row({ id: 'bad', sources: '' })], async () => { called = true; })).rejects.toThrow(/bad/);
-    expect(called).toBe(false);
+    const { store, io } = fakeDb();
+    await expect(importRows([row(), row({ id: 'bad', sources: '' })], io)).rejects.toThrow(/bad/);
+    expect(store.size).toBe(0);
   });
   it('rejects duplicate ids within the file', async () => {
-    await expect(importRows([row(), row()], async () => {})).rejects.toThrow(/duplicate/i);
+    await expect(importRows([row(), row()], fakeDb().io)).rejects.toThrow(/duplicate/i);
   });
+});
+
+describe('reviewBlocker', () => {
+  const good = [{ citation: 'C', url: 'https://a.org/x', accessed: '2026-11-22' }];
+  it('blocks an unknown slug', () => expect(reviewBlocker(null)).toMatch(/unknown slug/));
+  it('blocks history with null or empty sources', () => {
+    expect(reviewBlocker({ kind: 'history', tags: ['breton-stripe'], sources: null })).toMatch(/no sources/);
+    expect(reviewBlocker({ kind: 'history', tags: ['breton-stripe'], sources: [] })).toMatch(/no sources/);
+  });
+  it('blocks malformed sources', () => {
+    expect(reviewBlocker({ kind: 'history', tags: ['breton-stripe'], sources: [{ citation: 'C', url: 'ftp://a', accessed: 'd' }] })).toMatch(/http/);
+    expect(reviewBlocker({ kind: 'history', tags: ['breton-stripe'], sources: [{ url: 'https://a.org', accessed: 'd' }] })).toMatch(/citation/);
+  });
+  it('blocks a history tag that is not a Named Style', () => {
+    expect(reviewBlocker({ kind: 'history', tags: ['cotton'], sources: good })).toMatch(/Named Style/);
+  });
+  it('allows a valid history row', () => expect(reviewBlocker({ kind: 'history', tags: ['breton-stripe'], sources: good })).toBeNull());
+  it('allows a redesign row without sources', () => expect(reviewBlocker({ kind: 'redesign', tags: ['shirt'], sources: null })).toBeNull());
 });
 
 describe('content/kb/entries.csv', () => {

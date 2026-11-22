@@ -5,7 +5,7 @@ async function main() {
   const [slug, reviewer] = process.argv.slice(2);
   if (!slug || !reviewer?.trim()) throw new Error('Usage: npm run kb:review -- <slug> "<reviewer name>"');
   const db = adminClient();
-  const { data, error } = await db.from('kb_entries').select('kind, sources').eq('slug', slug).maybeSingle();
+  const { data, error } = await db.from('kb_entries').select('kind, tags, sources').eq('slug', slug).maybeSingle();
   if (error) throw new Error(error.message);
   const blocker = reviewBlocker(data);
   if (blocker) throw new Error(`Refusing to review "${slug}": ${blocker}`);
