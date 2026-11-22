@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { getEnv } from '@/lib/env';
+import { getEnvFor } from '@/lib/env';
 import { mapSdkError } from '@/lib/ai/errors';
 
 export const GEMINI_VISION_MODEL = 'gemini-2.5-flash';
@@ -7,7 +7,7 @@ export const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
 export const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
 export function geminiClient(): GoogleGenAI {
-  return new GoogleGenAI({ apiKey: getEnv().GEMINI_API_KEY });
+  return new GoogleGenAI({ apiKey: getEnvFor(['GEMINI_API_KEY']).GEMINI_API_KEY });
 }
 
 type GenerateParams = Parameters<GoogleGenAI['models']['generateContent']>[0];

@@ -5,14 +5,14 @@
  * image hash the browser produces), then run this. Calls the service functions directly (not HTTP) as
  * the demo user, so demo_cache is populated. Needs DEMO_USER_ID and real AI keys.
  */
-import { getEnv } from '@/lib/env';
+import { getEnvFor } from '@/lib/env';
 import { adminClient } from '@/lib/db/admin';
 import { runAnalyze, defaultAnalyzeDeps } from '@/lib/db/scans';
 import { runGuide, runRender, defaultGuideDeps } from '@/lib/db/guides';
 import { pickGarmentScans, scanArg, summaryLine } from '@/lib/demo/prescan';
 
 async function main() {
-  const userId = getEnv().DEMO_USER_ID;
+  const userId = getEnvFor(['DEMO_USER_ID']).DEMO_USER_ID;
   const only = scanArg(process.argv);
   const { data, error } = await adminClient().from('scans').select('id, image_path, cutout_path, vision_json')
     .eq('user_id', userId).order('created_at', { ascending: true });

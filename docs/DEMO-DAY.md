@@ -1,6 +1,6 @@
 # REVIVO demo-day checklist
 
-Plain-language guide for the presenter. Work top to bottom. Commands are run in a terminal inside the project folder.
+Plain-language guide for the presenter. Work top to bottom. Commands are run in a terminal inside the project folder. The `npm run` scripts read `.env.local` themselves.
 
 ## 1. One-time setup
 
@@ -22,8 +22,8 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    - `CRON_SECRET` (optional): a long random string. If set, the keep-alive job requires it (Vercel sends it automatically); if left unset, the job needs no auth.
    - `AI_TIMEOUT_MS=20000` (leave as is)
    - `DEMO_USER_ID`: filled in the next step.
-7. **Create the demo account**: run `npm run seed:demo`. It prints a `DEMO_USER_ID`; copy it into `.env.local` (and later into Vercel). The demo user is created with the email `demo@revivo.local`, which `/demo` needs to sign you in. Optional: `npm run seed:demo -- --photos <folder>`.
-8. **Check the security rules once**: run `npm run test:smoke`. It should pass. If it fails, stop and fix before going on.
+7. **Create the demo account**: run `npm run seed:demo` (it only needs the Supabase variables; `DEMO_USER_ID` may still be blank). It prints a `DEMO_USER_ID`; copy it into `.env.local` (and later into Vercel). The demo user is created with the email `demo@revivo.local`, which `/demo` needs to sign you in. Optional: `npm run seed:demo -- --photos <folder>`.
+8. **Check the security rules once**: run `npm run test:smoke`. It reads `.env.local` and should pass. It **fails** (never skips) if the Supabase variables are missing; if it fails, stop and fix before going on.
 9. **Deploy to Vercel (the owner does this)**: import the repo, set the same env vars from `.env.local`, with `IMAGE_PROVIDER=gemini`. `vercel.json` already schedules the daily keep-alive job (`/api/cron/keepalive`, 06:00 UTC).
 
 ## 2. Knowledge base

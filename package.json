@@ -8,10 +8,10 @@
     "start": "next start",
     "test": "vitest run",
     "test:smoke": "vitest run --config vitest.smoke.config.ts",
-    "kb:import": "tsx --conditions=react-server scripts/import-kb.ts",
-    "kb:review": "tsx --conditions=react-server scripts/review-kb.ts",
-    "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
-    "prescan": "tsx --conditions=react-server scripts/prescan.ts"
+    "kb:import": "tsx --env-file=.env.local --conditions=react-server scripts/import-kb.ts",
+    "kb:review": "tsx --env-file=.env.local --conditions=react-server scripts/review-kb.ts",
+    "seed:demo": "tsx --env-file=.env.local --conditions=react-server scripts/seed-demo.ts",
+    "prescan": "tsx --env-file=.env.local --conditions=react-server scripts/prescan.ts"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",

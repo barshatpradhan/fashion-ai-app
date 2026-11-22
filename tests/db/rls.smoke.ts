@@ -5,7 +5,10 @@ const url = process.env.SUPABASE_URL;
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anon = process.env.SUPABASE_ANON_KEY;
 
-describe.skipIf(!url || !service || !anon)('RLS smoke (live Supabase)', () => {
+// Never skip silently: vitest.smoke.config.ts loads .env.local and refuses to run without these.
+if (!url || !service || !anon) throw new Error('RLS smoke needs SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY');
+
+describe('RLS smoke (live Supabase)', () => {
   const mk = (key: string) =>
     createClient(url!, key, { auth: { persistSession: false, autoRefreshToken: false } });
   let admin: SupabaseClient;

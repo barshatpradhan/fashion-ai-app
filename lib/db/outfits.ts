@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { adminClient } from '@/lib/db/admin';
-import { getEnv } from '@/lib/env';
+import { getEnvFor } from '@/lib/env';
 import { withGuard } from '@/lib/ai/guard';
 import { AiBadOutputError } from '@/lib/ai/errors';
 import { styleLooks } from '@/lib/ai/writer';
@@ -207,7 +207,7 @@ export function defaultOutfitDeps(): OutfitDeps {
     refund: (receipt) => refundCredit(receipt, credits),
     style: styleLooks,
     guard: withGuard,
-    timeoutMs: getEnv().AI_TIMEOUT_MS,
+    timeoutMs: getEnvFor(['AI_TIMEOUT_MS']).AI_TIMEOUT_MS,
     now: () => new Date(),
   };
 }

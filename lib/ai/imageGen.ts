@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getEnv } from '@/lib/env';
+import { getEnvFor } from '@/lib/env';
 import { geminiGenerate, GEMINI_IMAGE_MODEL } from '@/lib/ai/gemini';
 import { AiBadOutputError, mapSdkError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
@@ -14,7 +14,7 @@ Show only the redesigned garment as a clean product cut-out on a plain off-white
 
 export async function generateConceptImage(v: VisionResult, recipe: KbEntry): Promise<Uint8Array> {
   const prompt = conceptPrompt(v, recipe);
-  const e = getEnv();
+  const e = getEnvFor(['IMAGE_PROVIDER', 'OPENAI_API_KEY']);
   if (e.IMAGE_PROVIDER === 'openai') {
     let b64: string | undefined;
     try {

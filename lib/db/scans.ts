@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { adminClient } from '@/lib/db/admin';
-import { getEnv } from '@/lib/env';
+import { getEnvFor } from '@/lib/env';
 import { analyzeImage } from '@/lib/ai/vision';
 import { GEMINI_VISION_MODEL } from '@/lib/ai/gemini';
 import { withGuard } from '@/lib/ai/guard';
@@ -289,6 +289,6 @@ export function supabaseScanRepo(): ScanRepo {
 export function defaultAnalyzeDeps(): AnalyzeDeps {
   return {
     repo: supabaseScanRepo(), analyze: analyzeImage, now: () => new Date(),
-    timeoutMs: getEnv().AI_TIMEOUT_MS, guard: withGuard,
+    timeoutMs: getEnvFor(['AI_TIMEOUT_MS']).AI_TIMEOUT_MS, guard: withGuard,
   };
 }

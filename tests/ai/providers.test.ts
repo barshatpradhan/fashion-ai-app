@@ -21,7 +21,7 @@ vi.mock('openai', () => ({
     images = { generate: h.openaiGen };
   },
 }));
-vi.mock('@/lib/env', () => ({ getEnv: () => h.env }));
+vi.mock('@/lib/env', () => ({ getEnv: () => h.env, getEnvFor: () => h.env }));
 vi.mock('@/lib/db/admin', () => ({ adminClient: vi.fn() }));
 
 import { analyzeImage } from '@/lib/ai/vision';
