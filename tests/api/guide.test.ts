@@ -65,9 +65,15 @@ describe('runGuide', () => {
     expect((await runGuide(U, { scanId: SID, recipeId: 'r-other' }, deps)).status).toBe(200);
   });
 
-  it('demo user: 200 for any matched recipe', async () => {
-    const { deps } = setup({ demo: true });
+  it('demo user on Premium: 200 for any matched recipe', async () => {
+    const { deps } = setup({ demo: true, premium: true });
     expect((await runGuide(U, { scanId: SID, recipeId: 'r-other' }, deps)).status).toBe(200);
+  });
+
+  it('demo user switched to Free: 402 for a locked recipe, 200 for the free one', async () => {
+    const { deps } = setup({ demo: true, premium: false });
+    expect((await runGuide(U, { scanId: SID, recipeId: 'r-other' }, deps)).status).toBe(402);
+    expect((await free(deps)).status).toBe(200);
   });
 
   it('recipe not in the scan matches: 404', async () => {

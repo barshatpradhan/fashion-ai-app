@@ -1,7 +1,7 @@
 import 'server-only';
 import { adminClient } from '@/lib/db/admin';
 import { adminCreditRepo, type CreditRepo } from '@/lib/db/credits';
-import { peek } from '@/lib/domain/allowance';
+import { peek, displayTier as display } from '@/lib/domain/allowance';
 import { PRICE_LABEL } from '@/lib/db/premium';
 import { sortActivity, type ActivityView } from '@/lib/ui/profile';
 import type { AllowanceOut } from '@/lib/db/closet';
@@ -37,7 +37,7 @@ export async function loadProfile(
   }));
   return {
     isPremium: up.tier.premium, isDemo: up.tier.exempt, price: PRICE_LABEL,
-    allowance: { uploads: out(peek(up.state, now, up.tier)), looks: out(peek(look.state, now, look.tier)) },
+    allowance: { uploads: out(peek(up.state, now, display(up.tier))), looks: out(peek(look.state, now, display(look.tier))) },
     activity,
   };
 }

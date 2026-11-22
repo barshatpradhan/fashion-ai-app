@@ -77,13 +77,16 @@ export type AnalyzeResult =
 
 const fail = (status: 400 | 422 | 429 | 503, error: string): AnalyzeResult => ({ status, body: { error } });
 
-/** Premium and demo users see every Recipe in full; everyone else only the free one. */
+/**
+ * Premium users see every Recipe in full; everyone else only the free one. Recipe access follows
+ * is_premium ONLY: the demo account is seeded Premium and its Free/Premium switch flips is_premium, so
+ * the presenter can show locked Recipes live (§6.6 rule 10). Demo exemption covers limits, not access.
+ */
 export async function hasFullRecipeAccess(
-  repo: { isDemo(u: string): Promise<boolean>; isPremium(u: string): Promise<boolean> },
+  repo: { isPremium(u: string): Promise<boolean> },
   userId: string,
 ): Promise<boolean> {
-  const [demo, premium] = await Promise.all([repo.isDemo(userId), repo.isPremium(userId)]);
-  return demo || premium;
+  return repo.isPremium(userId);
 }
 
 /** Score = rank position (best first) within each list; an entry keeps its best score. */

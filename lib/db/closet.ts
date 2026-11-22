@@ -6,7 +6,7 @@ import {
   type CreditRepo, type SpendReceipt,
 } from '@/lib/db/credits';
 import { resolveGuide, isFail, supabaseGuideRepo, GUIDE_ERRORS } from '@/lib/db/guides';
-import { peek } from '@/lib/domain/allowance';
+import { peek, displayTier as display } from '@/lib/domain/allowance';
 import { confirmedFromCorrections, type CorrectionRow } from '@/lib/domain/corrections';
 import { FABRICS, GENERIC_TAGS, NAMED_STYLES } from '@/lib/domain/vocabulary';
 import type { VisionResult } from '@/lib/ai/visionSchema';
@@ -353,7 +353,7 @@ export async function loadCloset(
         status: g.status, isUpcycled: g.sourceGarmentId !== null, scanId: g.scanId, recipeId: g.recipeId,
         createdAt: g.createdAt, imageUrl: g.cutoutPath ? urls[g.cutoutPath] ?? null : null,
       })),
-      allowance: { uploads: out(peek(up.state, now, up.tier)), looks: out(peek(look.state, now, look.tier)) },
+      allowance: { uploads: out(peek(up.state, now, display(up.tier))), looks: out(peek(look.state, now, display(look.tier))) },
     },
   };
 }

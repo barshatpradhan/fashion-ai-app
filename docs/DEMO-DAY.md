@@ -53,7 +53,7 @@ Order, with what to say or point at:
 2. **Result** - Point at the detected garment, fabric and named style.
 3. **Free Recipe Guide** - Open the free recipe: step-by-step redesign with tools and difficulty, plus the sourced history.
 4. **Story Card** - Show the shareable card for the piece.
-5. **Free/Premium switch** (hidden, on the Profile page) - Before the demo, open **Profile** in the nav (`/profile`) and tap **Free** (under "Flip this account between Free and Premium to show both experiences"). Back on the result screen, point at the locked Recipe cards (marked "Premium", no link) and the allowance counters. Then tap **Upgrade to Premium · $7.99/month** on `/profile` (or **Premium** in the same switch) to unlock everything. If you open a locked guide instead, its page says "This guide is part of Premium" with an **Upgrade · $7.99/month** button.
+5. **Free/Premium switch** (hidden, on the Profile page) - Before the demo, open **Profile** in the nav (`/profile`) and tap **Free** (under "Flip this account between Free and Premium to show both experiences"). Back on the result screen, point at the locked Recipe cards (marked "Premium", no link). The Upload and Look allowance counters are on **Closet** (`/closet`), **Looks** (`/looks`) and **Profile** (`/profile`), not on the result screen; on Free they show the real free counts (the demo account is still never blocked). Then tap **Upgrade to Premium · $7.99/month** on `/profile` (or **Premium** in the same switch) to unlock everything. If you open a locked guide instead, its page says "This guide is part of Premium" with an **Upgrade · $7.99/month** button.
 6. **Closet** - Show the saved pieces.
 7. **Style me** - Generate outfits from the closet.
 

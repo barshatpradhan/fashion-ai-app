@@ -276,9 +276,15 @@ describe('runAnalyze', () => {
       expect(m.recipes.find((r) => r.id === 'r-pro')).not.toHaveProperty('steps');
     });
 
-    it.each([{ premium: true }, { demo: true }])('%o: every recipe is complete', async (opts) => {
+    it.each([{ premium: true }, { premium: true, demo: true }])('%o: every recipe is complete', async (opts) => {
       const m = recipesOf(await runAnalyze(U, body, setup({ entries, ...opts }).deps));
       expect(m.recipes).toEqual(entries);
+    });
+
+    it('demo user switched to Free: locked recipes are redacted (the switch is visible)', async () => {
+      const m = recipesOf(await runAnalyze(U, body, setup({ entries, demo: true, premium: false }).deps));
+      expect(m.recipes.find((r) => r.id === 'r-pro')).not.toHaveProperty('steps');
+      expect(m.recipes.find((r) => r.id === 'r-pro')).toHaveProperty('teaser');
     });
   });
 });

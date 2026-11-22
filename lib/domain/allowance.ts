@@ -20,6 +20,14 @@ function nextRefill(s: AllowanceState, now: Date): Date {
   return new Date(base.getTime() + (periods(s, now) + 1) * REFILL_MS);
 }
 
+/**
+ * Tier for DISPLAYING an allowance. The demo account's exemption applies to spending and the scan cap
+ * only, so a demo user switched to Free sees the real free counters (§6.6 rule 10); spends still never block.
+ */
+export function displayTier(t: Tier): Tier {
+  return { premium: t.premium, exempt: false };
+}
+
 export function peek(
   s: AllowanceState, now: Date, t: Tier,
 ): { remaining: number | 'unlimited'; nextCreditAt: Date | null } {

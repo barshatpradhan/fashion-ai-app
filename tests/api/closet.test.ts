@@ -420,4 +420,11 @@ describe('GET closet', () => {
     const r = await loadCloset(U, w.deps);
     expect(r.body.allowance.uploads).toEqual({ remaining: 'unlimited', nextCreditAt: null });
   });
+
+  it('demo user switched to Free sees real counters (exempt only from spending)', async () => {
+    const w = world({ profile: { demo: true, premium: false, upload: { freeUsed: 3, credits: 0, refillAt: null } } });
+    const r = await loadCloset(U, w.deps);
+    expect(r.body.allowance.uploads).toEqual({ remaining: 7, nextCreditAt: null });
+    expect(r.body.allowance.looks).toEqual({ remaining: 10, nextCreditAt: null });
+  });
 });

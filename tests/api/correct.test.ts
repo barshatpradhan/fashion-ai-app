@@ -202,7 +202,12 @@ describe('runCorrect recipe redaction', () => {
     expect(JSON.stringify(m.recipes.find((r) => r.id === 'r-pro'))).not.toContain('Secret detail');
   });
 
-  it.each([{ premium: true }, { demo: true }])('%o: every recipe is complete', async (opts) => {
+  it('demo user switched to Free: locked recipes stay redacted', async () => {
+    const m = await call({ demo: true, premium: false });
+    expect(m.recipes.find((r) => r.id === 'r-pro')).not.toHaveProperty('steps');
+  });
+
+  it.each([{ premium: true }, { premium: true, demo: true }])('%o: every recipe is complete', async (opts) => {
     const m = await call(opts);
     const pro = m.recipes.find((r) => r.id === 'r-pro')!;
     expect(pro.body).toBe('First step for r-pro. Secret detail.');
