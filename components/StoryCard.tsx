@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { humanize } from '@/lib/ui/result';
 import c from '@/components/story.module.css';
+/** How long the download's Blob URL stays alive after click() (iOS Safari reads it asynchronously). */const REVOKE_DELAY_MS = 30_000;
 
 export type StorySource = { citation: string; url: string };
 export type StoryCardData = {
@@ -43,7 +44,11 @@ export function StoryCard(d: StoryCardData) {
       console.error('story card failed', err);
       setError("Couldn't create the image. Please try again.");
     } finally {
-      if (url) URL.revokeObjectURL(url);
+      // Deferred: iOS Safari reads the Blob after click() returns, so revoking at once breaks the download.
+      if (url) {
+        const toRevoke = url;
+        setTimeout(() => URL.revokeObjectURL(toRevoke), REVOKE_DELAY_MS);
+      }
       setBusy(false);
     }
   }

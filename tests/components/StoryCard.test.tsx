@@ -43,10 +43,17 @@ describe('StoryCard', () => {
     const create = vi.fn(() => 'blob:abc'); const revoke = vi.fn();
     Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke });
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const timers = vi.spyOn(globalThis, 'setTimeout');
     render(<StoryCard {...data()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Download' }));
-    await waitFor(() => expect(revoke).toHaveBeenCalledWith('blob:abc'));
-    expect(click).toHaveBeenCalled();
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    // iOS Safari reads the Blob after click() returns: revoking must be deferred, not synchronous.
+    expect(revoke).not.toHaveBeenCalled();
+    const deferred = timers.mock.calls.find(([, ms]) => ms === 30_000);
+    expect(deferred).toBeTruthy();
+    (deferred![0] as () => void)();
+    expect(revoke).toHaveBeenCalledWith('blob:abc');
+    timers.mockRestore();
     click.mockRestore();
   });
 
