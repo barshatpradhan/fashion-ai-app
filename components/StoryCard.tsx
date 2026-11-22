@@ -3,7 +3,9 @@ import { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { humanize } from '@/lib/ui/result';
 import c from '@/components/story.module.css';
-/** How long the download's Blob URL stays alive after click() (iOS Safari reads it asynchronously). */const REVOKE_DELAY_MS = 30_000;
+
+/** How long the download's Blob URL stays alive after click() (iOS Safari reads it asynchronously). */
+const REVOKE_DELAY_MS = 30_000;
 
 export type StorySource = { citation: string; url: string };
 export type StoryCardData = {
