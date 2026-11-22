@@ -1,0 +1,112 @@
+/* Guide screen: before -> after crossfade, AI-labelled steps. Reuses tokens from globals.css. */
+
+.stage {
+  position: relative;
+  max-width: 520px;
+  aspect-ratio: 1 / 1;
+  margin: 8px auto 12px;
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 24px;
+  transition: opacity 1.1s var(--ease);
+}
+
+.visible { opacity: 1; }
+.hidden { opacity: 0; }
+
+.badge {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+.toggle {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.rendering {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
+
+.steps {
+  margin: 0;
+  padding: 0 0 0 1.2em;
+  max-width: 62ch;
+  color: var(--ink-soft);
+}
+
+.steps li { margin-bottom: 12px; padding-left: 6px; }
+
+.label {
+  display: inline-block;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 48px;
+}
+
+.upgrade {
+  margin-top: 32px;
+  padding: 28px;
+  max-width: 560px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.upgrade h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.8rem;
+  margin: 0 0 10px;
+}
+
+.upgrade p { margin: 0 0 20px; color: var(--ink-soft); }
+.back { display: inline-block; margin-top: 32px; font-size: 0.9rem; text-underline-offset: 4px; }
+
+.storyNote {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
