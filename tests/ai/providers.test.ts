@@ -150,3 +150,13 @@ describe('withGuard', () => {
     ).rejects.toBeInstanceOf(AiRateLimitError);
   });
 });
+
+describe('analyzeImage response schema', () => {
+  it('asks Gemini for structured JSON with a response schema', async () => {
+    h.geminiGen.mockResolvedValue({ text: JSON.stringify(goodVision) });
+    await analyzeImage(bytes);
+    const config = h.geminiGen.mock.calls[0][0].config;
+    expect(config.responseMimeType).toBe('application/json');
+    expect(config.responseJsonSchema).toMatchObject({ type: 'object', required: expect.arrayContaining(['is_garment', 'category']) });
+  });
+});

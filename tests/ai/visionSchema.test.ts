@@ -56,3 +56,45 @@ describe('parseVision', () => {
     expect(() => parseVision({ garment_type: 5 })).toThrow(VisionParseError);
   });
 });
+
+describe('parseVision leniency (a first live scan must not become "stylist busy")', () => {
+  it('normalises case and whitespace before vocabulary filtering', () => {
+    const r = parseVision({
+      ...valid,
+      category: ' Top ',
+      tags: ['Shirt', ' COTTON ', 'Breton Stripe', 'polyester blend'],
+      named_styles: [{ style: 'Breton Stripe', confidence: 0.9 }],
+      fabric_guess: { value: ' Cotton ', confidence: '0.6', alternatives: ['Linen', null] },
+    });
+    expect(r.category).toBe('top');
+    expect(r.tags).toEqual(['shirt', 'cotton', 'breton-stripe', 'polyester blend']);
+    expect(r.named_styles).toEqual([{ style: 'breton-stripe', confidence: 0.9 }]);
+    expect(r.fabric_guess).toEqual({ value: 'cotton', confidence: 0.6, alternatives: ['linen'] });
+  });
+
+  it('maps an unknown category to "other"', () => {
+    expect(parseVision({ ...valid, category: 'knitwear' }).category).toBe('other');
+    expect(parseVision({ ...valid, category: null }).category).toBe('other');
+  });
+
+  it('coerces nested parts to strings or drops them, still stripping history/origin', () => {
+    const r = parseVision({
+      ...valid,
+      parts: { sleeves: { length: 'long', cuff: 'buttoned' }, buttons: 6, pockets: ['chest', 'side'], hem: null, Origin: 'x', history: { a: 'b' } },
+    });
+    expect(r.parts).toEqual({ sleeves: 'long, buttoned', buttons: '6', pockets: 'chest, side' });
+  });
+
+  it('treats nulls as defaults', () => {
+    const r = parseVision({
+      ...valid, pattern: null, condition_notes: null, colors: null, visible_techniques: null, tags: null, named_styles: null, parts: null,
+    });
+    expect(r).toMatchObject({ pattern: '', condition_notes: '', colors: [], visible_techniques: [], tags: [], named_styles: [], parts: {} });
+  });
+
+  it('accepts "true"/"false" strings for is_garment and drops malformed colours', () => {
+    const r = parseVision({ ...valid, is_garment: 'true', colors: [{ name: 'Sage', hex: '#8fa58a' }, null, 'navy'] });
+    expect(r.is_garment).toBe(true);
+    expect(r.colors).toEqual([{ name: 'Sage', hex: '#8fa58a' }, { name: 'navy', hex: '' }]);
+  });
+});

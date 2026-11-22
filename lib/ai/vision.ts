@@ -1,6 +1,6 @@
 import { geminiGenerate, jpegPart, GEMINI_VISION_MODEL } from '@/lib/ai/gemini';
 import { AiBadOutputError } from '@/lib/ai/errors';
-import { parseVision, VisionParseError, type VisionResult } from '@/lib/ai/visionSchema';
+import { parseVision, VisionParseError, VISION_RESPONSE_SCHEMA, type VisionResult } from '@/lib/ai/visionSchema';
 import { NAMED_STYLES, GENERIC_TAGS, FABRICS } from '@/lib/domain/vocabulary';
 
 export const VISION_PROMPT = `You describe a single clothing item from a photo.
@@ -17,7 +17,7 @@ export async function analyzeImage(jpeg: Uint8Array): Promise<VisionResult> {
   const res = await geminiGenerate({
     model: GEMINI_VISION_MODEL,
     contents: [{ role: 'user', parts: [jpegPart(jpeg), { text: VISION_PROMPT }] }],
-    config: { responseMimeType: 'application/json', temperature: 0.2 },
+    config: { responseMimeType: 'application/json', responseJsonSchema: VISION_RESPONSE_SCHEMA, temperature: 0.2 },
   });
   try {
     return parseVision(res.text ?? '');
