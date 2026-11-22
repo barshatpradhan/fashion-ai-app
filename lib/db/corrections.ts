@@ -139,7 +139,8 @@ export function supabaseCorrectionRepo(): CorrectionRepo {
       if (error) throw error;
     },
     async outdateGuides(scanId) {
-      const { error } = await db.from('guides').update({ outdated: true }).eq('scan_id', scanId);
+      const { error } = await db.from('guides').update({ outdated: true, after_image_path: null, image_provider: null })
+        .eq('scan_id', scanId);
       if (error) throw error;
     },
     async loadReviewedEntries() {

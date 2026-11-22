@@ -22,11 +22,11 @@ const ENTRIES = [
   kb('r-nomatch', 'redesign', ['coat']),
 ];
 
-function setup(opts: { premium?: boolean; demo?: boolean; owner?: string; guide?: StoredGuide | null; refs?: string[] } = {}) {
+function setup(opts: { premium?: boolean; demo?: boolean; owner?: string; guide?: StoredGuide | null; refs?: string[]; rows?: import('@/lib/domain/corrections').CorrectionRow[] } = {}) {
   let guide: StoredGuide | null = opts.guide ?? null;
   const repo: GuideRepo = {
     loadScan: vi.fn(async () => ({ id: SID, userId: opts.owner ?? U, vision, fabricFinal: 'cotton' })),
-    listCorrections: vi.fn(async () => []),
+    listCorrections: vi.fn(async () => opts.rows ?? []),
     insertCorrection: vi.fn(), setFabricFinal: vi.fn(), replaceMatches: vi.fn(), outdateGuides: vi.fn(),
     loadReviewedEntries: vi.fn(async () => ENTRIES),
     isDemo: vi.fn(async () => opts.demo ?? false),
@@ -139,11 +139,11 @@ describe('runRender', () => {
     expect(deps.generateImage).not.toHaveBeenCalled();
   });
 
-  it('guards only a string path (never bytes) under the render key', async () => {
+  it('guards only a string path (never bytes) under the versioned render key', async () => {
     const { deps } = setup({ demo: true });
     await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
     const call = (deps.guard as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(call[0]).toBe(`render:${SID}:r-free`);
+    expect(call[0]).toMatch(new RegExp(`^render:${SID}:r-free:[0-9a-f]{10}$`));
     expect(call[2]).toMatchObject({ demo: true });
     expect(typeof (await call[1]())).toBe('string');
   });
@@ -152,5 +152,30 @@ describe('runRender', () => {
     const { deps } = setup({ premium: true });
     (deps.generateImage as ReturnType<typeof vi.fn>).mockRejectedValue(new AiTimeoutError());
     expect(await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps)).toEqual({ status: 503, body: { error: 'ai_busy' } });
+  });
+
+  it('after a correction (image cleared, guide outdated) render regenerates instead of returning the old path', async () => {
+    const { deps, repo } = setup({ premium: true, guide: { id: 'g', body: { steps: ['old'], tools: [], historyRefs: [] }, afterImagePath: null, outdated: true } });
+    const r = await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
+    expect(deps.generateImage).toHaveBeenCalledTimes(1);
+    expect(repo.saveImage).toHaveBeenCalled();
+    expect(r.status).toBe(200);
+  });
+});
+
+describe('demo cache key versioning', () => {
+  const keys = async (rows?: Parameters<typeof setup>[0] extends infer O ? (O extends { rows?: infer R } ? R : never) : never) => {
+    const { deps } = setup({ demo: true, rows });
+    await runGuide(U, { scanId: SID, recipeId: 'r-free' }, deps);
+    await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
+    return (deps.guard as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0] as string);
+  };
+  it('guide and render keys change after a correction and are stable otherwise', async () => {
+    const a = await keys();
+    const a2 = await keys();
+    const b = await keys([{ field: 'fabric', aiValue: 'cotton', userValue: 'silk' }]);
+    expect(a).toEqual(a2);
+    expect(b[0]).not.toEqual(a[0]);
+    expect(b[1]).not.toEqual(a[1]);
   });
 });

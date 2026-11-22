@@ -1,4 +1,5 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 import { adminClient } from '@/lib/db/admin';
 import { getEnv } from '@/lib/env';
 import { SCAN_ERRORS, hasFullRecipeAccess } from '@/lib/db/scans';
@@ -9,7 +10,7 @@ import { generateConceptImage } from '@/lib/ai/imageGen';
 import { withGuard } from '@/lib/ai/guard';
 import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
-import type { KbEntry } from '@/lib/domain/types';
+import type { KbEntry, Confirmed } from '@/lib/domain/types';
 
 export const GUIDE_ERRORS = { notFound: 'not_found', premiumRequired: 'premium_required' } as const;
 const BUCKET = 'garments';
@@ -45,7 +46,13 @@ export type GuideResult =
   | Fail;
 export type RenderResult = { status: 200; body: { imageUrl: string } } | Fail;
 
-type Resolved = { scanId: string; vision: VisionResult; recipe: KbEntry; history: KbEntry[]; demo: boolean };
+type Resolved = { scanId: string; vision: VisionResult; recipe: KbEntry; history: KbEntry[]; demo: boolean; stateKey: string };
+
+/** Short hash of the effective corrected state; versions demo cache keys so a cached fallback never answers for another state. */
+export function stateKeyOf(c: Confirmed): string {
+  const norm = [c.fabric ?? '', c.garmentType ?? '', [...c.namedStyles].sort(), [...(c.rejectedStyles ?? [])].sort()];
+  return createHash('sha1').update(JSON.stringify(norm)).digest('hex').slice(0, 10);
+}
 
 /** Shared by guide and render: validates input, ownership, the CURRENT match and the Premium gate. */
 async function resolve(userId: string, input: unknown, repo: GuideRepo): Promise<Resolved | Fail> {
@@ -61,7 +68,7 @@ async function resolve(userId: string, input: unknown, repo: GuideRepo): Promise
   if (!recipe) return fail(404, GUIDE_ERRORS.notFound);
   const [access, demo] = await Promise.all([hasFullRecipeAccess(repo, userId), repo.isDemo(userId)]);
   if (recipe.id !== match.freeRecipeId && !access) return fail(402, GUIDE_ERRORS.premiumRequired);
-  return { scanId: b.scanId, vision: state.scan.vision, recipe, history: match.history, demo };
+  return { scanId: b.scanId, vision: state.scan.vision, recipe, history: match.history, demo, stateKey: stateKeyOf(state.confirmed) };
 }
 
 const isFail = (r: Resolved | Fail): r is Fail => 'body' in r;
@@ -79,7 +86,7 @@ export async function runGuide(userId: string, input: unknown, deps: GuideDeps):
   } else {
     try {
       body = await deps.guard(
-        `guide:${r.scanId}:${r.recipe.id}`,
+        `guide:${r.scanId}:${r.recipe.id}:${r.stateKey}`,
         () => deps.write(r.vision, r.recipe, r.history),
         { timeoutMs: deps.timeoutMs, demo: r.demo },
       );
@@ -108,7 +115,7 @@ export async function runRender(userId: string, input: unknown, deps: GuideDeps)
   try {
     // Only the path (a string) goes through the JSON-only demo cache, never the image bytes.
     savedPath = await deps.guard(
-      `render:${r.scanId}:${r.recipe.id}`,
+      `render:${r.scanId}:${r.recipe.id}:${r.stateKey}`,
       async () => {
         const png = await deps.generateImage(r.vision, r.recipe);
         await repo.upload(path, png);
