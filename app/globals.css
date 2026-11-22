@@ -3,7 +3,7 @@
   --paper-raised: #fbfaf7;
   --ink: #1c1b19;
   --ink-soft: #4a4741;
-  --muted: #8a857b;
+  --muted: #66615a; /* 5.5:1 on --paper, 5.9:1 on --paper-raised (WCAG AA) */
   --line: #e2ddd3;
   --accent: #7c6446;
   --danger: #8c3b2e;

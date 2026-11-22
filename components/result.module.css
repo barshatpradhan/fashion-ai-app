@@ -462,11 +462,6 @@
   color: var(--ink-soft);
 }
 
-.locked .cardBody {
-  -webkit-mask-image: linear-gradient(90deg, #000 55%, transparent);
-  mask-image: linear-gradient(90deg, #000 55%, transparent);
-}
-
 .lockBadge {
   position: absolute;
   top: 18px;

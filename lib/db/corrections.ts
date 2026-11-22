@@ -1,10 +1,12 @@
 import 'server-only';
 import { adminClient } from '@/lib/db/admin';
 import {
-  SCAN_ERRORS, FABRIC_CONFIRM_THRESHOLD, toMatchRows, toKbEntry, listCorrectionRows, type MatchRow,
+  SCAN_ERRORS, FABRIC_CONFIRM_THRESHOLD, toMatchRows, toKbEntry, listCorrectionRows, hasFullRecipeAccess,
+  loadIsDemo, loadIsPremium, type MatchRow,
 } from '@/lib/db/scans';
 import { confirmedFromCorrections, hasFabricCorrection, type CorrectionRow } from '@/lib/domain/corrections';
 import { matchEntries } from '@/lib/domain/matching';
+import { redactMatch, type PublicMatch } from '@/lib/domain/redact';
 import { FABRICS } from '@/lib/domain/vocabulary';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry, Confirmed, MatchResult } from '@/lib/domain/types';
@@ -24,6 +26,8 @@ export interface CorrectionRepo {
   replaceMatches(scanId: string, rows: MatchRow[]): Promise<void>;
   outdateGuides(scanId: string): Promise<void>;
   loadReviewedEntries(): Promise<KbEntry[]>;
+  isDemo(userId: string): Promise<boolean>;
+  isPremium(userId: string): Promise<boolean>;
 }
 
 const lc = (s: string) => s.trim().toLowerCase();
@@ -48,7 +52,7 @@ export async function loadScanState(repo: CorrectionRepo, scanId: string): Promi
 }
 
 export type CorrectResult =
-  | { status: 200; body: { match: MatchResult; needsFabricConfirm: boolean } }
+  | { status: 200; body: { match: PublicMatch; needsFabricConfirm: boolean } }
   | { status: 400 | 404; body: { error: string } };
 
 const fail = (status: 400 | 404, error: string): CorrectResult => ({ status, body: { error } });
@@ -93,7 +97,7 @@ export async function runCorrect(userId: string, input: unknown, repo: Correctio
   const needsFabricConfirm = state.hasFabricCorrection || field === 'fabric'
     ? false
     : scan.vision.fabric_guess.confidence < FABRIC_CONFIRM_THRESHOLD;
-  return { status: 200, body: { match, needsFabricConfirm } };
+  return { status: 200, body: { match: redactMatch(match, await hasFullRecipeAccess(repo, userId)), needsFabricConfirm } };
 }
 
 export function supabaseCorrectionRepo(): CorrectionRepo {
@@ -113,6 +117,8 @@ export function supabaseCorrectionRepo(): CorrectionRepo {
       };
     },
     listCorrections: (scanId) => listCorrectionRows(db, scanId),
+    isDemo: (userId) => loadIsDemo(db, userId),
+    isPremium: (userId) => loadIsPremium(db, userId),
     async insertCorrection(scanId, row) {
       const { error } = await db.from('corrections').insert({
         scan_id: scanId, field: row.field, ai_value: row.aiValue, user_value: row.userValue,

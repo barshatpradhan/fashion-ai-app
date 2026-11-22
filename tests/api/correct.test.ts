@@ -24,7 +24,7 @@ const ENTRIES = [
   kb('r-shirt', 'redesign', ['shirt']),
 ];
 
-function setup(opts: { owner?: string; v?: VisionResult; rows?: CorrectionRow[]; missing?: boolean } = {}) {
+function setup(opts: { owner?: string; v?: VisionResult; rows?: CorrectionRow[]; missing?: boolean; premium?: boolean; demo?: boolean; entries?: KbEntry[] } = {}) {
   const rows: CorrectionRow[] = [...(opts.rows ?? [])];
   const guides = [{ id: 'g1', outdated: false }, { id: 'g2', outdated: false }];
   const repo: CorrectionRepo = {
@@ -36,7 +36,9 @@ function setup(opts: { owner?: string; v?: VisionResult; rows?: CorrectionRow[];
     setFabricFinal: vi.fn(async () => {}),
     replaceMatches: vi.fn(async () => {}),
     outdateGuides: vi.fn(async () => { guides.forEach((g) => { g.outdated = true; }); }),
-    loadReviewedEntries: vi.fn(async () => ENTRIES),
+    loadReviewedEntries: vi.fn(async () => opts.entries ?? ENTRIES),
+    isDemo: vi.fn(async () => opts.demo ?? false),
+    isPremium: vi.fn(async () => opts.premium ?? false),
   };
   return { repo, rows, guides };
 }
@@ -174,5 +176,45 @@ describe('confirmedFromCorrections / loadScanState', () => {
     expect(st?.confirmed.fabric).toBe('silk');
     expect(st?.hasFabricCorrection).toBe(true);
     expect(st?.scan.userId).toBe(U);
+  });
+});
+
+describe('runCorrect recipe redaction', () => {
+  const recipe = (id: string, difficulty: KbEntry['difficulty']): KbEntry => ({
+    id, kind: 'redesign', title: `Recipe ${id}`, body: `First step for ${id}. Secret detail.`, tags: ['shirt'],
+    difficulty, tools: ['scissors'], steps: ['cut', 'sew'], status: 'reviewed',
+  });
+  const entries = [recipe('r-free', 'beginner'), recipe('r-pro', 'advanced')];
+  const call = async (opts: { premium?: boolean; demo?: boolean }) => {
+    const r = await runCorrect(U, { scanId: SID, field: 'fabric', value: 'silk' }, setup({ entries, ...opts }).repo);
+    return (r.body as { match: { freeRecipeId: string; recipes: Record<string, unknown>[] } }).match;
+  };
+
+  it('free user: locked recipes carry only id, kind, title, difficulty and teaser', async () => {
+    const m = await call({});
+    expect(m.freeRecipeId).toBe('r-free');
+    const free = m.recipes.find((r) => r.id === 'r-free')!;
+    expect(free.body).toBe('First step for r-free. Secret detail.');
+    expect(free.steps).toEqual(['cut', 'sew']);
+    expect(m.recipes.find((r) => r.id === 'r-pro')).toEqual({
+      id: 'r-pro', kind: 'redesign', title: 'Recipe r-pro', difficulty: 'advanced', teaser: 'First step for r-pro.',
+    });
+    expect(JSON.stringify(m.recipes.find((r) => r.id === 'r-pro'))).not.toContain('Secret detail');
+  });
+
+  it.each([{ premium: true }, { demo: true }])('%o: every recipe is complete', async (opts) => {
+    const m = await call(opts);
+    const pro = m.recipes.find((r) => r.id === 'r-pro')!;
+    expect(pro.body).toBe('First step for r-pro. Secret detail.');
+    expect(pro.steps).toEqual(['cut', 'sew']);
+    expect(pro.teaser).toBeUndefined();
+  });
+
+  it('persists the unredacted match regardless of access', async () => {
+    const s = setup({ entries });
+    await runCorrect(U, { scanId: SID, field: 'fabric', value: 'silk' }, s.repo);
+    expect(s.repo.replaceMatches).toHaveBeenCalledWith(SID, expect.arrayContaining([
+      expect.objectContaining({ kbEntryId: 'r-free' }), expect.objectContaining({ kbEntryId: 'r-pro' }),
+    ]));
   });
 });

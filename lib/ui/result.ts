@@ -3,13 +3,7 @@ import { FABRICS } from '@/lib/domain/vocabulary';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
 
-/** Teaser for a locked Recipe: the first sentence of the body. */
-export function firstSentence(body: string): string {
-  const text = body.replace(/\s+/g, ' ').trim();
-  if (!text) return '';
-  const m = text.match(/^.+?[.!?](?=\s|$)/);
-  return m ? m[0] : text;
-}
+export { firstSentence } from '@/lib/domain/redact';
 
 /**
  * Fabric choices for the confirm tap: the guess first, then alternatives, deduplicated, limited to the
@@ -64,7 +58,7 @@ export function verifiedHistory(history: KbEntry[]): KbEntry[] {
   return history.filter((h) => (h.sources ?? []).some((s) => safeUrl(s.url)));
 }
 
-export function splitRecipes(recipes: KbEntry[], freeRecipeId: string | null) {
+export function splitRecipes<T extends { id: string }>(recipes: T[], freeRecipeId: string | null) {
   const free = recipes.find((r) => r.id === freeRecipeId) ?? null;
   return { free, others: recipes.filter((r) => r !== free) };
 }

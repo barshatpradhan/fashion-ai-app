@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { browserClient, ensureSession, loadIsPremium } from '@/lib/db/browser';
+import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground, UnsupportedImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse } from '@/components/ResultView';
@@ -18,19 +18,11 @@ class ApiError extends Error {}
 export default function ScanPage() {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | null>(null);
-  const [isPremium, setIsPremium] = useState(false);
   const objectUrl = useRef<string | null>(null);
 
-  // Anonymous start: no sign-up wall. Premium defaults to free until the profile says otherwise.
+  // Anonymous start: no sign-up wall. Premium access is decided server-side (locked Recipes arrive redacted).
   useEffect(() => {
-    let alive = true;
-    ensureSession()
-      .then((uid) => loadIsPremium(uid))
-      .then((p) => alive && setIsPremium(p))
-      .catch((err) => console.warn('session start failed', err));
-    return () => {
-      alive = false;
-    };
+    ensureSession().catch((err) => console.warn('session start failed', err));
   }, []);
 
   useEffect(() => () => {
@@ -124,7 +116,6 @@ export default function ScanPage() {
             result={phase.result}
             heroSrc={phase.heroSrc}
             isCutout={phase.isCutout}
-            isPremium={isPremium}
           />
           <div className={s.again}>{upload('Scan another garment', true)}</div>
         </>

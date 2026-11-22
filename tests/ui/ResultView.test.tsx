@@ -22,7 +22,8 @@ const base: AnalyzeResponse = {
   scanId: 'scan-1', vision, needsFabricConfirm: true, fabric: 'linen',
   match: {
     history: [], fabricNotes: [], freeRecipeId: 'a',
-    recipes: [recipe('a', 'beginner', 'Crop it. Then hem.'), recipe('b', 'advanced', 'Rebuild the yoke. Long steps follow.')],
+    // As the server sends it to a free user: 'b' is already redacted to a LockedRecipe.
+    recipes: [recipe('a', 'beginner', 'Crop it. Then hem.'), { id: 'b', kind: 'redesign', title: 'Recipe b', difficulty: 'advanced', teaser: 'Rebuild the yoke.' }],
     styleQuestions: [{ style: 'breton-stripe', confidence: 0.6 }],
   },
 };
@@ -31,7 +32,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('ResultView', () => {
   it('renders the hero, swatches, prompts, empty history copy, free and locked recipes', () => {
-    render(<ResultView result={base} heroSrc="blob:x" isCutout isPremium={false} />);
+    render(<ResultView result={base} heroSrc="blob:x" isCutout />);
     expect(screen.getByRole('img', { name: 'Your shirt' })).toBeTruthy();
     expect(screen.getByText('Navy')).toBeTruthy();
     expect(screen.getByText('Which fabric is it?')).toBeTruthy();
@@ -41,19 +42,19 @@ describe('ResultView', () => {
     expect(screen.getByRole('link', { name: /open the free guide/i }).getAttribute('href')).toBe('/guide/scan-1/a');
     const locked = screen.getByRole('article', { name: 'Recipe b (Premium)' });
     expect(locked.textContent).toContain('Rebuild the yoke.');
-    expect(locked.textContent).not.toContain('Long steps follow.');
     expect(locked.querySelector('a')).toBeNull();
   });
 
-  it('premium users get open cards for every recipe', () => {
-    render(<ResultView result={base} heroSrc="blob:x" isCutout isPremium />);
+  it('unredacted recipes (premium response) get open cards', () => {
+    const full = { ...base, match: { ...base.match, recipes: [recipe('a', 'beginner', 'Crop it.'), recipe('b', 'advanced', 'Rebuild the yoke. Long steps follow.')] } };
+    render(<ResultView result={full} heroSrc="blob:x" isCutout />);
     expect(screen.getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/guide/scan-1/a', '/guide/scan-1/b']);
   });
 
   it('history shows its sources', () => {
     const h: KbEntry = { id: 'h', kind: 'history', title: 'The Breton shirt', body: 'Navy issue, 1858.', tags: [], status: 'reviewed',
       sources: [{ citation: 'Museum record', url: 'https://example.org/breton', accessed: '2026-11-01' }] };
-    render(<ResultView result={{ ...base, match: { ...base.match, history: [h] } }} heroSrc="blob:x" isCutout isPremium={false} />);
+    render(<ResultView result={{ ...base, match: { ...base.match, history: [h] } }} heroSrc="blob:x" isCutout />);
     expect(screen.getByRole('link', { name: 'Museum record' }).getAttribute('href')).toBe('https://example.org/breton');
     expect(screen.queryByText('No verified history for this piece yet.')).toBeNull();
   });
@@ -61,7 +62,7 @@ describe('ResultView', () => {
   it('confirming a fabric posts a correction and hides the prompt', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ match: base.match, needsFabricConfirm: false }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    render(<ResultView result={base} heroSrc="blob:x" isCutout isPremium={false} />);
+    render(<ResultView result={base} heroSrc="blob:x" isCutout />);
     fireEvent.click(screen.getByRole('button', { name: 'Cotton' }));
     await waitFor(() => expect(screen.queryByText('Which fabric is it?')).toBeNull());
     expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string))

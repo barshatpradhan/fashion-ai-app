@@ -23,10 +23,11 @@ const kb = (id: string, kind: KbEntry['kind'], tags: string[]): KbEntry => ({
 
 function setup(opts: {
   count?: number; demo?: boolean; existing?: ScanRow | null; entries?: KbEntry[];
-  analyze?: () => Promise<VisionResult>; corrections?: CorrectionRow[];
+  analyze?: () => Promise<VisionResult>; corrections?: CorrectionRow[]; premium?: boolean;
 } = {}) {
   const repo: ScanRepo = {
     isDemo: vi.fn(async () => opts.demo ?? false),
+    isPremium: vi.fn(async () => opts.premium ?? false),
     findByHash: vi.fn(async () => opts.existing ?? null),
     countSince: vi.fn(async () => opts.count ?? 0),
     download: vi.fn(async () => BYTES),
@@ -222,5 +223,45 @@ describe('runAnalyze', () => {
   it('fresh scans report the vision fabric as the effective fabric', async () => {
     const r = await runAnalyze(U, body, setup().deps);
     expect((r.body as { fabric: string }).fabric).toBe('denim');
+  });
+
+  describe('recipe redaction', () => {
+    const recipe = (id: string, difficulty: KbEntry['difficulty']): KbEntry => ({
+      id, kind: 'redesign', title: `Recipe ${id}`, body: `Open the seam on ${id}. Secret detail.`, tags: ['denim'],
+      difficulty, tools: ['seam ripper'], steps: ['unpick', 'press'],
+      sources: [{ citation: 'c', url: 'https://example.org', accessed: '2026-11-01' }], status: 'reviewed',
+    });
+    const entries = [recipe('r-free', 'beginner'), recipe('r-pro', 'advanced'), recipe('r-pro2', 'intermediate')];
+    type R = Record<string, unknown>;
+    const recipesOf = (r: Awaited<ReturnType<typeof runAnalyze>>) =>
+      (r.body as { match: { freeRecipeId: string; recipes: R[] } }).match;
+
+    it('free user (fresh scan): only the free recipe is complete; locked ones have no body/steps/tools/sources', async () => {
+      const s = setup({ entries });
+      const m = recipesOf(await runAnalyze(U, body, s.deps));
+      expect(m.freeRecipeId).toBe('r-free');
+      expect(m.recipes.find((r) => r.id === 'r-free')).toEqual(entries[0]);
+      for (const id of ['r-pro', 'r-pro2']) {
+        const locked = m.recipes.find((r) => r.id === id)!;
+        expect(Object.keys(locked).sort()).toEqual(['difficulty', 'id', 'kind', 'teaser', 'title']);
+        expect(locked.teaser).toBe(`Open the seam on ${id}.`);
+        expect(JSON.stringify(locked)).not.toContain('Secret detail');
+      }
+      // Persistence still records every match.
+      const rows = (s.repo.insertMatches as ReturnType<typeof vi.fn>).mock.calls[0][1] as { kbEntryId: string }[];
+      expect(rows.map((x) => x.kbEntryId).sort()).toEqual(['r-free', 'r-pro', 'r-pro2']);
+    });
+
+    it('free user (cache hit): locked recipes are redacted too', async () => {
+      const s = setup({ entries, existing: { id: 'scan-old', vision: vision() } });
+      const m = recipesOf(await runAnalyze(U, body, s.deps));
+      expect(m.recipes.find((r) => r.id === 'r-pro')).not.toHaveProperty('body');
+      expect(m.recipes.find((r) => r.id === 'r-pro')).not.toHaveProperty('steps');
+    });
+
+    it.each([{ premium: true }, { demo: true }])('%o: every recipe is complete', async (opts) => {
+      const m = recipesOf(await runAnalyze(U, body, setup({ entries, ...opts }).deps));
+      expect(m.recipes).toEqual(entries);
+    });
   });
 });

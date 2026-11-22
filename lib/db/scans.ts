@@ -9,6 +9,7 @@ import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/err
 import { matchEntries } from '@/lib/domain/matching';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import { confirmedFromCorrections, hasFabricCorrection, type CorrectionRow } from '@/lib/domain/corrections';
+import { redactMatch, type PublicMatch } from '@/lib/domain/redact';
 import type { KbEntry, MatchResult } from '@/lib/domain/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -44,6 +45,7 @@ export type MatchRow = { kbEntryId: string; score: number };
 /** Persistence seam. Server-authored writes only; never touches profile credit columns. */
 export interface ScanRepo {
   isDemo(userId: string): Promise<boolean>;
+  isPremium(userId: string): Promise<boolean>;
   findByHash(userId: string, imageHash: string): Promise<ScanRow | null>;
   countSince(userId: string, since: Date): Promise<number>;
   download(path: string): Promise<Uint8Array>;
@@ -66,11 +68,20 @@ export type AnalyzeResult =
   | {
       status: 200;
       /** `fabric` is the effective fabric: the latest user correction, else the vision guess. */
-      body: { scanId: string; vision: VisionResult; match: MatchResult; needsFabricConfirm: boolean; fabric: string };
+      body: { scanId: string; vision: VisionResult; match: PublicMatch; needsFabricConfirm: boolean; fabric: string };
     }
   | { status: 400 | 422 | 429 | 503; body: { error: string } };
 
 const fail = (status: 400 | 422 | 429 | 503, error: string): AnalyzeResult => ({ status, body: { error } });
+
+/** Premium and demo users see every Recipe in full; everyone else only the free one. */
+export async function hasFullRecipeAccess(
+  repo: { isDemo(u: string): Promise<boolean>; isPremium(u: string): Promise<boolean> },
+  userId: string,
+): Promise<boolean> {
+  const [demo, premium] = await Promise.all([repo.isDemo(userId), repo.isPremium(userId)]);
+  return demo || premium;
+}
 
 /** Score = rank position (best first) within each list; an entry keeps its best score. */
 export function toMatchRows(match: MatchResult): MatchRow[] {
@@ -97,20 +108,22 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   if (!ok(imagePath) || !ok(cutoutPath)) return fail(400, SCAN_ERRORS.badRequest);
   const { repo } = deps;
 
-  const respond = (scanId: string, vision: VisionResult, entries: KbEntry[], corrections: CorrectionRow[] = []): AnalyzeResult => {
+  /** Full match (for persistence) plus the redacted response body. */
+  const build = (vision: VisionResult, entries: KbEntry[], corrections: CorrectionRow[] = []) => {
     const confirmed = confirmedFromCorrections(corrections);
-    return {
+    const match = matchEntries(vision, confirmed, entries);
+    const needsFabricConfirm = hasFabricCorrection(corrections)
+      ? false
+      : vision.fabric_guess.confidence < FABRIC_CONFIRM_THRESHOLD;
+    const respond = async (scanId: string): Promise<AnalyzeResult> => ({
       status: 200,
       body: {
-        scanId,
-        vision,
-        match: matchEntries(vision, confirmed, entries),
-        needsFabricConfirm: hasFabricCorrection(corrections)
-          ? false
-          : vision.fabric_guess.confidence < FABRIC_CONFIRM_THRESHOLD,
+        scanId, vision, needsFabricConfirm,
+        match: redactMatch(match, await hasFullRecipeAccess(repo, userId)),
         fabric: confirmed.fabric ?? vision.fabric_guess.value,
       },
-    };
+    });
+    return { match, respond };
   };
 
   let jpeg: Uint8Array;
@@ -129,7 +142,7 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
     if (!existing.vision.is_garment) return fail(422, SCAN_ERRORS.notAGarment);
     // Rebuild from the scan's corrections so a re-upload shows what the user already confirmed.
     const [entries, corrections] = await Promise.all([repo.loadReviewedEntries(), repo.listCorrections(existing.id)]);
-    return respond(existing.id, existing.vision, entries, corrections);
+    return build(existing.vision, entries, corrections).respond(existing.id);
   }
 
   const demo = await repo.isDemo(userId);
@@ -161,11 +174,11 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   }
 
   const entries = await repo.loadReviewedEntries();
-  const result = respond('', vision, entries);
+  const built = build(vision, entries);
   const scanId = await repo.insertScan(newScan());
-  const rows = toMatchRows((result.body as { match: MatchResult }).match);
+  const rows = toMatchRows(built.match);
   if (rows.length) await repo.insertMatches(scanId, rows);
-  return { ...result, body: { ...(result.body as object), scanId } } as AnalyzeResult;
+  return built.respond(scanId);
 }
 
 export function toKbEntry(r: Record<string, unknown>): KbEntry {
@@ -183,6 +196,18 @@ export function toKbEntry(r: Record<string, unknown>): KbEntry {
   };
 }
 
+export async function loadIsPremium(db: SupabaseClient, userId: string): Promise<boolean> {
+  const { data, error } = await db.from('profiles').select('is_premium').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return data?.is_premium === true;
+}
+
+export async function loadIsDemo(db: SupabaseClient, userId: string): Promise<boolean> {
+  const { data, error } = await db.from('profiles').select('is_demo').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return data?.is_demo === true;
+}
+
 export async function listCorrectionRows(db: SupabaseClient, scanId: string): Promise<CorrectionRow[]> {
   const { data, error } = await db.from('corrections').select('field, ai_value, user_value, created_at')
     .eq('scan_id', scanId).order('created_at', { ascending: true });
@@ -197,11 +222,8 @@ export async function listCorrectionRows(db: SupabaseClient, scanId: string): Pr
 export function supabaseScanRepo(): ScanRepo {
   const db = adminClient();
   return {
-    async isDemo(userId) {
-      const { data, error } = await db.from('profiles').select('is_demo').eq('id', userId).maybeSingle();
-      if (error) throw error;
-      return data?.is_demo === true;
-    },
+    isDemo: (userId) => loadIsDemo(db, userId),
+    isPremium: (userId) => loadIsPremium(db, userId),
     async findByHash(userId, imageHash) {
       const { data, error } = await db.from('scans').select('id, vision_json')
         .eq('user_id', userId).eq('image_hash', imageHash).not('vision_json', 'is', null)

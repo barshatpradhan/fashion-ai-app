@@ -34,13 +34,3 @@ export function ensureSession(): Promise<string> {
   });
   return session;
 }
-
-/** Premium flag from the user's own profile row; any failure means "free". */
-export async function loadIsPremium(userId: string): Promise<boolean> {
-  try {
-    const { data } = await browserClient().from('profiles').select('is_premium').eq('id', userId).maybeSingle();
-    return data?.is_premium === true;
-  } catch {
-    return false;
-  }
-}

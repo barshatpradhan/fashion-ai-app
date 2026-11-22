@@ -2,7 +2,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { VisionResult } from '@/lib/ai/visionSchema';
-import type { KbEntry, MatchResult } from '@/lib/domain/types';
+import type { KbEntry } from '@/lib/domain/types';
+import { isLockedRecipe, type PublicMatch } from '@/lib/domain/redact';
 import { messageForError } from '@/lib/ui/messages';
 import { fabricChoices, featureLabels, firstSentence, humanize, safeUrl, splitRecipes, verifiedHistory } from '@/lib/ui/result';
 import { HeroGarment } from './HeroGarment';
@@ -15,28 +16,29 @@ import s from './result.module.css';
 export type AnalyzeResponse = {
   scanId: string;
   vision: VisionResult;
-  match: MatchResult;
+  /** Server-redacted: Recipes the user cannot open arrive as LockedRecipe (no body or steps). */
+  match: PublicMatch;
   needsFabricConfirm: boolean;
   /** Effective fabric (latest correction, else the vision guess). Older responses may omit it. */
   fabric?: string;
 };
 
-type Props = { result: AnalyzeResponse; heroSrc: string; isCutout: boolean; isPremium: boolean };
+type Props = { result: AnalyzeResponse; heroSrc: string; isCutout: boolean };
 
 type CorrectBody = { scanId: string; field: 'fabric' | 'named_style'; value: string; accept?: boolean };
 
-async function postCorrect(body: CorrectBody): Promise<{ match: MatchResult; needsFabricConfirm: boolean }> {
+async function postCorrect(body: CorrectBody): Promise<{ match: PublicMatch; needsFabricConfirm: boolean }> {
   const res = await fetch('/api/correct', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const json = (await res.json().catch(() => ({}))) as { error?: string; match?: MatchResult; needsFabricConfirm?: boolean };
+  const json = (await res.json().catch(() => ({}))) as { error?: string; match?: PublicMatch; needsFabricConfirm?: boolean };
   if (!res.ok || !json.match) throw new Error(json.error ?? 'server_error');
   return { match: json.match, needsFabricConfirm: json.needsFabricConfirm === true };
 }
 
-export function ResultView({ result, heroSrc, isCutout, isPremium }: Props) {
+export function ResultView({ result, heroSrc, isCutout }: Props) {
   const { scanId, vision } = result;
   const [match, setMatch] = useState(result.match);
   const [needsConfirm, setNeedsConfirm] = useState(result.needsFabricConfirm);
@@ -136,12 +138,12 @@ export function ResultView({ result, heroSrc, isCutout, isPremium }: Props) {
         <section className={s.section} aria-labelledby="recipes-title">
           <h2 id="recipes-title" className={s.sectionTitle}>Give it a second life</h2>
           <div className={s.grid}>
-            {free ? <RecipeCard entry={free} scanId={scanId} free /> : null}
+            {free && !isLockedRecipe(free) ? <RecipeCard entry={free} scanId={scanId} free /> : null}
             {others.map((r) =>
-              isPremium ? (
-                <RecipeCard key={r.id} entry={r} scanId={scanId} />
+              isLockedRecipe(r) ? (
+                <LockedRecipeCard key={r.id} title={r.title} difficulty={r.difficulty} teaser={r.teaser} />
               ) : (
-                <LockedRecipeCard key={r.id} title={r.title} difficulty={r.difficulty} teaser={firstSentence(r.body)} />
+                <RecipeCard key={r.id} entry={r} scanId={scanId} />
               ),
             )}
           </div>
