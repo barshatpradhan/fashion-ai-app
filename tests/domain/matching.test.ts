@@ -78,6 +78,13 @@ describe('matchEntries recipes', () => {
   it('no recipes -> null', () => {
     expect(matchEntries(vision(), none, []).freeRecipeId).toBeNull();
   });
+  it('a beginner ranked 5th+ is still free and swapped in as the 4th recipe', () => {
+    const four = Array.from({ length: 4 }, (_, i) => entry({ id: `a${i}`, difficulty: 'advanced', tags: ['shirt', 'cotton'] }));
+    const lowBeg = entry({ id: 'low-beg', difficulty: 'beginner', tags: ['shirt'] });
+    const r = matchEntries(vision(), none, [...four, lowBeg]);
+    expect(r.freeRecipeId).toBe('low-beg');
+    expect(r.recipes.map((x) => x.id)).toEqual(['a0', 'a1', 'a2', 'low-beg']);
+  });
   it('caps at 4', () => {
     const six = Array.from({ length: 6 }, (_, i) => entry({ id: `r${i}`, tags: ['shirt'] }));
     expect(matchEntries(vision(), none, six).recipes).toHaveLength(4);

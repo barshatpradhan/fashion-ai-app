@@ -42,9 +42,13 @@ export function matchEntries(v: VisionResult, c: Confirmed, entries: KbEntry[]):
   for (const r of rejected) qualifying.delete(r);
 
   const history = rank(reviewed.filter((e) => e.kind === 'history'), qualifying);
-  const recipes = rank(reviewed.filter((e) => e.kind === 'redesign'), scanTags).slice(0, MAX_RECIPES);
+  // Free Recipe (§6.6 rule 5): best-matching beginner from the FULL ranked list, else the best of any level.
+  const ranked = rank(reviewed.filter((e) => e.kind === 'redesign'), scanTags);
+  const free = ranked.find((r) => r.difficulty === 'beginner') ?? ranked[0];
+  const recipes = ranked.slice(0, MAX_RECIPES);
+  // A beginner ranked below the cap is swapped in as the last shown Recipe so the free one is always shown.
+  if (free && !recipes.includes(free)) recipes[recipes.length - 1] = free;
   const fabricNotes = rank(reviewed.filter((e) => e.kind === 'fabric'), scanTags);
-  const free = recipes.find((r) => r.difficulty === 'beginner') ?? recipes[0];
 
   return { history, recipes, fabricNotes, freeRecipeId: free?.id ?? null, styleQuestions };
 }
