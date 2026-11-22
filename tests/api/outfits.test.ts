@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { withGuard, setDemoCacheStore, type DemoCacheStore } from '@/lib/ai/guard';
 import { runOutfitsAction, type OutfitRepo, type OutfitDeps } from '@/lib/db/outfits';
 import { OutOfCreditsError, ConcurrentSpendError, type SpendReceipt } from '@/lib/db/credits';
 import type { GarmentRow } from '@/lib/db/closet';
@@ -186,5 +187,93 @@ describe('POST /api/outfits save', () => {
     expect((await runOutfitsAction(U, null, deps)).status).toBe(400);
     expect((await runOutfitsAction(U, { action: 'nope' }, deps)).status).toBe(400);
     expect((await runOutfitsAction(U, { action: 'save' }, deps)).status).toBe(400);
+  });
+});
+
+describe('POST /api/outfits style with the real demo guard', () => {
+  afterEach(() => setDemoCacheStore(null));
+
+  function memoryStore(initial: Record<string, unknown> = {}) {
+    const data = new Map<string, unknown>(Object.entries(initial));
+    const store: DemoCacheStore = {
+      get: vi.fn(async (k: string) => data.get(k) ?? null),
+      set: vi.fn(async (k: string, v: unknown) => { data.set(k, v); }),
+    };
+    setDemoCacheStore(store);
+    return { store, data };
+  }
+  const realGuard = (deps: OutfitDeps) => { deps.guard = withGuard; return deps; };
+
+  it('(a) demo: first answer unusable, retry valid -> 3 Looks and only the valid Looks are cached', async () => {
+    const { store, data } = memoryStore();
+    const style = vi.fn()
+      .mockResolvedValueOnce({ looks: [look(['a', 'nope'])] })
+      .mockResolvedValueOnce({ looks: [look(['a', 'b']), look(['a', 'c']), look(['b', 'c']), look(['c', 'd'])] });
+    const { deps } = setup({ demo: true, style });
+    const r = await runOutfitsAction(U, { action: 'style' }, realGuard(deps));
+    expect(r.status).toBe(200);
+    expect(r.body.looks).toHaveLength(3);
+    expect(style).toHaveBeenCalledTimes(2);
+    expect(store.set).toHaveBeenCalledTimes(1);
+    const [[, cached]] = vi.mocked(store.set).mock.calls;
+    expect(cached).toEqual(r.body.looks);
+    expect([...data.values()]).toEqual([r.body.looks]);
+    expect(deps.refund).not.toHaveBeenCalled();
+  });
+
+  it('(b) demo: AI failing with a previously cached valid result -> cached Looks served, no refund', async () => {
+    const { store } = memoryStore();
+    const good = [look(['a', 'b'], 'Kept'), look(['c', 'd'], 'Also kept')];
+    // A successful run caches its validated Looks.
+    const prime = setup({ demo: true, style: vi.fn(async () => ({ looks: good })) });
+    const first = await runOutfitsAction(U, { action: 'style' }, realGuard(prime.deps));
+    expect(first.status).toBe(200);
+    expect(store.set).toHaveBeenCalledTimes(1);
+
+    // Same closet, AI now down: the cached Looks are served and the credit is kept.
+    const { deps } = setup({ demo: true, style: vi.fn(async () => { throw new Error('provider down'); }) });
+    const r = await runOutfitsAction(U, { action: 'style' }, realGuard(deps));
+    expect(r).toEqual({ status: 200, body: { looks: first.body.looks } });
+    expect(deps.refund).not.toHaveBeenCalled();
+  });
+
+  it('(b) demo: cached Looks are re-validated against the current closet', async () => {
+    const cachedLooks = [
+      { name: 'Kept', reason: 'Still here.', garmentIds: ['a', 'b'] },
+      { name: 'Bad', reason: 'Has a stranger.', garmentIds: ['a', 'zz'] },
+    ];
+    const store: DemoCacheStore = { get: vi.fn(async () => cachedLooks), set: vi.fn(async () => {}) };
+    setDemoCacheStore(store);
+    const { deps } = setup({ demo: true, style: vi.fn(async () => { throw new Error('provider down'); }) });
+    const r = await runOutfitsAction(U, { action: 'style' }, realGuard(deps));
+    expect(r).toEqual({ status: 200, body: { looks: [cachedLooks[0]] } });
+    expect(deps.refund).not.toHaveBeenCalled();
+  });
+
+  it('(c) non-demo: never touches the cache; retry and refund behave as before', async () => {
+    const { store } = memoryStore({});
+    const style = vi.fn(async () => ({ looks: [look(['a', 'nope'])] }));
+    const { deps } = setup({ demo: false, style });
+    const r = await runOutfitsAction(U, { action: 'style' }, realGuard(deps));
+    expect(r).toEqual({ status: 503, body: { error: 'ai_busy' } });
+    expect(style).toHaveBeenCalledTimes(2);
+    expect(deps.refund).toHaveBeenCalledTimes(1);
+    expect(store.get).not.toHaveBeenCalled();
+    expect(store.set).not.toHaveBeenCalled();
+
+    const ok = setup({ demo: false });
+    const r2 = await runOutfitsAction(U, { action: 'style' }, realGuard(ok.deps));
+    expect(r2.status).toBe(200);
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it('a failing AI call is not retried (only an unusable answer is)', async () => {
+    memoryStore();
+    const style = vi.fn(async () => { throw new Error('provider down'); });
+    const { deps } = setup({ demo: true, style });
+    const r = await runOutfitsAction(U, { action: 'style' }, realGuard(deps));
+    expect(r.status).toBe(503);
+    expect(style).toHaveBeenCalledTimes(1);
+    expect(deps.refund).toHaveBeenCalledTimes(1);
   });
 });

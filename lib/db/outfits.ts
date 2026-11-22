@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { adminClient } from '@/lib/db/admin';
 import { getEnv } from '@/lib/env';
 import { withGuard } from '@/lib/ai/guard';
+import { AiBadOutputError } from '@/lib/ai/errors';
 import { styleLooks } from '@/lib/ai/writer';
 import { SCAN_ERRORS, loadIsDemo } from '@/lib/db/scans';
 import { CLOSET_ERRORS, supabaseClosetRepo, type GarmentRow } from '@/lib/db/closet';
@@ -20,6 +21,14 @@ export const OUTFIT_ERRORS = {
   invalidLook: 'invalid_look',
   busy: CLOSET_ERRORS.busy,
 } as const;
+
+/** The AI answered, but none of its Looks passed validation. */
+export class NoValidLooksError extends AiBadOutputError {
+  constructor() {
+    super('no valid looks');
+    this.name = 'NoValidLooksError';
+  }
+}
 
 /** Persistence seam. Writes go through the service role. */
 export interface OutfitRepo {
@@ -104,12 +113,25 @@ async function style(userId: string, b: Record<string, unknown>, deps: OutfitDep
 
   const ids = createHash('sha256').update(closet.map((g) => g.id).sort().join(',')).digest('hex').slice(0, 32);
   const key = `looks:${ids}:${occasion ?? 'everyday'}`;
-  const ask = () => deps.guard(key, () => deps.style(closet, profile, occasion), { timeoutMs: deps.timeoutMs, demo });
+  // Validation runs INSIDE the guard: only usable Looks are ever cached, and an unusable answer counts as a
+  // failure (so a demo falls back to its last good Looks). Whatever comes back, cached or fresh, is
+  // re-validated against the current closet.
+  const guarded = () => deps.guard(key, async () => {
+    const valid = validateLooks(await deps.style(closet, profile, occasion), closet);
+    if (!valid.length) throw new NoValidLooksError();
+    return valid;
+  }, { timeoutMs: deps.timeoutMs, demo });
+  const attempt = async () => validateLooks(await guarded(), closet);
 
-  let looks: Look[];
+  let looks: Look[] = [];
   try {
-    looks = validateLooks(await ask(), closet);
-    if (!looks.length) looks = validateLooks(await ask(), closet);
+    try {
+      looks = await attempt();
+    } catch (err) {
+      // Only an unusable answer earns the one retry; a failing AI call does not.
+      if (!(err instanceof NoValidLooksError)) throw err;
+    }
+    if (!looks.length) looks = await attempt();
   } catch (err) {
     console.error('outfits: styling failed', err);
     await giveBack();
