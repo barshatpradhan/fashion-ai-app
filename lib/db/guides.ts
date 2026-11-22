@@ -42,11 +42,11 @@ type Fail = { status: 400 | 402 | 404 | 503; body: { error: string } };
 const fail = (status: Fail['status'], error: string): Fail => ({ status, body: { error } });
 
 export type GuideResult =
-  | { status: 200; body: { steps: string[]; tools: string[]; history: KbEntry[]; outdated: false } }
+  | { status: 200; body: { steps: string[]; tools: string[]; history: KbEntry[]; outdated: false; story: { garmentType: string; fabric: string; recipeTitle: string; difficulty: KbEntry['difficulty'] | null } } }
   | Fail;
 export type RenderResult = { status: 200; body: { imageUrl: string } } | Fail;
 
-type Resolved = { scanId: string; vision: VisionResult; recipe: KbEntry; history: KbEntry[]; demo: boolean; stateKey: string };
+type Resolved = { scanId: string; vision: VisionResult; recipe: KbEntry; history: KbEntry[]; demo: boolean; stateKey: string; garmentType: string; fabric: string };
 
 /** Short hash of the effective corrected state; versions demo cache keys so a cached fallback never answers for another state. */
 export function stateKeyOf(c: Confirmed): string {
@@ -68,7 +68,11 @@ async function resolve(userId: string, input: unknown, repo: GuideRepo): Promise
   if (!recipe) return fail(404, GUIDE_ERRORS.notFound);
   const [access, demo] = await Promise.all([hasFullRecipeAccess(repo, userId), repo.isDemo(userId)]);
   if (recipe.id !== match.freeRecipeId && !access) return fail(402, GUIDE_ERRORS.premiumRequired);
-  return { scanId: b.scanId, vision: state.scan.vision, recipe, history: match.history, demo, stateKey: stateKeyOf(state.confirmed) };
+  return {
+    scanId: b.scanId, vision: state.scan.vision, recipe, history: match.history, demo, stateKey: stateKeyOf(state.confirmed),
+    garmentType: state.confirmed.garmentType ?? state.scan.vision.garment_type,
+    fabric: state.confirmed.fabric ?? state.scan.fabricFinal ?? state.scan.vision.fabric_guess.value,
+  };
 }
 
 const isFail = (r: Resolved | Fail): r is Fail => 'body' in r;
@@ -99,7 +103,10 @@ export async function runGuide(userId: string, input: unknown, deps: GuideDeps):
   const refs = new Set(body.historyRefs ?? []);
   return {
     status: 200,
-    body: { steps: body.steps, tools: body.tools, history: r.history.filter((h) => refs.has(h.id)), outdated: false },
+    body: {
+      steps: body.steps, tools: body.tools, history: r.history.filter((h) => refs.has(h.id)), outdated: false,
+      story: { garmentType: r.garmentType, fabric: r.fabric, recipeTitle: r.recipe.title, difficulty: r.recipe.difficulty ?? null },
+    },
   };
 }
 

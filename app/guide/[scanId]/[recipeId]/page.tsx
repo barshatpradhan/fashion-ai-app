@@ -5,11 +5,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
 import { messageForError } from '@/lib/ui/messages';
 import { safeUrl } from '@/lib/ui/result';
+import { StoryCard } from '@/components/StoryCard';
 import type { KbEntry } from '@/lib/domain/types';
 import s from '@/components/result.module.css';
 import g from '@/components/guide.module.css';
 
-type GuideData = { steps: string[]; tools: string[]; history: KbEntry[] };
+type GuideData = {
+  steps: string[]; tools: string[]; history: KbEntry[];
+  story?: { garmentType: string; fabric: string; recipeTitle: string; difficulty: KbEntry['difficulty'] | null };
+};
 type Load =
   | { kind: 'loading' }
   | { kind: 'ready'; guide: GuideData }
@@ -29,7 +33,6 @@ export default function GuidePage() {
   const [renderState, setRenderState] = useState<'idle' | 'working' | 'error'>('idle');
   const [renderError, setRenderError] = useState<string | null>(null);
   const [showAfter, setShowAfter] = useState(false);
-  // Task 11 reads this to open the Garment Story card.
   const [storyOpen, setStoryOpen] = useState(false);
 
   const renderImage = useCallback(async () => {
@@ -189,7 +192,18 @@ export default function GuidePage() {
               I made this
             </button>
           </div>
-          {storyOpen ? <p className={g.storyNote}>Your Garment Story card is coming soon.</p> : null}
+          {storyOpen ? (
+            <StoryCard
+              scanId={scanId}
+              garmentType={load.guide.story?.garmentType ?? 'garment'}
+              fabric={load.guide.story?.fabric ?? 'unknown'}
+              recipeTitle={load.guide.story?.recipeTitle ?? 'Redesign'}
+              difficulty={load.guide.story?.difficulty ?? null}
+              history={load.guide.history.map((h) => ({ title: h.title, sources: h.sources }))}
+              isConcept={Boolean(afterUrl && showAfter)}
+              imageUrl={showAfter && afterUrl ? afterUrl : beforeUrl}
+            />
+          ) : null}
           {back}
         </>
       ) : null}
