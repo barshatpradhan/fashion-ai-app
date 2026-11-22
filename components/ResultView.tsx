@@ -11,6 +11,7 @@ import { Swatches } from './Swatches';
 import { FabricConfirm } from './FabricConfirm';
 import { StyleQuestion } from './StyleQuestion';
 import { LockedRecipeCard } from './LockedRecipeCard';
+import { AddToCloset } from './AddToCloset';
 import s from './result.module.css';
 
 export type AnalyzeResponse = {
@@ -98,6 +99,8 @@ export function ResultView({ result, heroSrc, isCutout }: Props) {
         </div>
         <Swatches colors={vision.colors} />
       </div>
+
+      <AddToCloset scanId={scanId} />
 
       {needsConfirm ? (
         <FabricConfirm

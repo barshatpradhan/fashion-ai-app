@@ -1,0 +1,353 @@
+/* Closet: a clothing rail (reference video 2). Pieces hang from a rod; hover lifts one; choosing one
+   brings it forward and softens the rest. Only transform, filter and opacity move. */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.badgeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 0;
+}
+
+/* -------------------------------------------------------------------- rail */
+
+.railWrap {
+  position: relative;
+  margin-top: 40px;
+}
+
+.rod {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #b9b0a2, #8f8678);
+  box-shadow: 0 2px 3px rgba(28, 27, 25, 0.15);
+}
+
+.rod::before,
+.rod::after {
+  content: '';
+  position: absolute;
+  top: -14px;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: #8f8678;
+}
+
+.rod::before { left: 6px; }
+.rod::after { right: 6px; }
+
+.rail {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 20px 36px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.slot {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+}
+
+.piece {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 168px;
+  padding: 0 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transform-origin: 50% 8px;
+  transition:
+    transform 0.5s var(--ease),
+    filter 0.4s var(--ease),
+    opacity 0.4s var(--ease);
+}
+
+.piece:focus-visible {
+  outline: none;
+}
+
+.piece:focus-visible .figure {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.hanger {
+  width: 64px;
+  height: 34px;
+  color: #6f675b;
+}
+
+.figure {
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 190px;
+  margin-top: -4px;
+  border-radius: 10px;
+  transition: box-shadow 0.5s var(--ease);
+}
+
+.figure img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(28, 27, 25, 0.16));
+}
+
+.placeholder {
+  width: 110px;
+  height: 150px;
+  border-radius: 10px 10px 18px 18px;
+  background: linear-gradient(160deg, var(--paper-raised), var(--line));
+  border: 1px solid var(--line);
+}
+
+.pieceName {
+  margin-top: 10px;
+  max-width: 150px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flag {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  color: var(--accent);
+}
+
+/* Hover / keyboard focus: the piece lifts off the rod a little. */
+.piece:hover,
+.piece:focus-visible {
+  transform: translateY(-10px) rotate(-1.5deg);
+}
+
+/* A chosen piece comes forward; the rest soften. */
+.rail[data-focused='true'] .piece {
+  filter: blur(3px) saturate(0.8);
+  opacity: 0.55;
+  transform: scale(0.94);
+}
+
+.rail[data-focused='true'] .piece:hover,
+.rail[data-focused='true'] .piece:focus-visible {
+  filter: blur(1px);
+  opacity: 0.8;
+}
+
+.rail[data-focused='true'] .piece.active {
+  filter: none;
+  opacity: 1;
+  transform: translateY(-6px) scale(1.14);
+  z-index: 2;
+}
+
+.piece.active .figure {
+  box-shadow: 0 24px 40px -24px rgba(28, 27, 25, 0.45);
+}
+
+.past .piece {
+  width: 128px;
+}
+
+.past .figure {
+  width: 112px;
+  height: 140px;
+}
+
+/* ------------------------------------------------------------------ detail */
+
+.detail {
+  margin-top: 8px;
+  padding: 22px 24px;
+  max-width: 640px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.detailName {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  margin: 0 0 8px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meta {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.detailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.danger:hover {
+  border-color: var(--danger);
+}
+
+.dangerSolid {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--paper);
+}
+
+.confirm {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+
+.confirm p {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+
+/* -------------------------------------------------------------------- form */
+
+.form {
+  margin-top: 24px;
+  padding: 22px 24px;
+  max-width: 560px;
+  display: grid;
+  gap: 16px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.formTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.3rem;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.input {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.fieldHint {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.inline {
+  margin-top: 12px;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.inline a {
+  text-underline-offset: 4px;
+}
+
+.saveRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin: 24px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No lift or tilt; a chosen piece still stands out by sharpness and size. */
+  .piece:hover,
+  .piece:focus-visible {
+    transform: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .piece { width: 132px; }
+  .figure { width: 120px; height: 152px; }
+}

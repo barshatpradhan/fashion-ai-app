@@ -6,6 +6,7 @@ import { browserClient, ensureSession } from '@/lib/db/browser';
 import { messageForError } from '@/lib/ui/messages';
 import { safeUrl } from '@/lib/ui/result';
 import { StoryCard } from '@/components/StoryCard';
+import { MadeThis } from '@/components/MadeThis';
 import type { KbEntry } from '@/lib/domain/types';
 import s from '@/components/result.module.css';
 import g from '@/components/guide.module.css';
@@ -188,10 +189,8 @@ export default function GuidePage() {
             <button type="button" className={s.button} aria-expanded={storyOpen} onClick={() => setStoryOpen((v) => !v)}>
               Create Garment Story card
             </button>
-            <button type="button" className={`${s.button} ${s.ghost}`} disabled title="Coming soon">
-              I made this
-            </button>
           </div>
+          <MadeThis scanId={scanId} recipeId={recipeId} />
           {storyOpen ? (
             <StoryCard
               scanId={scanId}

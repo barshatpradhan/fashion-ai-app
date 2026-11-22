@@ -36,7 +36,7 @@ describe('ResultView', () => {
     expect(screen.getByRole('img', { name: 'Your shirt' })).toBeTruthy();
     expect(screen.getByText('Navy')).toBeTruthy();
     expect(screen.getByText('Which fabric is it?')).toBeTruthy();
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Linen', 'Cotton', 'Silk', 'Yes', 'No']);
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Add to closet', 'Linen', 'Cotton', 'Silk', 'Yes', 'No']);
     expect(screen.getByText('Is this Breton stripe?')).toBeTruthy();
     expect(screen.getByText('No verified history for this piece yet.')).toBeTruthy();
     expect(screen.getByRole('link', { name: /open the free guide/i }).getAttribute('href')).toBe('/guide/scan-1/a');

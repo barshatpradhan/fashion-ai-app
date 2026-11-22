@@ -54,8 +54,11 @@ export function stateKeyOf(c: Confirmed): string {
   return createHash('sha1').update(JSON.stringify(norm)).digest('hex').slice(0, 10);
 }
 
-/** Shared by guide and render: validates input, ownership, the CURRENT match and the Premium gate. */
-async function resolve(userId: string, input: unknown, repo: GuideRepo): Promise<Resolved | Fail> {
+/**
+ * Shared by guide, render and the closet's "I made this": validates input, ownership, the CURRENT match
+ * and the Premium gate.
+ */
+export async function resolveGuide(userId: string, input: unknown, repo: CorrectionRepo): Promise<Resolved | Fail> {
   const b = input as { scanId?: unknown; recipeId?: unknown } | null;
   if (!b || typeof b.scanId !== 'string' || !b.scanId || typeof b.recipeId !== 'string' || !b.recipeId) {
     return fail(400, SCAN_ERRORS.badRequest);
@@ -75,12 +78,12 @@ async function resolve(userId: string, input: unknown, repo: GuideRepo): Promise
   };
 }
 
-const isFail = (r: Resolved | Fail): r is Fail => 'body' in r;
+export const isFail = (r: Resolved | Fail): r is Fail => 'body' in r;
 const isAiError = (e: unknown) =>
   e instanceof AiRateLimitError || e instanceof AiTimeoutError || e instanceof AiBadOutputError;
 
 export async function runGuide(userId: string, input: unknown, deps: GuideDeps): Promise<GuideResult> {
-  const r = await resolve(userId, input, deps.repo);
+  const r = await resolveGuide(userId, input, deps.repo);
   if (isFail(r)) return r;
   const { repo } = deps;
   const stored = await repo.getGuide(r.scanId, r.recipe.id);
@@ -111,7 +114,7 @@ export async function runGuide(userId: string, input: unknown, deps: GuideDeps):
 }
 
 export async function runRender(userId: string, input: unknown, deps: GuideDeps): Promise<RenderResult> {
-  const r = await resolve(userId, input, deps.repo);
+  const r = await resolveGuide(userId, input, deps.repo);
   if (isFail(r)) return r;
   const { repo } = deps;
   const stored = await repo.getGuide(r.scanId, r.recipe.id);
