@@ -10,6 +10,7 @@ import { HeroGarment } from './HeroGarment';
 import { Swatches } from './Swatches';
 import { FabricConfirm } from './FabricConfirm';
 import { StyleQuestion } from './StyleQuestion';
+import { UpgradeButton } from './UpgradeButton';
 import { LockedRecipeCard } from './LockedRecipeCard';
 import { AddToCloset } from './AddToCloset';
 import s from './result.module.css';
@@ -150,6 +151,9 @@ export function ResultView({ result, heroSrc, isCutout }: Props) {
               ),
             )}
           </div>
+          {others.some(isLockedRecipe) ? (
+            <p style={{ marginTop: 20 }}><UpgradeButton label="Unlock every Recipe · $7.99/month" /></p>
+          ) : null}
         </section>
       ) : null}
     </div>

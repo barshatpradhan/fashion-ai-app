@@ -8,6 +8,7 @@ import type { Look } from '@/lib/domain/types';
 import { OCCASIONS, MIN_ITEMS } from '@/lib/domain/outfits';
 import { AllowanceBadge } from '@/components/AllowanceBadge';
 import { LooksCarousel } from '@/components/LooksCarousel';
+import { UpgradeButton } from '@/components/UpgradeButton';
 import s from '@/components/result.module.css';
 import c from '@/components/closet.module.css';
 import l from '@/components/looks.module.css';
@@ -127,7 +128,7 @@ export default function LooksPage() {
         </p>
       ) : null}
       {error ? <p className={s.error} role="alert">{error}</p> : null}
-      {!error && outOfLooks ? <p className={s.error} role="alert">{looksMessage('no_looks', allowance?.nextCreditAt)}</p> : null}
+      {!error && outOfLooks ? <p className={s.error} role="alert">{looksMessage('no_looks', allowance?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p> : null}
       {!error && tooSmall ? (
         <p className={`${s.empty} ${c.inline}`}>
           {looksMessage('closet_too_small')} <Link href="/closet">Go to your closet</Link>

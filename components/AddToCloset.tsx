@@ -5,6 +5,7 @@ import { messageForError } from '@/lib/ui/messages';
 import { noUploadsMessage } from '@/lib/ui/closet';
 import { postCloset } from '@/lib/ui/closetClient';
 import c from './closet.module.css';
+import { UpgradeButton } from '@/components/UpgradeButton';
 import s from './result.module.css';
 
 type State = { kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; already: boolean } | { kind: 'error'; message: string };
@@ -51,7 +52,12 @@ export function AddToCloset({ scanId, onSaved }: Props) {
         </button>
         <span className={s.hint}>Uses 1 upload.</span>
       </div>
-      {state.kind === 'error' ? <p className={s.note} role="alert">{state.message}</p> : null}
+      {state.kind === 'error' ? (
+        <p className={s.note} role="alert">
+          {state.message}
+          {state.message.startsWith("You're out of uploads") ? <> <UpgradeButton label="Go Premium · $7.99/month" ghost /></> : null}
+        </p>
+      ) : null}
     </div>
   );
 }

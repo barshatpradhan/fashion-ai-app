@@ -8,6 +8,7 @@ import { safeUrl } from '@/lib/ui/result';
 import { StoryCard } from '@/components/StoryCard';
 import { MadeThis } from '@/components/MadeThis';
 import type { KbEntry } from '@/lib/domain/types';
+import { UpgradeButton } from '@/components/UpgradeButton';
 import s from '@/components/result.module.css';
 import g from '@/components/guide.module.css';
 
@@ -89,7 +90,7 @@ export default function GuidePage() {
           <p className={s.eyebrow}>Premium</p>
           <h1 id="upgrade-title">This guide is part of Premium</h1>
           <p>Upgrade to open every redesign guide for your garments. Your free guide stays open.</p>
-          <button type="button" className={s.button} disabled title="Coming soon">Upgrade</button>
+          <UpgradeButton label="Upgrade · $7.99/month" />
         </section>
         {back}
       </main>

@@ -9,6 +9,7 @@ import { postCloset, removeUploaded, uploadPhoto } from '@/lib/ui/closetClient';
 import type { ClosetGarment } from '@/lib/db/closet';
 import { ClosetRail } from '@/components/ClosetRail';
 import { AllowanceBadge } from '@/components/AllowanceBadge';
+import { UpgradeButton } from '@/components/UpgradeButton';
 import s from '@/components/result.module.css';
 import c from '@/components/closet.module.css';
 
@@ -128,7 +129,7 @@ export default function ClosetPage() {
 
       {mode ? (
         outOfUploads ? (
-          <p className={s.error} role="alert">{noUploadsMessage(uploads?.nextCreditAt)}</p>
+          <p className={s.error} role="alert">{noUploadsMessage(uploads?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p>
         ) : (
           <form className={c.form} onSubmit={(e) => void onSubmit(e)} aria-labelledby="add-title">
             <h2 id="add-title" className={c.formTitle}>{FORM_COPY[mode].title}</h2>
