@@ -20,7 +20,7 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    - `IMAGE_PROVIDER=gemini` for now
    - `DEMO_KEY`: a long random secret (30+ random characters). Anyone with it can sign in as the demo user, so do not share it.
    - `CRON_SECRET` (optional): a long random string. If set, the keep-alive job requires it (Vercel sends it automatically); if left unset, the job needs no auth.
-   - `AI_TIMEOUT_MS=20000` (leave as is)
+   - `AI_TIMEOUT_MS=20000` and `RENDER_TIMEOUT_MS=50000` (leave as is; image generation needs the longer timeout)
    - `DEMO_USER_ID`: filled in the next step.
 7. **Create the demo account**: run `npm run seed:demo` (it only needs the Supabase variables; `DEMO_USER_ID` may still be blank). It prints a `DEMO_USER_ID`; copy it into `.env.local` (and later into Vercel). The demo user is created with the email `demo@revivo.local`, which `/demo` needs to sign you in. Optional: `npm run seed:demo -- --photos <folder>`.
 8. **Check the security rules once**: run `npm run test:smoke`. It reads `.env.local` and should pass. It **fails** (never skips) if the Supabase variables are missing; if it fails, stop and fix before going on.
@@ -41,7 +41,7 @@ All history claims come from `content/kb/entries.csv` and only show once a team 
 1. In Vercel, set `IMAGE_PROVIDER=openai` (make sure `OPENAI_API_KEY` is set) and **redeploy**. Use the same value in `.env.local` so `prescan` uses the same provider.
 2. On the **laptop** and the **phone**, open `https://<your-site>/demo?key=<DEMO_KEY>`. It signs you in as the demo user and goes to the home page.
 3. Upload **each stage photo once** in `/scan`, through the real app (the browser resizes uploads, so only photos uploaded this way warm the right cache).
-4. Run `npm run prescan`. It pre-generates the free guide and concept image for the demo account's scans (`-- --scan <id>` for just one).
+4. Run `npm run prescan`. It pre-generates the free guide and concept image for the demo account's scans (`-- --scan <id>` for just one). Check its last line: **"images warmed" must equal the number of scans**. If it is lower, run it again (guides and images already stored are reused, not regenerated).
 5. Check Supabase is awake: free projects pause after inactivity. The daily keep-alive cron prevents this; confirm the project is Active in the dashboard and the site loads data.
 6. **Rehearse the whole demo once** (see section 4) on the real phone and network.
 

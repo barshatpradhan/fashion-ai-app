@@ -41,7 +41,7 @@ function setup(opts: { premium?: boolean; demo?: boolean; owner?: string; guide?
     repo,
     write: vi.fn(async () => ({ steps: ['s1'], tools: ['needle'], historyRefs: opts.refs ?? ['h-1'] })),
     generateImage: vi.fn(async () => new Uint8Array([1, 2, 3])),
-    imageProvider: 'gemini', timeoutMs: 1000,
+    imageProvider: 'gemini', timeoutMs: 1000, renderTimeoutMs: 5000,
     guard: vi.fn(async (_k, fn) => fn()),
   };
   return { repo, deps };
@@ -152,6 +152,12 @@ describe('runRender', () => {
     expect(call[0]).toMatch(new RegExp(`^render:${SID}:r-free:[0-9a-f]{10}$`));
     expect(call[2]).toMatchObject({ demo: true });
     expect(typeof (await call[1]())).toBe('string');
+  });
+
+  it('uses the separate render timeout (image generation is slower than text)', async () => {
+    const { deps } = setup({ premium: true });
+    await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
+    expect((deps.guard as ReturnType<typeof vi.fn>).mock.calls[0][2]).toMatchObject({ timeoutMs: 5000 });
   });
 
   it('AI failure maps to 503 ai_busy', async () => {

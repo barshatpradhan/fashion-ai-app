@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { adminClient } from '@/lib/db/admin';
-import { getEnv } from '@/lib/env';
+import { getEnvFor } from '@/lib/env';
 import { SCAN_ERRORS, hasFullRecipeAccess } from '@/lib/db/scans';
 import { loadScanState, supabaseCorrectionRepo, type CorrectionRepo } from '@/lib/db/corrections';
 import { matchEntries } from '@/lib/domain/matching';
@@ -34,7 +34,10 @@ export type GuideDeps = {
   write: (v: VisionResult, recipe: KbEntry, history: KbEntry[]) => Promise<GuideBody>;
   generateImage: (v: VisionResult, recipe: KbEntry) => Promise<Uint8Array>;
   imageProvider: string;
+  /** Text (guide writer) timeout. */
   timeoutMs: number;
+  /** Image generation timeout: separate and longer (gpt-image-1 often exceeds the text timeout). */
+  renderTimeoutMs: number;
   guard: <T>(key: string, fn: () => Promise<T>, opts: { timeoutMs: number; demo: boolean }) => Promise<T>;
 };
 
@@ -131,7 +134,7 @@ export async function runRender(userId: string, input: unknown, deps: GuideDeps)
         await repo.upload(path, png);
         return path;
       },
-      { timeoutMs: deps.timeoutMs, demo: r.demo },
+      { timeoutMs: deps.renderTimeoutMs, demo: r.demo },
     );
   } catch (err) {
     if (isAiError(err)) return fail(503, SCAN_ERRORS.aiBusy);
@@ -188,9 +191,9 @@ export function supabaseGuideRepo(): GuideRepo {
 }
 
 export function defaultGuideDeps(): GuideDeps {
-  const e = getEnv();
+  const e = getEnvFor(['IMAGE_PROVIDER', 'AI_TIMEOUT_MS', 'RENDER_TIMEOUT_MS']);
   return {
     repo: supabaseGuideRepo(), write: writeGuide, generateImage: generateConceptImage,
-    imageProvider: e.IMAGE_PROVIDER, timeoutMs: e.AI_TIMEOUT_MS, guard: withGuard,
+    imageProvider: e.IMAGE_PROVIDER, timeoutMs: e.AI_TIMEOUT_MS, renderTimeoutMs: e.RENDER_TIMEOUT_MS, guard: withGuard,
   };
 }
