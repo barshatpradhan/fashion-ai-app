@@ -6,7 +6,7 @@ import { withGuard } from '@/lib/ai/guard';
 import { AiBadOutputError } from '@/lib/ai/errors';
 import { styleLooks } from '@/lib/ai/writer';
 import { SCAN_ERRORS, loadIsDemo } from '@/lib/db/scans';
-import { CLOSET_ERRORS, supabaseClosetRepo, type GarmentRow } from '@/lib/db/closet';
+import { CLOSET_ERRORS, supabaseClosetRepo, isUpcycledRow, type GarmentRow } from '@/lib/db/closet';
 import {
   spendCredit, refundCredit, adminCreditRepo, OutOfCreditsError, ConcurrentSpendError,
   type CreditKind, type SpendReceipt,
@@ -58,7 +58,7 @@ const bad = () => fail(400, SCAN_ERRORS.badRequest);
 
 export function toGarment(r: GarmentRow): Garment {
   return {
-    id: r.id, category: r.category, status: r.status, isUpcycled: r.sourceGarmentId !== null, tags: r.tags,
+    id: r.id, category: r.category, status: r.status, isUpcycled: isUpcycledRow(r), tags: r.tags,
     name: r.name ?? 'Untitled piece', cutoutPath: r.cutoutPath ?? '', imageKind: r.imageKind,
   };
 }

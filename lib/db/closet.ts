@@ -35,6 +35,14 @@ export type GarmentRow = {
   imageKind: 'photo' | 'concept'; tags: string[]; status: GarmentStatus;
   sourceGarmentId: string | null; recipeId: string | null; createdAt: string;
 };
+
+/**
+ * An Upcycled Garment is one made with a Recipe ("I made this"). Derived from recipe_id as well as
+ * source_garment_id: both FKs are ON DELETE SET NULL, and deleting the original must not un-upcycle it.
+ */
+export const isUpcycledRow = (g: Pick<GarmentRow, 'sourceGarmentId' | 'recipeId'>): boolean =>
+  g.recipeId !== null || g.sourceGarmentId !== null;
+
 export type NewGarment = Omit<GarmentRow, 'id' | 'status' | 'createdAt'>;
 export type ClosetScan = {
   id: string; userId: string; vision: VisionResult; fabricFinal: string | null;
@@ -350,7 +358,7 @@ export async function loadCloset(
     body: {
       garments: sorted.map((g) => ({
         id: g.id, category: g.category, name: g.name ?? 'Untitled piece', imageKind: g.imageKind, tags: g.tags,
-        status: g.status, isUpcycled: g.sourceGarmentId !== null, scanId: g.scanId, recipeId: g.recipeId,
+        status: g.status, isUpcycled: isUpcycledRow(g), scanId: g.scanId, recipeId: g.recipeId,
         createdAt: g.createdAt, imageUrl: g.cutoutPath ? urls[g.cutoutPath] ?? null : null,
       })),
       allowance: { uploads: out(peek(up.state, now, display(up.tier))), looks: out(peek(look.state, now, display(look.tier))) },

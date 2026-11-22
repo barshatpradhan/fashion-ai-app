@@ -1,3 +1,4 @@
+import { toGarment } from '@/lib/db/outfits';
 import { describe, it, expect, vi } from 'vitest';
 import {
   runClosetAction, loadCloset, filterTags, DuplicateGarmentError,
@@ -426,5 +427,22 @@ describe('GET closet', () => {
     const r = await loadCloset(U, w.deps);
     expect(r.body.allowance.uploads).toEqual({ remaining: 7, nextCreditAt: null });
     expect(r.body.allowance.looks).toEqual({ remaining: 10, nextCreditAt: null });
+  });
+});
+
+describe('upcycled flag survives deleting the original', () => {
+  it('a made-this garment whose source was deleted (FK set null) is still upcycled', async () => {
+    const w = world();
+    const made = w.addGarment({ sourceGarmentId: null, recipeId: 'r1' });
+    const plain = w.addGarment();
+    const r = await loadCloset(U, w.deps);
+    expect(r.body.garments.find((g) => g.id === made.id)?.isUpcycled).toBe(true);
+    expect(r.body.garments.find((g) => g.id === plain.id)?.isUpcycled).toBe(false);
+  });
+
+  it('outfits treat it as upcycled too', () => {
+    const w = world();
+    const made = w.addGarment({ sourceGarmentId: null, recipeId: 'r1' });
+    expect(toGarment(made).isUpcycled).toBe(true);
   });
 });
