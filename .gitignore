@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.env
+.env.local
+.env*.local
+.superpowers/
+graphify-out/
+reference videos/
+*.log
+.vercel/
