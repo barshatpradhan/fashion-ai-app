@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  prepareImage, removeBackground, UnsupportedImageError, JPEG_QUALITY, MAX_EDGE,
+  prepareImage, removeBackground, BG_REMOVAL_TIMEOUT_MS, UnsupportedImageError, JPEG_QUALITY, MAX_EDGE,
   type ImageIO, type Decoded,
 } from '@/lib/image/prepare';
 
@@ -136,6 +136,18 @@ describe('removeBackground', () => {
 
   it('returns null when the library fails', async () => {
     const out = await removeBackground(jpeg, async () => async () => { throw new Error('wasm failed'); });
+    expect(out).toBeNull();
+  });
+
+  it('returns null when removal hangs past the timeout (12 s by default)', async () => {
+    expect(BG_REMOVAL_TIMEOUT_MS).toBe(12_000);
+    const never = () => new Promise<Blob>(() => {});
+    const out = await removeBackground(jpeg, async () => never, 20);
+    expect(out).toBeNull();
+  });
+
+  it('times out a hanging model load too', async () => {
+    const out = await removeBackground(jpeg, () => new Promise(() => {}), 20);
     expect(out).toBeNull();
   });
 

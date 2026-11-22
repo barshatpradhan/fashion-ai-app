@@ -40,10 +40,10 @@ All history claims come from `content/kb/entries.csv` and only show once a team 
 
 1. In Vercel, set `IMAGE_PROVIDER=openai` (make sure `OPENAI_API_KEY` is set) and **redeploy**. Use the same value in `.env.local` so `prescan` uses the same provider.
 2. On the **laptop** and the **phone**, open `https://<your-site>/demo?key=<DEMO_KEY>`. It signs you in as the demo user and goes to the home page.
-3. Upload **each stage photo once** in `/scan`, through the real app (the browser resizes uploads, so only photos uploaded this way warm the right cache).
+3. Upload **each stage photo once** in `/scan`, through the real app, **on the exact device and browser you will present from** (the browser resizes and re-encodes uploads, so a different phone or browser can produce different image bytes and miss the cache). If you might present from both the laptop and the phone, upload each photo on both. Background removal gives up after 12 s and uses the original photo, so a slow network cannot hang an upload.
 4. Run `npm run prescan`. It pre-generates the free guide and concept image for the demo account's scans (`-- --scan <id>` for just one). Check its last line: **"images warmed" must equal the number of scans**. If it is lower, run it again (guides and images already stored are reused, not regenerated).
 5. Check Supabase is awake: free projects pause after inactivity. The daily keep-alive cron prevents this; confirm the project is Active in the dashboard and the site loads data.
-6. **Rehearse the whole demo once** (see section 4) on the real phone and network.
+6. **Rehearse the whole demo once** (see section 4) on the real phone and network. Rehearse **"Style me" with the final closet** and the occasion you will use on stage, then **do not add or remove closet pieces afterwards**: the demo fallback for Looks is keyed by the closet's pieces plus the occasion, so any change means no cached Looks if the AI is slow.
 
 ## 4. On stage
 

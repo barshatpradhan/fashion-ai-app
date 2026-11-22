@@ -141,14 +141,34 @@ async function loadImgly(): Promise<RemoveBg> {
   return mod.removeBackground as RemoveBg;
 }
 
-/** Cut-out PNG with transparent background, or null on any failure (the caller then uses the original). */
-export async function removeBackground(jpeg: Blob, load: () => Promise<RemoveBg> = loadImgly): Promise<Blob | null> {
-  try {
+/** Model download + inference can hang on a slow stage network; past this the original photo is used. */
+export const BG_REMOVAL_TIMEOUT_MS = 12_000;
+
+/**
+ * Cut-out PNG with transparent background, or null on any failure or after `timeoutMs` (loading the
+ * model included); the caller then uses the original photo.
+ */
+export async function removeBackground(
+  jpeg: Blob, load: () => Promise<RemoveBg> = loadImgly, timeoutMs: number = BG_REMOVAL_TIMEOUT_MS,
+): Promise<Blob | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`background removal took over ${timeoutMs} ms; using the original photo`);
+      resolve(null);
+    }, timeoutMs);
+  });
+  const work = (async () => {
     const run = await load();
     const out = await run(jpeg, { output: { format: 'image/png' } });
     return out && out.size > 0 ? out : null;
+  })();
+  try {
+    return await Promise.race([work, timeout]);
   } catch (err) {
     console.warn('background removal failed; using the original photo', err);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
