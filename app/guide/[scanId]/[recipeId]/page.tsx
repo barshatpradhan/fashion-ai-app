@@ -13,7 +13,9 @@ import s from '@/components/result.module.css';
 import g from '@/components/guide.module.css';
 
 type GuideData = {
-  steps: string[]; tools: string[]; history: KbEntry[];
+  steps: string[]; tools: string[];
+  /** Every verified History Entry matched to the garment; historyRefs marks the ones the guide drew on. */
+  history: KbEntry[]; historyRefs?: string[];
   story?: { garmentType: string; fabric: string; recipeTitle: string; difficulty: KbEntry['difficulty'] | null };
 };
 type Load =
@@ -106,7 +108,12 @@ export default function GuidePage() {
           Writing your guide…
         </p>
       ) : null}
-      {load.kind === 'error' ? <p className={s.error} role="alert">{load.message}</p> : null}
+      {load.kind === 'error' ? (
+        <>
+          <p className={s.error} role="alert">{load.message}</p>
+          {back}
+        </>
+      ) : null}
 
       {load.kind === 'ready' ? (
         <>
@@ -172,6 +179,7 @@ export default function GuidePage() {
                   return (
                     <article key={h.id} className={s.card}>
                       <h3 className={s.cardTitle}>{h.title}</h3>
+                      {load.guide.historyRefs?.includes(h.id) ? <span className={s.tag}>Used in your guide</span> : null}
                       <ul className={s.sources} aria-label="Sources">
                         {sources.map((src) => (
                           <li key={src.url}>

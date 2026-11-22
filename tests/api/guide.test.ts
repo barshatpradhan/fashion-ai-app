@@ -104,11 +104,31 @@ describe('runGuide', () => {
     expect(r.body).toMatchObject({ steps: ['s1'], outdated: false });
   });
 
-  it('drops writer history ids that were not passed in', async () => {
+  it('returns the full matched history; writer refs only highlight (unknown ids dropped)', async () => {
     const { deps } = setup({ premium: true, refs: ['h-1', 'ghost'] });
     const r = await free(deps);
-    const history = (r.body as { history: KbEntry[] }).history;
-    expect(history.map((h) => h.id)).toEqual(['h-1']);
+    const body = r.body as { history: KbEntry[]; historyRefs: string[] };
+    expect(body.history.map((h) => h.id).sort()).toEqual(['h-1', 'h-2']);
+    expect(body.historyRefs).toEqual(['h-1']);
+  });
+
+  it('keeps verified history even when the writer cites none', async () => {
+    const { deps } = setup({ premium: true, refs: [] });
+    const body = (await free(deps)).body as { history: KbEntry[] };
+    expect(body.history.map((h) => h.id).sort()).toEqual(['h-1', 'h-2']);
+  });
+
+  it('strips URLs from steps and tools before returning', async () => {
+    const { deps } = setup({ premium: true });
+    (deps.write as ReturnType<typeof vi.fn>).mockResolvedValue({
+      steps: ['Cut the hem (see https://shop.example.com/x).', 'Fold at www.example.org/fold twice'],
+      tools: ['scissors http://buy.example.com', 'https://only.example.com'],
+      historyRefs: [],
+    });
+    const body = (await free(deps)).body as { steps: string[]; tools: string[] };
+    expect(body.steps.join(' ')).not.toMatch(/https?:|www\./);
+    expect(body.steps[0]).toContain('Cut the hem');
+    expect(body.tools).toEqual(['scissors']);
   });
 
   it('AI failure maps to 503 ai_busy', async () => {

@@ -45,7 +45,7 @@ type Fail = { status: 400 | 402 | 404 | 503; body: { error: string } };
 const fail = (status: Fail['status'], error: string): Fail => ({ status, body: { error } });
 
 export type GuideResult =
-  | { status: 200; body: { steps: string[]; tools: string[]; history: KbEntry[]; outdated: false; story: { garmentType: string; fabric: string; recipeTitle: string; difficulty: KbEntry['difficulty'] | null } } }
+  | { status: 200; body: { steps: string[]; tools: string[]; history: KbEntry[]; historyRefs: string[]; outdated: false; story: { garmentType: string; fabric: string; recipeTitle: string; difficulty: KbEntry['difficulty'] | null } } }
   | Fail;
 export type RenderResult = { status: 200; body: { imageUrl: string } } | Fail;
 
@@ -82,6 +82,14 @@ export async function resolveGuide(userId: string, input: unknown, repo: Correct
 }
 
 export const isFail = (r: Resolved | Fail): r is Fail => 'body' in r;
+
+const URL_RE = /\b(?:https?:\/\/|www\.)\S+/gi;
+/** No links in AI-written guide text (§6.6 rule 8): strip URLs, tidy what is left, drop empty lines. */
+export function stripUrls(lines: string[]): string[] {
+  return lines
+    .map((l) => l.replace(URL_RE, '').replace(/\(\s*\)/g, '').replace(/\s+([.,;:!?])/g, '$1').replace(/\s{2,}/g, ' ').trim())
+    .filter((l) => l.length > 0 && /[a-z0-9]/i.test(l));
+}
 const isAiError = (e: unknown) =>
   e instanceof AiRateLimitError || e instanceof AiTimeoutError || e instanceof AiBadOutputError;
 
@@ -106,11 +114,14 @@ export async function runGuide(userId: string, input: unknown, deps: GuideDeps):
     }
     await repo.saveGuide(r.scanId, r.recipe.id, body);
   }
+  // The sources section and Story card always get the full verified (reviewed, tag-matched) history; the
+  // writer's historyRefs only highlight which entries the guide drew on.
   const refs = new Set(body.historyRefs ?? []);
   return {
     status: 200,
     body: {
-      steps: body.steps, tools: body.tools, history: r.history.filter((h) => refs.has(h.id)), outdated: false,
+      steps: stripUrls(body.steps), tools: stripUrls(body.tools ?? []),
+      history: r.history, historyRefs: r.history.filter((h) => refs.has(h.id)).map((h) => h.id), outdated: false,
       story: { garmentType: r.garmentType, fabric: r.fabric, recipeTitle: r.recipe.title, difficulty: r.recipe.difficulty ?? null },
     },
   };
