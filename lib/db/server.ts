@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getEnv } from '@/lib/env';
 
 /** Acts as the signed-in user (cookie session); RLS applies. */
@@ -18,13 +18,5 @@ export async function serverClient(): Promise<SupabaseClient> {
         }
       },
     },
-  });
-}
-
-/** Service role, bypasses RLS. Scripts and credit spend only. */
-export function adminClient(): SupabaseClient {
-  const e = getEnv();
-  return createClient(e.SUPABASE_URL, e.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
   });
 }

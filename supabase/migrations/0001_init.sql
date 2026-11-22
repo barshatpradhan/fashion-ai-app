@@ -155,37 +155,38 @@ alter table public.outfits enable row level security;
 create policy profiles_select_own on public.profiles
   for select to authenticated using (id = auth.uid());
 
-create policy activity_owner on public.activity
-  for all to authenticated
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- Server-authored tables are SELECT-only for the owner. All writes go through the
+-- service-role client (daily cap, Upload/Look credits and the Activity Record
+-- must not be forgeable or resettable from the browser).
+create policy activity_select_own on public.activity
+  for select to authenticated using (user_id = auth.uid());
 
-create policy scans_owner on public.scans
-  for all to authenticated
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy scans_select_own on public.scans
+  for select to authenticated using (user_id = auth.uid());
 
-create policy garments_owner on public.garments
-  for all to authenticated
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy garments_select_own on public.garments
+  for select to authenticated using (user_id = auth.uid());
 
-create policy outfits_owner on public.outfits
-  for all to authenticated
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- outfits: saving is free, so the owner may insert and delete.
+create policy outfits_select_own on public.outfits
+  for select to authenticated using (user_id = auth.uid());
+create policy outfits_insert_own on public.outfits
+  for insert to authenticated with check (user_id = auth.uid());
+create policy outfits_delete_own on public.outfits
+  for delete to authenticated using (user_id = auth.uid());
 
--- corrections / scan_matches / guides: via the owning scan
-create policy corrections_owner on public.corrections
-  for all to authenticated
-  using (exists (select 1 from public.scans s where s.id = corrections.scan_id and s.user_id = auth.uid()))
-  with check (exists (select 1 from public.scans s where s.id = corrections.scan_id and s.user_id = auth.uid()));
+-- corrections / scan_matches / guides: select via the owning scan, no client writes
+create policy corrections_select_own on public.corrections
+  for select to authenticated
+  using (exists (select 1 from public.scans s where s.id = corrections.scan_id and s.user_id = auth.uid()));
 
-create policy scan_matches_owner on public.scan_matches
-  for all to authenticated
-  using (exists (select 1 from public.scans s where s.id = scan_matches.scan_id and s.user_id = auth.uid()))
-  with check (exists (select 1 from public.scans s where s.id = scan_matches.scan_id and s.user_id = auth.uid()));
+create policy scan_matches_select_own on public.scan_matches
+  for select to authenticated
+  using (exists (select 1 from public.scans s where s.id = scan_matches.scan_id and s.user_id = auth.uid()));
 
-create policy guides_owner on public.guides
-  for all to authenticated
-  using (exists (select 1 from public.scans s where s.id = guides.scan_id and s.user_id = auth.uid()))
-  with check (exists (select 1 from public.scans s where s.id = guides.scan_id and s.user_id = auth.uid()));
+create policy guides_select_own on public.guides
+  for select to authenticated
+  using (exists (select 1 from public.scans s where s.id = guides.scan_id and s.user_id = auth.uid()));
 
 -- kb_entries: reviewed rows readable by everyone; no write policies.
 create policy kb_entries_read_reviewed on public.kb_entries

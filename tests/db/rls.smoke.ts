@@ -30,19 +30,19 @@ describe.skipIf(!url || !service || !anon)('RLS smoke (live Supabase)', () => {
     aId = ra.data.user!.id;
     bId = rb.data.user!.id;
 
-    const s = await a.from('scans').insert({ user_id: aId, image_path: `${aId}/x.jpg` }).select().single();
+    const s = await admin.from('scans').insert({ user_id: aId, image_path: `${aId}/x.jpg` }).select().single();
     expect(s.error).toBeNull();
     scanId = s.data!.id;
-    const g = await a
+    const g = await admin
       .from('garments')
       .insert({ user_id: aId, category: 'clothing', name: 'tee', scan_id: scanId })
       .select()
       .single();
     expect(g.error).toBeNull();
     garmentId = g.data!.id;
-    const g2 = await a.from('garments').insert({ user_id: aId, category: 'accessory' }).select().single();
+    const g2 = await admin.from('garments').insert({ user_id: aId, category: 'accessory' }).select().single();
     expect(g2.error).toBeNull();
-    const o = await a
+    const o = await admin
       .from('outfits')
       .insert({ user_id: aId, items: [garmentId, g2.data!.id] })
       .select()
@@ -84,6 +84,20 @@ describe.skipIf(!url || !service || !anon)('RLS smoke (live Supabase)', () => {
       const other = await b.from(table).select('id').eq('id', id);
       expect(other.data ?? []).toHaveLength(0);
     }
+  });
+
+  it('a signed-in user cannot insert scans or raise their own credits', async () => {
+    const ins = await a.from('scans').insert({ user_id: aId, image_path: `${aId}/forged.jpg` });
+    expect(ins.error).not.toBeNull();
+
+    await a.from('profiles').update({ upload_credits: 999 }).eq('id', aId);
+    const { data } = await admin.from('profiles').select('upload_credits').eq('id', aId).single();
+    expect(data!.upload_credits).toBe(0);
+
+    const del = await a.from('scans').delete().eq('id', scanId);
+    expect(del.error).toBeNull();
+    const still = await admin.from('scans').select('id').eq('id', scanId);
+    expect(still.data).toHaveLength(1);
   });
 
   it('anyone can read a reviewed kb_entries row', async () => {
