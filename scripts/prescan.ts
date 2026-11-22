@@ -1,39 +1,48 @@
 /**
- * Warms demo_cache and the image-hash cache before a presentation.
- *   npm run prescan -- ./stage-photos
- * For every photo: upload under the demo user, run the analyze service, then the free Recipe's guide
- * and concept image. Calls the service functions directly (not HTTP). Needs DEMO_USER_ID and real keys.
+ * Warms the free guide and concept image for the demo account's existing scans.
+ *   npm run prescan [-- --scan <scanId>]
+ * Day before: sign in via /demo?key=..., upload each stage photo once in /scan (that warms the exact
+ * image hash the browser produces), then run this. Calls the service functions directly (not HTTP) as
+ * the demo user, so demo_cache is populated. Needs DEMO_USER_ID and real AI keys.
  */
 import { getEnv } from '@/lib/env';
+import { adminClient } from '@/lib/db/admin';
 import { runAnalyze, defaultAnalyzeDeps } from '@/lib/db/scans';
 import { runGuide, runRender, defaultGuideDeps } from '@/lib/db/guides';
-import { photosIn, uploadOriginal } from '@/lib/demo/upload';
+import { pickGarmentScans, scanArg, summaryLine } from '@/lib/demo/prescan';
 
 async function main() {
-  const folder = process.argv[2];
-  if (!folder) throw new Error('usage: npm run prescan -- <photo-folder>');
   const userId = getEnv().DEMO_USER_ID;
+  const only = scanArg(process.argv);
+  const { data, error } = await adminClient().from('scans').select('id, image_path, cutout_path, vision_json')
+    .eq('user_id', userId).order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  const scans = pickGarmentScans(data ?? [], only);
   const analyzeDeps = defaultAnalyzeDeps();
   const guideDeps = defaultGuideDeps();
-  let ok = 0;
-  const names = photosIn(folder);
-  for (const name of names) {
+  const s = { found: scans.length, guides: 0, images: 0, failures: 0 };
+  for (const scan of scans) {
     try {
-      const { imagePath, cutoutPath } = await uploadOriginal(userId, folder, name);
-      const a = await runAnalyze(userId, { imagePath, cutoutPath, imageHash: 'prescan' }, analyzeDeps);
-      if (a.status !== 200) { console.warn(`${name}: analyze -> ${a.status} ${a.body.error}`); continue; }
-      const recipeId = a.body.match.freeRecipeId;
-      if (!recipeId) { console.log(`${name}: analyzed (no free Recipe to warm)`); ok++; continue; }
-      const input = { scanId: a.body.scanId, recipeId };
+      // Re-running analyze on the stored bytes hits the hash cache and returns the current match + free recipe id.
+      const a = await runAnalyze(userId, { imagePath: scan.image_path, cutoutPath: scan.cutout_path ?? scan.image_path, imageHash: 'x' }, analyzeDeps);
+      if (a.status !== 200 || !a.body.match.freeRecipeId) {
+        console.warn(`${scan.id}: no free recipe (${a.status})`);
+        s.failures++;
+        continue;
+      }
+      const input = { scanId: scan.id, recipeId: a.body.match.freeRecipeId };
       const g = await runGuide(userId, input, guideDeps);
+      if (g.status === 200) s.guides++;
       const r = g.status === 200 ? await runRender(userId, input, guideDeps) : null;
-      console.log(`${name}: analyze 200, guide ${g.status}, render ${r ? r.status : 'skipped'}`);
-      if (g.status === 200 && r?.status === 200) ok++;
+      if (r?.status === 200) s.images++;
+      if (g.status !== 200 || r?.status !== 200) s.failures++;
+      console.log(`${scan.id}: guide ${g.status}, render ${r ? r.status : 'skipped'}`);
     } catch (e) {
-      console.warn(`${name}: ${e instanceof Error ? e.message : e}`);
+      s.failures++;
+      console.warn(`${scan.id}: ${e instanceof Error ? e.message : e}`);
     }
   }
-  console.log(`Prescan finished: ${ok}/${names.length} photos fully warmed.`);
+  console.log(summaryLine(s));
 }
 
 main().catch((e) => { console.error(e instanceof Error ? e.message : e); process.exit(1); });
