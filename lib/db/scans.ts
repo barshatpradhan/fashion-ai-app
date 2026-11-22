@@ -65,7 +65,7 @@ export type AnalyzeResult =
 const fail = (status: 400 | 422 | 429 | 503, error: string): AnalyzeResult => ({ status, body: { error } });
 
 /** Score = rank position (best first) within each list; an entry keeps its best score. */
-function toMatchRows(match: MatchResult): MatchRow[] {
+export function toMatchRows(match: MatchResult): MatchRow[] {
   const rows = new Map<string, number>();
   const add = (list: KbEntry[]) =>
     list.forEach((e, i) => rows.set(e.id, Math.max(rows.get(e.id) ?? 0, list.length - i)));
@@ -152,7 +152,7 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   return { ...result, body: { ...(result.body as object), scanId } } as AnalyzeResult;
 }
 
-function toKbEntry(r: Record<string, unknown>): KbEntry {
+export function toKbEntry(r: Record<string, unknown>): KbEntry {
   return {
     id: r.id as string,
     kind: r.kind as KbEntry['kind'],
