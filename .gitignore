@@ -8,3 +8,9 @@ graphify-out/
 reference videos/
 *.log
 .vercel/
+
+# next
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+!.env.example
