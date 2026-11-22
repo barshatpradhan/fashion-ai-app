@@ -19,7 +19,7 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    - `GEMINI_API_KEY`, and `OPENAI_API_KEY` (required whenever `IMAGE_PROVIDER=openai`)
    - `IMAGE_PROVIDER=gemini` for now
    - `DEMO_KEY`: a long random secret (30+ random characters). Anyone with it can sign in as the demo user, so do not share it.
-   - `CRON_SECRET`: another long random string. Vercel sends it to the keep-alive job.
+   - `CRON_SECRET` (optional): a long random string. If set, the keep-alive job requires it (Vercel sends it automatically); if left unset, the job needs no auth.
    - `AI_TIMEOUT_MS=20000` (leave as is)
    - `DEMO_USER_ID`: filled in the next step.
 7. **Create the demo account**: run `npm run seed:demo`. It prints a `DEMO_USER_ID`; copy it into `.env.local` (and later into Vercel). The demo user is created with the email `demo@revivo.local`, which `/demo` needs to sign you in. Optional: `npm run seed:demo -- --photos <folder>`.
@@ -53,14 +53,14 @@ Order, with what to say or point at:
 2. **Result** - Point at the detected garment, fabric and named style.
 3. **Free Recipe Guide** - Open the free recipe: step-by-step redesign with tools and difficulty, plus the sourced history.
 4. **Story Card** - Show the shareable card for the piece.
-5. **Free/Premium switch** (hidden) - Flip it to Free to show the locked recipes and the allowance counters, then tap **Upgrade** to unlock.
+5. **Free/Premium switch** (hidden, on the Profile page) - Before the demo, open **Profile** in the nav (`/profile`) and tap **Free** (under "Flip this account between Free and Premium to show both experiences"). Back on the result screen, point at the locked Recipe cards (marked "Premium", no link) and the allowance counters. Then tap **Upgrade to Premium · $7.99/month** on `/profile` (or **Premium** in the same switch) to unlock everything. If you open a locked guide instead, its page says "This guide is part of Premium" with an **Upgrade · $7.99/month** button.
 6. **Closet** - Show the saved pieces.
 7. **Style me** - Generate outfits from the closet.
 
 ## 5. If something goes wrong
 
 - **Slow network**: the demo cache answers within `AI_TIMEOUT_MS` (20 s). Wait it out; do not refresh repeatedly.
-- **A "busy" message appears**: wait a few seconds and retry once.
+- **"Our stylist is busy right now. Please try again in a moment."**: wait a few seconds and retry once.
 - **Do not** scan new, un-prescanned photos on stage. Stick to the photos you uploaded and prescanned.
 - If sign-in fails, reopen `/demo?key=...`. If it still fails, check `DEMO_USER_ID` and that the Supabase project is awake.
 
