@@ -52,6 +52,7 @@ Rules:
 - If any garment has "upcycled": true, every outfit must include at least one of them.
 - Respect the style profile and avoid the listed colors.
 - Never mention stores, shopping, buying, brands or links.
+- Do NOT make any claim about history, origin, culture, era, decades, designers, or brands. Describe only colours, shapes, layering and the occasion.
 Closet: ${JSON.stringify(closet.map((g) => ({ id: g.id, name: g.name, category: g.category, tags: g.tags, upcycled: g.isUpcycled })))}
 Style profile: ${JSON.stringify(profile)}
 Occasion: ${occasion ?? 'everyday'}

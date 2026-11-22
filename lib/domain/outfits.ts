@@ -14,6 +14,25 @@ export const isOccasion = (v: unknown): v is Occasion => typeof v === 'string' &
 const URL_RE = /(https?:\/\/|www\.)\S*|\b[a-z0-9-]+\.(com|net|org|io|co|uk|shop|store)\b/i;
 const SHOPPING_RE = /\b(buy|buys|buying|shop|shops|shopping|store|stores)\b/i;
 
+/**
+ * History, origin, culture or era claims. Looks are AI text with no Knowledge Base source, so any such
+ * claim is invented (spec §2: every history claim needs a vetted source) and the Look is dropped.
+ */
+const HISTORY_RES = [
+  /\b\d{2,4}s\b/, // 70s, 1970s
+  /\b\d{1,2}(st|nd|rd|th)[- ]century\b/i,
+  /\bcentur/i,
+  /\borigin(s|ate[sd]?|ally)?\b/i,
+  /\btradition/i,
+  /\bheritage\b/i,
+  /\bhistor(y|ic|ical|ically)\b/i,
+  /\bcultur(e|al|ally)\b/i,
+];
+
+export function mentionsHistory(text: string): boolean {
+  return HISTORY_RES.some((re) => re.test(text));
+}
+
 /** True if the text points anywhere outside the user's own closet (a URL or buying/shopping words). */
 export function mentionsShopping(text: string): boolean {
   return URL_RE.test(text) || SHOPPING_RE.test(text);
@@ -36,6 +55,7 @@ function checkLook(raw: unknown, active: Map<string, Garment>, needUpcycled: boo
   if (garmentIds.length < MIN_ITEMS || garmentIds.length > MAX_ITEMS) return null;
   if (needUpcycled && !garmentIds.some((id) => active.get(id)!.isUpcycled)) return null;
   if (mentionsShopping(name) || mentionsShopping(reason)) return null;
+  if (mentionsHistory(name) || mentionsHistory(reason)) return null;
   return { name, reason, garmentIds };
 }
 
@@ -43,7 +63,7 @@ const activeMap = (closet: Garment[]) => new Map(closet.filter((g) => g.status =
 
 /**
  * Keeps the AI's Looks that use only active pieces from the closet, 2 to 4 of them, include an upcycled
- * piece when the closet has an active one, and never point to shopping or a URL. At most 3.
+ * piece when the closet has an active one, and never point to shopping or a URL or claim history. At most 3.
  */
 export function validateLooks(raw: unknown, closet: Garment[]): Look[] {
   const list = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? (raw as { looks?: unknown }).looks : null;

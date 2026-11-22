@@ -25,7 +25,7 @@ vi.mock('@/lib/env', () => ({ getEnv: () => h.env, getEnvFor: () => h.env }));
 vi.mock('@/lib/db/admin', () => ({ adminClient: vi.fn() }));
 
 import { analyzeImage } from '@/lib/ai/vision';
-import { writeGuide } from '@/lib/ai/writer';
+import { writeGuide, styleLooks } from '@/lib/ai/writer';
 import { generateConceptImage } from '@/lib/ai/imageGen';
 import { withGuard, setDemoCacheStore, type DemoCacheStore } from '@/lib/ai/guard';
 import { AiRateLimitError, AiBadOutputError, AiTimeoutError } from '@/lib/ai/errors';
@@ -80,6 +80,15 @@ describe('writeGuide', () => {
     });
     const g = await writeGuide(vision, recipe, [hist]);
     expect(g.historyRefs).toEqual(['h1']);
+  });
+});
+
+describe('styleLooks', () => {
+  it('tells the stylist never to claim history, origin, culture or era', async () => {
+    h.geminiGen.mockResolvedValue({ text: '{"looks":[]}' });
+    await styleLooks([], { styles: [], avoidColors: [], occasions: [], climate: '' } as never);
+    const prompt = h.geminiGen.mock.calls[0][0].contents[0].parts[0].text as string;
+    expect(prompt).toMatch(/history, origin, culture, era/);
   });
 });
 

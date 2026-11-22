@@ -82,3 +82,21 @@ describe('validateSavedLook', () => {
     expect(validateSavedLook(look(['a', 'b'], { reason: 'buy it' }), withUp)).toBeNull();
   });
 });
+
+describe('no invented history in Looks', () => {
+  it.each([
+    ['reason', 'A nod to 1970s Parisian style.'],
+    ['reason', 'Inspired by 19th-century workwear.'],
+    ['reason', 'Its origins lie in Breton fishermen.'],
+    ['reason', 'A traditional pairing.'],
+    ['reason', 'Celebrates your heritage.'],
+    ['name', '90s revival'],
+    ['reason', 'Rooted in the history of denim.'],
+  ])('drops a Look whose %s makes a history claim: %s', (field, text) => {
+    expect(validateLooks({ looks: [look(['a', 'b'], { [field]: text })] }, closet)).toEqual([]);
+  });
+
+  it('keeps ordinary styling language (e.g. "original")', () => {
+    expect(validateLooks({ looks: [look(['a', 'b'], { reason: 'Keeps the original denim front and centre.' })] }, closet)).toHaveLength(1);
+  });
+});
