@@ -10,9 +10,11 @@
     "test:smoke": "vitest run --config vitest.smoke.config.ts"
   },
   "dependencies": {
+    "@google/genai": "^3.6.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
     "next": "^15.5.29",
+    "openai": "^7.62.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
