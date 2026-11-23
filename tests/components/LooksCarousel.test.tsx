@@ -37,4 +37,10 @@ describe('LooksCarousel model', () => {
     const items = within(screen.getByRole('list', { name: 'Pieces in Evening' })).getAllByRole('listitem');
     expect(items.some((li) => li.getAttribute('aria-current') === 'true')).toBe(false);
   });
+
+  it('spins only the front figure after Next', () => {
+    const { container } = render(<LooksCarousel looks={looks} garments={garments} onSave={async () => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next look' }));
+    expect(container.querySelectorAll('[data-spin="true"]').length).toBe(1);
+  });
 });

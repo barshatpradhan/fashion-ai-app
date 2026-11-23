@@ -64,4 +64,16 @@ describe('ModelFigure', () => {
     fireEvent.animationEnd(root);
     expect(root.getAttribute('data-spin')).not.toBe('true');
   });
+
+  it('does not spin under reduced motion', () => {
+    const orig = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      const { container, rerender } = render(<ModelFigure pieces={pieces} showDots={false} spinKey={0} />);
+      rerender(<ModelFigure pieces={pieces} showDots={false} spinKey={1} />);
+      expect((container.firstElementChild as HTMLElement).getAttribute('data-spin')).not.toBe('true');
+    } finally {
+      window.matchMedia = orig;
+    }
+  });
 });

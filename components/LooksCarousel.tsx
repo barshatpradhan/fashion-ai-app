@@ -196,7 +196,7 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
               showDots={i === front}
               activeId={i === front ? activeId : null}
               onDot={(id) => setPicked({ look: lookKey(look), id })}
-              spinKey={front}
+              spinKey={i === front ? front : undefined}
             />
           </div>
         ))}

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { dollLayout, resolveDots, type Slot } from '@/lib/domain/slots';
+import { dollLayout, resolveDots, separateDots, type Slot } from '@/lib/domain/slots';
 import { Badge } from './Badge';
 import m from './modelFigure.module.css';
 
@@ -25,6 +25,7 @@ export function ModelFigure({ pieces, showDots, activeId, onDot, spinKey }: Prop
   useEffect(() => {
     if (prev.current === spinKey) return;
     prev.current = spinKey;
+    if (spinKey === undefined) return; // not the front figure
     // Reduced motion: the outfit swaps instantly, no spin.
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     setSpin(true);
@@ -39,7 +40,7 @@ export function ModelFigure({ pieces, showDots, activeId, onDot, spinKey }: Prop
   }, []);
 
   const layout = dollLayout(pieces);
-  const dots = resolveDots(pieces, null);
+  const dots = separateDots(pieces.map((p) => p.id), resolveDots(pieces, null));
 
   return (
     <div ref={root} className={m.figure} data-spin={spin ? 'true' : undefined}>

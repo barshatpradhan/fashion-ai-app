@@ -57,3 +57,28 @@ export function resolveDots(
   }
   return out;
 }
+
+const MIN_GAP = 0.12;
+/** Distance in figure pixels' proportion: the figure is twice as tall as wide, so x counts half. */
+const gap = (a: Dot, b: Dot) => Math.hypot((a.x - b.x) * 0.5, a.y - b.y);
+const STEPS: [number, number][] = [
+  [0, 0], [0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2], [0, -2], [2, 0], [-2, 0], [2, 2], [-2, 2],
+];
+
+/** Nudges each dot (in the given order) until it is clear of the earlier ones, within 0.04-0.96. */
+export function separateDots(order: string[], dots: Record<string, Dot>): Record<string, Dot> {
+  const out: Record<string, Dot> = {};
+  const placed: Dot[] = [];
+  for (const id of order) {
+    const d = dots[id];
+    if (!d) continue;
+    let best = d;
+    for (const [sx, sy] of STEPS) {
+      const c = { x: clamp(d.x + sx * 0.24), y: clamp(d.y + sy * MIN_GAP) };
+      if (placed.every((p) => gap(p, c) >= MIN_GAP)) { best = c; break; }
+    }
+    out[id] = best;
+    placed.push(best);
+  }
+  return out;
+}

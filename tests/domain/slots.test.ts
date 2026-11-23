@@ -61,3 +61,21 @@ describe('resolveDots', () => {
     expect(d.a.y).toBeCloseTo(layout.a.y + layout.a.h / 2);
   });
 });
+
+import { separateDots } from '@/lib/domain/slots';
+describe('separateDots', () => {
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+  it.each([
+    [[{ id: 't', slot: 'top' as const }, { id: 'o', slot: 'outer' as const }]],
+    [[{ id: 'a', slot: 'accessory' as const }, { id: 'b', slot: 'accessory' as const }]],
+  ])('keeps dots at least 0.12 apart', (pieces) => {
+    const d = separateDots(pieces.map((p) => p.id), resolveDots(pieces, null));
+    const [p, q] = pieces.map((x) => d[x.id]);
+    expect(dist(p, q)).toBeGreaterThanOrEqual(0.12);
+    for (const v of [p, q]) for (const n of [v.x, v.y]) { expect(n).toBeGreaterThanOrEqual(0.04); expect(n).toBeLessThanOrEqual(0.96); }
+  });
+  it('leaves clear dots alone', () => {
+    const d = { a: { x: 0.5, y: 0.2 }, b: { x: 0.5, y: 0.7 } };
+    expect(separateDots(['a', 'b'], d)).toEqual(d);
+  });
+});
