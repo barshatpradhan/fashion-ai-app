@@ -78,6 +78,24 @@ describe('HomeRing', () => {
     expect(screen.getByText('01 / 09')).toBeTruthy();
   });
 
+  it('does not autoplay under reduced motion and says so on the button', () => {
+    stubMatchMedia(true);
+    render(<HomeRing />);
+    expect(screen.getByRole('button', { name: 'Play the ring' })).toBeTruthy();
+    expect(screen.getByText('01 / 09')).toBeTruthy();
+  });
+
+  it('moves one look with the arrow keys on the stage and pauses', () => {
+    render(<HomeRing />);
+    const stage = screen.getByRole('group', { name: /use arrow keys/i });
+    stage.focus();
+    fireEvent.keyDown(stage, { key: 'ArrowRight' });
+    expect(screen.getByText('02 / 09')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Play the ring' })).toBeTruthy();
+    fireEvent.keyDown(stage, { key: 'ArrowLeft' });
+    expect(screen.getByText('01 / 09')).toBeTruthy();
+  });
+
   it('shows no prices or shopping words', () => {
     const { container } = render(<HomeRing />);
     expect(container.textContent).not.toMatch(/\$|bag|shop/i);

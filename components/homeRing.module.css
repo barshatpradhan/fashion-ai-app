@@ -82,6 +82,7 @@
   filter: var(--drop-1);
 }
 
+.stage:focus-visible,
 .item:focus-visible,
 .cell:focus-visible,
 .pause:focus-visible,

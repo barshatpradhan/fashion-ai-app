@@ -23,12 +23,19 @@ export function HomeRing() {
   const [playing, setPlaying] = useState(true);
   const [view, setView] = useState<'ring' | 'grid'>('ring');
 
+  // Reduced motion: never autoplay. Stop on mount and whenever the preference turns on.
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) setPlaying(false);
+    const onChange = (e: MediaQueryListEvent) => { if (e.matches) setPlaying(false); };
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
   useEffect(() => {
     if (!playing || view !== 'ring') return;
-    const id = setInterval(() => {
-      const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (!reduce) setRot((r) => (r + 1) % N);
-    }, 3500);
+    const id = setInterval(() => setRot((r) => (r + 1) % N), 3500);
     return () => clearInterval(id);
   }, [playing, view]);
 
@@ -37,13 +44,13 @@ export function HomeRing() {
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (view !== 'ring') return;
-    if (e.key === 'ArrowRight') { setRot((r) => (r + 1) % N); setPlaying(false); }
-    else if (e.key === 'ArrowLeft') { setRot((r) => (r + N - 1) % N); setPlaying(false); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); setRot((r) => (r + 1) % N); setPlaying(false); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); setRot((r) => (r + N - 1) % N); setPlaying(false); }
   }
 
   return (
     <section className={s.wrap} aria-roledescription="carousel" aria-label="Nine second lives">
-      <div className={s.stage} onKeyDown={onKeyDown}>
+      <div className={s.stage} onKeyDown={onKeyDown} tabIndex={0} role="group" aria-label="Nine second lives, use arrow keys">
         <div className={`${ui.seg} ${s.toggle}`} role="group" aria-label="View">
           <button type="button" className={ui.choice} aria-pressed={view === 'ring'} onClick={() => setView('ring')}>Ring</button>
           <button type="button" className={ui.choice} aria-pressed={view === 'grid'} onClick={() => { setView('grid'); setPlaying(false); }}>Grid</button>
@@ -90,7 +97,7 @@ export function HomeRing() {
         )}
       </div>
 
-      <div className={s.dock} aria-live="polite">
+      <div className={s.dock}>
         <div>
           <div className={s.count}>
             <span>{num} / 09</span>
@@ -107,7 +114,7 @@ export function HomeRing() {
               )}
             </button>
           </div>
-          <p className={s.name}>{cur.name}</p>
+          <p className={s.name} aria-live={playing ? 'off' : 'polite'}>{cur.name}</p>
         </div>
 
         <div className={s.chips}>
