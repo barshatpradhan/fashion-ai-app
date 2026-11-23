@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { messageForError } from '@/lib/ui/messages';
 import { noUploadsMessage } from '@/lib/ui/closet';
 import { postCloset } from '@/lib/ui/closetClient';
+import { Button } from './Button';
+import ui from './ui.module.css';
 import c from './closet.module.css';
 import { UpgradeButton } from '@/components/UpgradeButton';
-import s from './result.module.css';
 
 type State = { kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; already: boolean } | { kind: 'error'; message: string };
 
@@ -47,13 +48,13 @@ export function AddToCloset({ scanId, onSaved }: Props) {
   return (
     <div>
       <div className={c.saveRow}>
-        <button type="button" className={`${s.button} ${s.ghost}`} onClick={() => void save()} disabled={state.kind === 'saving'}>
+        <Button ghost loading={state.kind === 'saving'} onClick={() => void save()}>
           {state.kind === 'saving' ? 'Adding…' : 'Add to closet'}
-        </button>
-        <span className={s.hint}>Uses 1 upload.</span>
+        </Button>
+        <span className={ui.hint}>Uses 1 upload.</span>
       </div>
       {state.kind === 'error' ? (
-        <p className={s.note} role="alert">
+        <p className={ui.note} role="alert">
           {state.message}
           {state.message.startsWith("You're out of uploads") ? <> <UpgradeButton label="Go Premium · $7.99/month" ghost /></> : null}
         </p>

@@ -2,8 +2,9 @@
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { ClosetGarment } from '@/lib/db/closet';
 import { humanize } from '@/lib/ui/result';
+import { Badge } from './Badge';
+import ui from './ui.module.css';
 import c from './closet.module.css';
-import s from './result.module.css';
 
 type Props = {
   garments: ClosetGarment[];
@@ -91,9 +92,9 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
                   )}
                 </span>
                 <span className={c.flags}>
-                  {g.imageKind === 'concept' ? <span className={`${c.flag} ${c.flagConcept}`}>Concept</span> : null}
-                  {g.isUpcycled ? <span className={c.flag}>Reworked</span> : null}
-                  {!g.isUpcycled && g.category === 'accessory' ? <span className={c.flag}>Accessory</span> : null}
+                  {g.imageKind === 'concept' ? <Badge variant="concept" /> : null}
+                  {g.isUpcycled ? <Badge variant="reworked" /> : null}
+                  {!g.isUpcycled && g.category === 'accessory' ? <Badge variant="accessory" /> : null}
                 </span>
                 <span className={c.pieceName} aria-hidden="true">{g.name}</span>
               </button>
@@ -112,13 +113,13 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
           </p>
           {active.imageKind === 'concept' ? (
             <p className={c.meta}>
-              <span className={`${c.flag} ${c.flagConcept} ${c.flagInline}`}>Concept</span>{' '}
+              <Badge variant="concept" />{' '}
               Shown with its AI concept picture, not a photo of the finished piece.
             </p>
           ) : null}
           {active.tags.length ? (
             <ul className={c.tags} aria-label="Tags">
-              {active.tags.map((t) => <li key={t} className={s.tag}>{humanize(t)}</li>)}
+              {active.tags.map((t) => <li key={t} className={ui.chip}>{humanize(t)}</li>)}
             </ul>
           ) : null}
 
@@ -127,18 +128,18 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
               <div className={c.confirm} role="group" aria-label="Confirm delete">
                 <p>Delete {active.name}? Its photos are removed for good. The upload it used is not returned.</p>
                 <div className={c.detailActions}>
-                  <button type="button" className={`${s.choice} ${c.dangerSolid}`} onClick={() => void confirmDelete()} disabled={deleting}>
+                  <button type="button" className={c.dangerSolid} onClick={() => void confirmDelete()} disabled={deleting}>
                     {deleting ? 'Deleting…' : 'Delete'}
                   </button>
-                  <button type="button" className={s.choice} onClick={() => setConfirming(false)} disabled={deleting} autoFocus>
+                  <button type="button" className={ui.choice} onClick={() => setConfirming(false)} disabled={deleting} autoFocus>
                     Keep it
                   </button>
                 </div>
-                {deleteError ? <p className={s.note} role="alert">{deleteError}</p> : null}
+                {deleteError ? <p className={ui.note} role="alert">{deleteError}</p> : null}
               </div>
             ) : (
               <div className={c.detailActions}>
-                <button type="button" className={`${s.choice} ${c.danger}`} onClick={() => setConfirming(true)}>
+                <button type="button" className={c.danger} onClick={() => setConfirming(true)}>
                   Delete piece
                 </button>
               </div>

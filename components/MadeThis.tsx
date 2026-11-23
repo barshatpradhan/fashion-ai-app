@@ -6,8 +6,9 @@ import { UnsupportedImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
 import { postCloset, removeUploaded, uploadPhoto } from '@/lib/ui/closetClient';
 import { AddToCloset } from './AddToCloset';
+import { Button } from './Button';
+import ui from './ui.module.css';
 import c from './closet.module.css';
-import s from './result.module.css';
 
 type Source = { kind: 'loading' } | { kind: 'none' } | { kind: 'active'; id: string } | { kind: 'transformed' } | { kind: 'error' };
 
@@ -95,31 +96,31 @@ export function MadeThis({ scanId, recipeId }: Props) {
   const working = step !== null;
   return (
     <div>
-      <button type="button" className={`${s.button} ${s.ghost}`} aria-expanded={open}
+      <button type="button" className={`${ui.button} ${ui.ghost}`} aria-expanded={open}
         disabled={source.kind !== 'active' || working} onClick={() => setOpen((v) => !v)}>
         I made this
       </button>
-      {source.kind === 'error' ? <p className={s.note} role="alert">We couldn&apos;t check your closet. Please refresh the page.</p> : null}
+      {source.kind === 'error' ? <p className={ui.note} role="alert">We couldn&apos;t check your closet. Please refresh the page.</p> : null}
       {open ? (
         <form className={c.form} onSubmit={(e) => void onSubmit(e)} aria-labelledby="made-title">
           <h2 id="made-title" className={c.formTitle}>Log your remake</h2>
           <label className={c.field}>
             Photo of the finished piece (optional)
-            <input className={c.input} name="photo" type="file" disabled={working} style={{ paddingTop: 10 }}
+            <input className={`${c.input} ${c.fileInput}`} name="photo" type="file" disabled={working}
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
             <span className={c.fieldHint}>No photo? We will show the concept picture. Logging a remake is free.</span>
           </label>
           <div className={c.detailActions}>
-            <button type="submit" className={s.button} disabled={working}>Save to closet</button>
-            <button type="button" className={s.choice} onClick={() => setOpen(false)} disabled={working}>Cancel</button>
+            <Button type="submit" loading={working}>Save to closet</Button>
+            <button type="button" className={ui.choice} onClick={() => setOpen(false)} disabled={working}>Cancel</button>
           </div>
           {working ? (
-            <p className={s.status} role="status" aria-live="polite" style={{ marginTop: 0 }}>
-              <span className={s.pulse} aria-hidden="true" />
+            <p className={`${ui.status} ${ui.statusInline}`} role="status" aria-live="polite">
+              <span className={ui.pulse} aria-hidden="true" />
               {step}…
             </p>
           ) : null}
-          {error ? <p className={s.note} role="alert">{error}</p> : null}
+          {error ? <p className={ui.note} role="alert">{error}</p> : null}
         </form>
       ) : null}
     </div>

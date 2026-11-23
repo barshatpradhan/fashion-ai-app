@@ -11,7 +11,7 @@ export function Swatches({ colors }: { colors: { name: string; hex: string }[] }
     <ul className={s.swatches} aria-label="Detected colours">
       {valid.map((c) => (
         <li key={`${c.name}-${c.hex}`} className={s.swatch}>
-          <span className={s.chip} style={{ background: c.hex }} aria-hidden="true" />
+          <span className={s.swatchDot} style={{ background: c.hex }} aria-hidden="true" />
           {c.name}
         </li>
       ))}

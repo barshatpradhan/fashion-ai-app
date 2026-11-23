@@ -14,6 +14,7 @@ import { UpgradeButton } from './UpgradeButton';
 import { LockedRecipeCard } from './LockedRecipeCard';
 import { AddToCloset } from './AddToCloset';
 import { EditGarment } from './EditGarment';
+import ui from './ui.module.css';
 import s from './result.module.css';
 
 export type AnalyzeResponse = {
@@ -136,7 +137,7 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
 
       <div className={s.heading}>
         <div>
-          <p className={s.eyebrow}>{humanize(fabric)}</p>
+          <p className={ui.eyebrow}>{humanize(fabric)}</p>
           <h1 className={s.garmentName}>{garmentName}</h1>
         </div>
         <Swatches colors={vision.colors} />
@@ -165,26 +166,26 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
         />
       ))}
 
-      <section className={s.section} aria-labelledby="history-title">
-        <h2 id="history-title" className={s.sectionTitle}>History</h2>
+      <section className={ui.section} aria-labelledby="history-title">
+        <h2 id="history-title" className={ui.sectionTitle}>History</h2>
         {history.length ? (
-          <div className={s.grid}>
+          <div className={ui.grid}>
             {history.map((h) => <HistoryCard key={h.id} entry={h} />)}
           </div>
         ) : (
-          <p className={s.empty}>No verified history for this piece yet.</p>
+          <p className={ui.empty}>No verified history for this piece yet.</p>
         )}
         {fabricNote ? (
-          <p className={s.cardBody} style={{ marginTop: 20, maxWidth: '62ch' }}>
+          <p className={s.fabricNote}>
             <strong>About {fabric}.</strong> {firstSentence(fabricNote.body)}
           </p>
         ) : null}
       </section>
 
       {match.recipes.length ? (
-        <section className={s.section} aria-labelledby="recipes-title">
-          <h2 id="recipes-title" className={s.sectionTitle}>Give it a second life</h2>
-          <div className={s.grid}>
+        <section className={ui.section} aria-labelledby="recipes-title">
+          <h2 id="recipes-title" className={ui.sectionTitle}>Give it a second life</h2>
+          <div className={ui.grid}>
             {free && !isLockedRecipe(free) ? <RecipeCard entry={free} scanId={scanId} free /> : null}
             {others.map((r) =>
               isLockedRecipe(r) ? (
@@ -195,7 +196,7 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
             )}
           </div>
           {others.some(isLockedRecipe) ? (
-            <p style={{ marginTop: 20 }}><UpgradeButton label="Unlock every Recipe · $7.99/month" onUpgraded={() => void refreshAfterUpgrade()} /></p>
+            <p className={s.upgradeRow}><UpgradeButton label="Unlock every Recipe · $7.99/month" onUpgraded={() => void refreshAfterUpgrade()} /></p>
           ) : null}
         </section>
       ) : null}
@@ -209,10 +210,10 @@ function HistoryCard({ entry }: { entry: KbEntry }) {
     return url ? [{ ...src, url }] : [];
   });
   return (
-    <article className={s.card}>
-      <h3 className={s.cardTitle}>{entry.title}</h3>
-      <p className={s.cardBody}>{entry.body}</p>
-      <ul className={s.sources} aria-label="Sources">
+    <article className={ui.card}>
+      <h3 className={ui.cardTitle}>{entry.title}</h3>
+      <p className={ui.cardBody}>{entry.body}</p>
+      <ul className={ui.sources} aria-label="Sources">
         {sources.map((src) => (
           <li key={src.url}>
             Source:{' '}
@@ -226,11 +227,11 @@ function HistoryCard({ entry }: { entry: KbEntry }) {
 
 function RecipeCard({ entry, scanId, free = false }: { entry: KbEntry; scanId: string; free?: boolean }) {
   return (
-    <article className={`${s.card} ${free ? s.cardFree : ''}`}>
-      {entry.difficulty ? <span className={s.tag}>{humanize(entry.difficulty)}</span> : null}
-      <h3 className={s.cardTitle}>{entry.title}</h3>
-      <p className={s.cardBody}>{entry.body}</p>
-      {entry.tools?.length ? <p className={s.cardBody}>Tools: {entry.tools.join(', ')}</p> : null}
+    <article className={free ? s.cardFree : ui.card}>
+      {entry.difficulty ? <span className={ui.chip}>{humanize(entry.difficulty)}</span> : null}
+      <h3 className={ui.cardTitle}>{entry.title}</h3>
+      <p className={ui.cardBody}>{entry.body}</p>
+      {entry.tools?.length ? <p className={ui.cardBody}>Tools: {entry.tools.join(', ')}</p> : null}
       <Link className={s.cardLink} href={`/guide/${encodeURIComponent(scanId)}/${encodeURIComponent(entry.id)}`}>
         {free ? 'Open the free guide' : 'Open guide'} →
       </Link>

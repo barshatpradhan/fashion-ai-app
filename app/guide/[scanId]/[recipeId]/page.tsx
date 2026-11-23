@@ -9,7 +9,8 @@ import { StoryCard } from '@/components/StoryCard';
 import { MadeThis } from '@/components/MadeThis';
 import type { KbEntry } from '@/lib/domain/types';
 import { UpgradeButton } from '@/components/UpgradeButton';
-import s from '@/components/result.module.css';
+import { Badge } from '@/components/Badge';
+import ui from '@/components/ui.module.css';
 import g from '@/components/guide.module.css';
 
 type GuideData = {
@@ -86,10 +87,10 @@ export default function GuidePage() {
 
   if (load.kind === 'locked') {
     return (
-      <main className={s.page}>
-        <p className={s.brand}>Revivo</p>
+      <main className={ui.page}>
+        <p className={ui.brand}>Revivo</p>
         <section className={g.upgrade} aria-labelledby="upgrade-title">
-          <p className={s.eyebrow}>Premium</p>
+          <p className={ui.eyebrow}>Premium</p>
           <h1 id="upgrade-title">This guide is part of Premium</h1>
           <p>Upgrade to open every redesign guide for your garments. Your free guide stays open.</p>
           <UpgradeButton label="Upgrade · $7.99/month" />
@@ -100,25 +101,25 @@ export default function GuidePage() {
   }
 
   return (
-    <main className={s.page}>
-      <p className={s.brand}>Revivo</p>
+    <main className={ui.page}>
+      <p className={ui.brand}>Revivo</p>
       {load.kind === 'loading' ? (
-        <p className={s.status} role="status" aria-live="polite">
-          <span className={s.pulse} aria-hidden="true" />
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
           Writing your guide…
         </p>
       ) : null}
       {load.kind === 'error' ? (
         <>
-          <p className={s.error} role="alert">{load.message}</p>
+          <p className={ui.error} role="alert">{load.message}</p>
           {back}
         </>
       ) : null}
 
       {load.kind === 'ready' ? (
         <>
-          <p className={s.eyebrow}>Your guide</p>
-          <h1 className={s.title}>From worn to reworked</h1>
+          <p className={ui.eyebrow}>Your guide</p>
+          <h1 className={ui.title}>From worn to reworked</h1>
 
           <section aria-label="Before and after">
             <div className={g.stage}>
@@ -130,12 +131,16 @@ export default function GuidePage() {
                 // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
                 <img src={afterUrl} alt="AI concept of the finished garment" className={`${g.layer} ${showAfter ? g.visible : g.hidden}`} />
               ) : null}
-              <span className={g.badge}>{showAfter && afterUrl ? 'Concept' : 'Before'}</span>
+              {showAfter && afterUrl ? (
+                <Badge variant="concept" className={g.stageBadge} />
+              ) : (
+                <Badge variant="neutral" className={g.stageBadge}>Before</Badge>
+              )}
             </div>
             {afterUrl ? (
               <div className={g.toggle} role="group" aria-label="Before or after">
-                <button type="button" className={`${s.choice} ${!showAfter ? s.choicePrimary : ''}`} aria-pressed={!showAfter} onClick={() => setShowAfter(false)}>Before</button>
-                <button type="button" className={`${s.choice} ${showAfter ? s.choicePrimary : ''}`} aria-pressed={showAfter} onClick={() => setShowAfter(true)}>Concept</button>
+                <button type="button" className={`${ui.choice} ${!showAfter ? ui.choicePrimary : ''}`} aria-pressed={!showAfter} onClick={() => setShowAfter(false)}>Before</button>
+                <button type="button" className={`${ui.choice} ${showAfter ? ui.choicePrimary : ''}`} aria-pressed={showAfter} onClick={() => setShowAfter(true)}>Concept</button>
               </div>
             ) : null}
             {renderState === 'working' ? (
@@ -144,14 +149,14 @@ export default function GuidePage() {
             {renderState === 'error' ? (
               <p className={g.rendering} role="alert">
                 {renderError}{' '}
-                <button type="button" className={s.choice} onClick={() => void renderImage()}>Try again</button>
+                <button type="button" className={ui.choice} onClick={() => void renderImage()}>Try again</button>
               </p>
             ) : null}
             {afterUrl ? <p className={g.rendering}>Concept: an AI-generated picture, not a photo of a finished piece.</p> : null}
           </section>
 
-          <section className={s.section} aria-labelledby="steps-title">
-            <h2 id="steps-title" className={s.sectionTitle}>Steps</h2>
+          <section className={ui.section} aria-labelledby="steps-title">
+            <h2 id="steps-title" className={ui.sectionTitle}>Steps</h2>
             <span className={g.label}>AI-generated guidance</span>
             <ol className={g.steps}>
               {load.guide.steps.map((step, i) => <li key={i}>{step}</li>)}
@@ -159,28 +164,28 @@ export default function GuidePage() {
           </section>
 
           {load.guide.tools.length ? (
-            <section className={s.section} aria-labelledby="tools-title">
-              <h2 id="tools-title" className={s.sectionTitle}>Tools</h2>
+            <section className={ui.section} aria-labelledby="tools-title">
+              <h2 id="tools-title" className={ui.sectionTitle}>Tools</h2>
               <ul className={g.tools}>
-                {load.guide.tools.map((t) => <li key={t} className={s.tag}>{t}</li>)}
+                {load.guide.tools.map((t) => <li key={t} className={ui.chip}>{t}</li>)}
               </ul>
             </section>
           ) : null}
 
           {load.guide.history.length ? (
-            <section className={s.section} aria-labelledby="sources-title">
-              <h2 id="sources-title" className={s.sectionTitle}>Where this comes from</h2>
-              <div className={s.grid}>
+            <section className={ui.section} aria-labelledby="sources-title">
+              <h2 id="sources-title" className={ui.sectionTitle}>Where this comes from</h2>
+              <div className={ui.grid}>
                 {load.guide.history.map((h) => {
                   const sources = (h.sources ?? []).flatMap((src) => {
                     const url = safeUrl(src.url);
                     return url ? [{ ...src, url }] : [];
                   });
                   return (
-                    <article key={h.id} className={s.card}>
-                      <h3 className={s.cardTitle}>{h.title}</h3>
-                      {load.guide.historyRefs?.includes(h.id) ? <span className={s.tag}>Used in your guide</span> : null}
-                      <ul className={s.sources} aria-label="Sources">
+                    <article key={h.id} className={ui.card}>
+                      <h3 className={ui.cardTitle}>{h.title}</h3>
+                      {load.guide.historyRefs?.includes(h.id) ? <span className={ui.chip}>Used in your guide</span> : null}
+                      <ul className={ui.sources} aria-label="Sources">
                         {sources.map((src) => (
                           <li key={src.url}>
                             Source: <a href={src.url} target="_blank" rel="noopener noreferrer">{src.citation}</a>
@@ -195,7 +200,7 @@ export default function GuidePage() {
           ) : null}
 
           <div className={g.actions}>
-            <button type="button" className={s.button} aria-expanded={storyOpen} onClick={() => setStoryOpen((v) => !v)}>
+            <button type="button" className={ui.button} aria-expanded={storyOpen} onClick={() => setStoryOpen((v) => !v)}>
               Create Garment Story card
             </button>
           </div>

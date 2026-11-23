@@ -3,9 +3,9 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import type { ClosetGarment } from '@/lib/db/closet';
 import type { Look } from '@/lib/domain/types';
 import { depthOf, poseOf, stepSpring, wrap } from '@/lib/depth/engine';
+import { Badge } from './Badge';
+import ui from './ui.module.css';
 import c from './looks.module.css';
-import k from './closet.module.css';
-import s from './result.module.css';
 
 type Props = {
   looks: Look[];
@@ -177,9 +177,9 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
                     // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
                     <img src={g.imageUrl} alt="" draggable={false} />
                   ) : (
-                    <span className={c.ghost} />
+                    <span className={c.placeholder} />
                   )}
-                  {g?.imageKind === 'concept' ? <span className={`${k.flag} ${k.flagConcept} ${c.layerFlag}`}>Concept</span> : null}
+                  {g?.imageKind === 'concept' ? <Badge variant="concept" className={c.layerBadge} /> : null}
                 </span>
               );
             })}
@@ -188,9 +188,9 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
       </div>
 
       <div className={c.controls}>
-        <button type="button" className={s.choice} onClick={() => step(-1)} disabled={n < 2} aria-label="Previous look">‹</button>
+        <button type="button" className={ui.choice} onClick={() => step(-1)} disabled={n < 2} aria-label="Previous look">‹</button>
         <span className={c.count} aria-live="polite">{front + 1} / {n}</span>
-        <button type="button" className={s.choice} onClick={() => step(1)} disabled={n < 2} aria-label="Next look">›</button>
+        <button type="button" className={ui.choice} onClick={() => step(1)} disabled={n < 2} aria-label="Next look">›</button>
       </div>
 
       <div id={listId} className={c.detail}>
@@ -213,7 +213,7 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
             {state === 'saved' ? 'Saved' : state === 'saving' ? 'Saving…' : 'Save look'}
           </button>
         </div>
-        {state === 'error' ? <p className={s.note} role="alert">We couldn&apos;t save this look. Please try again.</p> : null}
+        {state === 'error' ? <p className={ui.note} role="alert">We couldn&apos;t save this look. Please try again.</p> : null}
         <ol className={c.pieces} aria-label={`Pieces in ${current.name}`}>
           {current.garmentIds.map((id, i) => {
             const g = garments[id];
@@ -225,14 +225,14 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
                     // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
                     <img src={g.imageUrl} alt="" loading="lazy" />
                   ) : (
-                    <span className={c.ghost} />
+                    <span className={c.placeholder} />
                   )}
                 </span>
                 <span className={c.pieceText}>
                   <span>{g?.name ?? 'A piece from your closet'}</span>
                   <span className={c.pieceFlags}>
-                    {g?.imageKind === 'concept' ? <span className={`${k.flag} ${k.flagConcept} ${k.flagInline}`}>Concept</span> : null}
-                    {g?.isUpcycled ? <span className={`${k.flag} ${k.flagInline}`}>Reworked</span> : null}
+                    {g?.imageKind === 'concept' ? <Badge variant="concept" /> : null}
+                    {g?.isUpcycled ? <Badge variant="reworked" /> : null}
                   </span>
                 </span>
               </li>

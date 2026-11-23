@@ -1,0 +1,4 @@
+/* Home hero: only what the shared ui primitives do not cover. */
+.actions {
+  margin-top: var(--space-5);
+}

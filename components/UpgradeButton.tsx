@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import s from './result.module.css';
+import { Button } from './Button';
+import ui from './ui.module.css';
 
 type Props = { label?: string; onUpgraded?: () => void; ghost?: boolean };
 
@@ -23,10 +24,10 @@ export function UpgradeButton({ label = 'Upgrade to Premium · $7.99/month', onU
   }
   return (
     <span>
-      <button type="button" className={`${s.button} ${ghost ? s.ghost : ''}`} onClick={() => void upgrade()} disabled={state === 'working'}>
+      <Button ghost={ghost} loading={state === 'working'} onClick={() => void upgrade()}>
         {state === 'working' ? 'Upgrading…' : label}
-      </button>
-      {state === 'error' ? <span role="alert" className={s.hint}> Something went wrong. Please try again.</span> : null}
+      </Button>
+      {state === 'error' ? <span role="alert" className={ui.hint}> Something went wrong. Please try again.</span> : null}
     </span>
   );
 }

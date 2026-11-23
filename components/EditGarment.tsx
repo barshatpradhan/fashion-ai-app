@@ -1,6 +1,7 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import { FABRICS } from '@/lib/domain/vocabulary';
+import ui from './ui.module.css';
 import s from './result.module.css';
 
 type Props = {
@@ -25,18 +26,18 @@ export function EditGarment({ fabric, garmentType, busy, error, onSave }: Props)
 
   return (
     <div>
-      <p style={{ marginTop: 16 }}>
-        <button type="button" className={s.choice} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <p className={s.editToggle}>
+        <button type="button" className={ui.choice} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
           Not right? Edit fabric / type
         </button>
       </p>
       {open ? (
         <div className={s.prompt} role="group" aria-label="Edit fabric or garment type">
-          <form className={s.choices} onSubmit={(e) => void save(e, 'fabric', fabricValue)}>
-            <label htmlFor="edit-fabric" className={s.visuallyHidden}>Fabric</label>
+          <form className={ui.choices} onSubmit={(e) => void save(e, 'fabric', fabricValue)}>
+            <label htmlFor="edit-fabric" className={ui.visuallyHidden}>Fabric</label>
             <select
               id="edit-fabric"
-              className={s.choice}
+              className={ui.choice}
               value={fabricValue}
               onChange={(e) => setFabricValue(e.target.value)}
               disabled={busy}
@@ -44,21 +45,21 @@ export function EditGarment({ fabric, garmentType, busy, error, onSave }: Props)
               <option value="" disabled>Choose a fabric</option>
               {FABRICS.map((f) => <option key={f} value={f}>{f[0].toUpperCase() + f.slice(1)}</option>)}
             </select>
-            <button type="submit" className={`${s.choice} ${s.choicePrimary}`} disabled={busy || !fabricValue}>Save fabric</button>
+            <button type="submit" className={`${ui.choice} ${ui.choicePrimary}`} disabled={busy || !fabricValue}>Save fabric</button>
           </form>
-          <form className={s.choices} style={{ marginTop: 12 }} onSubmit={(e) => void save(e, 'garment_type', typeValue)}>
-            <label htmlFor="edit-type" className={s.visuallyHidden}>Garment type</label>
+          <form className={`${ui.choices} ${s.editRow}`} onSubmit={(e) => void save(e, 'garment_type', typeValue)}>
+            <label htmlFor="edit-type" className={ui.visuallyHidden}>Garment type</label>
             <input
               id="edit-type"
-              className={s.choice}
+              className={ui.choice}
               value={typeValue}
               maxLength={60}
               onChange={(e) => setTypeValue(e.target.value)}
               disabled={busy}
             />
-            <button type="submit" className={`${s.choice} ${s.choicePrimary}`} disabled={busy || !typeValue.trim()}>Save type</button>
+            <button type="submit" className={`${ui.choice} ${ui.choicePrimary}`} disabled={busy || !typeValue.trim()}>Save type</button>
           </form>
-          {error ? <p className={s.note} role="alert">{error}</p> : null}
+          {error ? <p className={ui.note} role="alert">{error}</p> : null}
         </div>
       ) : null}
     </div>

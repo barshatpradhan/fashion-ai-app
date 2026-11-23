@@ -1,10 +1,10 @@
-/* Guide screen: before -> after crossfade, AI-labelled steps. Reuses tokens from globals.css. */
+/* Guide screen: before -> after crossfade, AI-labelled steps. Tokens from globals.css. */
 
 .stage {
   position: relative;
   max-width: 520px;
   aspect-ratio: 1 / 1;
-  margin: 8px auto 12px;
+  margin: var(--space-2) auto var(--space-3);
   border-radius: var(--radius);
   background: var(--paper-raised);
   border: 1px solid var(--line);
@@ -17,39 +17,32 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 24px;
-  transition: opacity 1.1s var(--ease);
+  padding: var(--space-5);
+  transition: opacity var(--dur-slow) var(--ease);
 }
 
 .visible { opacity: 1; }
 .hidden { opacity: 0; }
 
-.badge {
+/* Places the Before / Concept Badge on the stage. */
+.stageBadge {
   position: absolute;
-  left: 14px;
-  bottom: 14px;
-  font-size: 0.68rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  color: var(--ink-soft);
+  left: var(--space-3);
+  bottom: var(--space-3);
 }
 
 .toggle {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin: 0 0 8px;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
 }
 
 .rendering {
   text-align: center;
   color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0 0 8px;
+  font-size: var(--text-ui);
+  margin: 0 0 var(--space-2);
 }
 
 .steps {
@@ -59,21 +52,21 @@
   color: var(--ink-soft);
 }
 
-.steps li { margin-bottom: 12px; padding-left: 6px; }
+.steps li { margin-bottom: var(--space-3); padding-left: var(--space-1); }
 
 .label {
   display: inline-block;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-3);
 }
 
 .tools {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -82,13 +75,13 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 48px;
+  gap: var(--space-3);
+  margin-top: var(--space-7);
 }
 
 .upgrade {
-  margin-top: 32px;
-  padding: 28px;
+  margin-top: var(--space-6);
+  padding: var(--space-5);
   max-width: 560px;
   background: var(--paper-raised);
   border: 1px solid var(--line);
@@ -98,15 +91,15 @@
 .upgrade h1 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.8rem;
-  margin: 0 0 10px;
+  font-size: var(--text-lg);
+  margin: 0 0 var(--space-2);
 }
 
-.upgrade p { margin: 0 0 20px; color: var(--ink-soft); }
-.back { display: inline-block; margin-top: 32px; font-size: 0.9rem; text-underline-offset: 4px; }
+.upgrade p { margin: 0 0 var(--space-4); color: var(--ink-soft); }
+.back { display: inline-block; margin-top: var(--space-6); font-size: var(--text-ui); text-underline-offset: 4px; }
 
 .storyNote {
-  margin-top: 14px;
+  margin-top: var(--space-3);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: var(--text-ui);
 }

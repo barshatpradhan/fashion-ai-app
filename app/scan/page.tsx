@@ -4,6 +4,7 @@ import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground, UnsupportedImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
+import ui from '@/components/ui.module.css';
 import s from '@/components/result.module.css';
 
 const BUCKET = 'garments';
@@ -98,16 +99,16 @@ export default function ScanPage() {
         onChange={onFile}
         disabled={working}
       />
-      <label htmlFor="garment-photo" className={`${s.button} ${ghost ? s.ghost : ''}`} aria-disabled={working}>
+      <label htmlFor="garment-photo" className={`${ui.button} ${s.uploadLabel} ${ghost ? ui.ghost : ''}`} aria-disabled={working}>
         {label}
       </label>
-      <p className={s.hint}>Photograph the garment only, no faces, please.</p>
+      <p className={ui.hint}>Photograph the garment only, no faces, please.</p>
     </div>
   );
 
   return (
-    <main className={s.page}>
-      <p className={s.brand}>Revivo</p>
+    <main className={ui.page}>
+      <p className={ui.brand}>Revivo</p>
 
       {phase.kind === 'done' ? (
         <>
@@ -122,9 +123,9 @@ export default function ScanPage() {
         </>
       ) : (
         <section aria-labelledby="scan-title">
-          <p className={s.eyebrow}>Scan</p>
-          <h1 id="scan-title" className={s.title}>Every garment has a second life.</h1>
-          <p className={s.lede}>
+          <p className={ui.eyebrow}>Scan</p>
+          <h1 id="scan-title" className={ui.title}>Every garment has a second life.</h1>
+          <p className={ui.lede}>
             Lay the piece flat or hang it in good light. We will read its fabric, its story and what it could become.
           </p>
           {upload('Upload a photo')}
@@ -132,13 +133,13 @@ export default function ScanPage() {
       )}
 
       {working ? (
-        <p className={s.status} role="status" aria-live="polite">
-          <span className={s.pulse} aria-hidden="true" />
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
           {phase.step}…
         </p>
       ) : null}
       {error ? (
-        <p className={s.error} role="alert">
+        <p className={ui.error} role="alert">
           {error}
         </p>
       ) : null}

@@ -1,4 +1,5 @@
 'use client';
+import ui from './ui.module.css';
 import s from './result.module.css';
 
 type Props = {
@@ -14,12 +15,12 @@ export function FabricConfirm({ choices, busy, error, onConfirm }: Props) {
   return (
     <div className={s.prompt} role="group" aria-labelledby="fabric-confirm-q">
       <p id="fabric-confirm-q" className={s.promptQuestion}>Which fabric is it?</p>
-      <div className={s.choices}>
+      <div className={ui.choices}>
         {choices.map((c, i) => (
           <button
             key={c}
             type="button"
-            className={`${s.choice} ${i === 0 ? s.choicePrimary : ''}`}
+            className={`${ui.choice} ${i === 0 ? ui.choicePrimary : ''}`}
             disabled={busy}
             onClick={() => onConfirm(c)}
           >
@@ -27,7 +28,7 @@ export function FabricConfirm({ choices, busy, error, onConfirm }: Props) {
           </button>
         ))}
       </div>
-      {error ? <p className={s.note} role="alert">{error}</p> : null}
+      {error ? <p className={ui.note} role="alert">{error}</p> : null}
     </div>
   );
 }

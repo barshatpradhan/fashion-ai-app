@@ -2,6 +2,9 @@
 import { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { humanize } from '@/lib/ui/result';
+import { Badge } from '@/components/Badge';
+import { Button } from '@/components/Button';
+import ui from '@/components/ui.module.css';
 import c from '@/components/story.module.css';
 
 /** How long the download's Blob URL stays alive after click() (iOS Safari reads it asynchronously). */
@@ -57,7 +60,7 @@ export function StoryCard(d: StoryCardData) {
 
   return (
     <div className={c.wrap}>
-      <div ref={ref} className={c.card}>
+      <div ref={ref} className={c.receipt}>
         <p className={c.brand}>REVIVO</p>
         <p className={c.sub}>Garment Story</p>
         <hr className={c.rule} />
@@ -65,7 +68,7 @@ export function StoryCard(d: StoryCardData) {
           <div className={c.imageBox}>
             {/* eslint-disable-next-line @next/next/no-img-element -- captured to PNG; signed URL */}
             <img src={d.imageUrl} alt="" crossOrigin="anonymous" className={c.image} />
-            {d.isConcept ? <span className={c.badge}>Concept</span> : null}
+            {d.isConcept ? <Badge variant="concept" className={c.imageBadge} /> : null}
           </div>
         ) : null}
         <dl className={c.rows}>
@@ -90,10 +93,10 @@ export function StoryCard(d: StoryCardData) {
         <hr className={c.rule} />
         <p className={c.footer}>Reworked, not replaced. Thank you.</p>
       </div>
-      <button type="button" className={c.download} onClick={() => void download()} disabled={busy}>
+      <Button loading={busy} onClick={() => void download()}>
         {busy ? 'Creating…' : 'Download'}
-      </button>
-      {error ? <p className={c.error} role="alert">{error}</p> : null}
+      </Button>
+      {error ? <p className={ui.note} role="alert">{error}</p> : null}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 import { humanize } from '@/lib/ui/result';
+import ui from './ui.module.css';
 import s from './result.module.css';
 
 type Props = {
@@ -14,15 +15,15 @@ export function StyleQuestion({ style, busy, error, onAnswer }: Props) {
   return (
     <div className={s.prompt} role="group" aria-labelledby={id}>
       <p id={id} className={s.promptQuestion}>Is this {humanize(style)}?</p>
-      <div className={s.choices}>
-        <button type="button" className={`${s.choice} ${s.choicePrimary}`} disabled={busy} onClick={() => onAnswer(style, true)}>
+      <div className={ui.choices}>
+        <button type="button" className={`${ui.choice} ${ui.choicePrimary}`} disabled={busy} onClick={() => onAnswer(style, true)}>
           Yes
         </button>
-        <button type="button" className={s.choice} disabled={busy} onClick={() => onAnswer(style, false)}>
+        <button type="button" className={ui.choice} disabled={busy} onClick={() => onAnswer(style, false)}>
           No
         </button>
       </div>
-      {error ? <p className={s.note} role="alert">{error}</p> : null}
+      {error ? <p className={ui.note} role="alert">{error}</p> : null}
     </div>
   );
 }

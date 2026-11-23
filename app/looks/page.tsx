@@ -9,7 +9,8 @@ import { OCCASIONS, MIN_ITEMS } from '@/lib/domain/outfits';
 import { AllowanceBadge } from '@/components/AllowanceBadge';
 import { LooksCarousel } from '@/components/LooksCarousel';
 import { UpgradeButton } from '@/components/UpgradeButton';
-import s from '@/components/result.module.css';
+import { Button } from '@/components/Button';
+import ui from '@/components/ui.module.css';
 import c from '@/components/closet.module.css';
 import l from '@/components/looks.module.css';
 
@@ -94,17 +95,17 @@ export default function LooksPage() {
   }
 
   return (
-    <main className={s.page}>
-      <p className={s.brand}>Revivo</p>
+    <main className={ui.page}>
+      <p className={ui.brand}>Revivo</p>
 
       <div className={c.header}>
         <div>
-          <p className={s.eyebrow}>Looks</p>
-          <h1 className={s.title}>Style me</h1>
+          <p className={ui.eyebrow}>Looks</p>
+          <h1 className={ui.title}>Style me</h1>
         </div>
         {allowance ? <AllowanceBadge allowance={allowance} unit="look" /> : null}
       </div>
-      <p className={s.hint} style={{ maxWidth: '52ch' }}>
+      <p className={`${ui.hint} ${ui.hintWide}`}>
         Three outfits from pieces you already own. Each one uses 1 look.
       </p>
 
@@ -116,32 +117,32 @@ export default function LooksPage() {
             {OCCASIONS.map((o) => <option key={o} value={o}>{OCCASION_LABEL[o]}</option>)}
           </select>
         </label>
-        <button type="submit" className={s.button} disabled={!closet || working || outOfLooks}>
+        <Button type="submit" loading={working} disabled={!closet || outOfLooks}>
           {working ? 'Styling…' : looks.length ? 'Style me again' : 'Style me'}
-        </button>
+        </Button>
       </form>
 
       {working ? (
-        <p className={s.status} role="status" aria-live="polite">
-          <span className={s.pulse} aria-hidden="true" />
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
           Putting looks together from your closet…
         </p>
       ) : null}
-      {error ? <p className={s.error} role="alert">{error}</p> : null}
-      {!error && outOfLooks ? <p className={s.error} role="alert">{looksMessage('no_looks', allowance?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p> : null}
+      {error ? <p className={ui.error} role="alert">{error}</p> : null}
+      {!error && outOfLooks ? <p className={ui.error} role="alert">{looksMessage('no_looks', allowance?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p> : null}
       {!error && tooSmall ? (
-        <p className={`${s.empty} ${c.inline}`}>
+        <p className={`${ui.empty} ${c.inline}`}>
           {looksMessage('closet_too_small')} <Link href="/closet">Go to your closet</Link>
         </p>
       ) : null}
 
       {load.kind === 'loading' ? (
-        <p className={s.status} role="status" aria-live="polite">
-          <span className={s.pulse} aria-hidden="true" />
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
           Opening your closet…
         </p>
       ) : null}
-      {load.kind === 'error' ? <p className={s.error} role="alert">We couldn&apos;t open your closet. Please refresh the page.</p> : null}
+      {load.kind === 'error' ? <p className={ui.error} role="alert">We couldn&apos;t open your closet. Please refresh the page.</p> : null}
 
       {closet && looks.length ? <LooksCarousel looks={looks} garments={byId} onSave={onSave} /> : null}
     </main>
