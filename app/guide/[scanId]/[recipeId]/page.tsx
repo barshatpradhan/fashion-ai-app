@@ -83,12 +83,11 @@ export default function GuidePage() {
     return () => { alive = false; };
   }, [scanId, recipeId, renderImage]);
 
-  const back = <Link className={g.back} href="/scan">← Back to your scan</Link>;
+  const back = <Link className={g.backLink} href="/scan">← Back to your scan</Link>;
 
   if (load.kind === 'locked') {
     return (
       <main className={ui.page}>
-        <p className={ui.brand}>Revivo</p>
         <section className={g.upgrade} aria-labelledby="upgrade-title">
           <p className={ui.eyebrow}>Premium</p>
           <h1 id="upgrade-title">This guide is part of Premium</h1>
@@ -102,7 +101,6 @@ export default function GuidePage() {
 
   return (
     <main className={ui.page}>
-      <p className={ui.brand}>Revivo</p>
       {load.kind === 'loading' ? (
         <p className={ui.status} role="status" aria-live="polite">
           <span className={ui.pulse} aria-hidden="true" />
@@ -118,27 +116,34 @@ export default function GuidePage() {
 
       {load.kind === 'ready' ? (
         <>
-          <p className={ui.eyebrow}>Your guide</p>
-          <h1 className={ui.title}>From worn to reworked</h1>
+          <div className={ui.head}>
+            <p className={ui.eyebrow}>Your guide</p>
+            <h1 className={ui.title}>From worn to reworked</h1>
+          </div>
 
-          <section aria-label="Before and after">
+          <div className={ui.cols}>
+            <div className={ui.colWide}>
+          <section aria-label="Before and after" className={ui.col}>
             <div className={g.stage}>
-              {beforeUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
-                <img src={beforeUrl} alt="Your original garment" className={`${g.layer} ${showAfter ? g.hidden : g.visible}`} />
-              ) : null}
-              {afterUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
-                <img src={afterUrl} alt="AI concept of the finished garment" className={`${g.layer} ${showAfter ? g.visible : g.hidden}`} />
-              ) : null}
-              {showAfter && afterUrl ? (
-                <Badge variant="concept" className={g.stageBadge} />
-              ) : (
-                <Badge variant="neutral" className={g.stageBadge}>Before</Badge>
-              )}
+              <div className={`${g.flip} ${showAfter && afterUrl ? g.flipped : ''}`}>
+                <div className={g.face}>
+                  {beforeUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
+                    <img src={beforeUrl} alt="Your original garment" className={g.layer} />
+                  ) : null}
+                  <Badge variant="neutral" className={g.stageBadge}>Before</Badge>
+                </div>
+                {afterUrl ? (
+                  <div className={`${g.face} ${g.back}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL */}
+                    <img src={afterUrl} alt="AI concept of the finished garment" className={g.layer} />
+                    <Badge variant="concept" className={g.stageBadge} />
+                  </div>
+                ) : null}
+              </div>
             </div>
             {afterUrl ? (
-              <div className={g.toggle} role="group" aria-label="Before or after">
+              <div className={`${ui.seg} ${g.toggle}`} role="group" aria-label="Before or after">
                 <button type="button" className={`${ui.choice} ${!showAfter ? ui.choicePrimary : ''}`} aria-pressed={!showAfter} onClick={() => setShowAfter(false)}>Before</button>
                 <button type="button" className={`${ui.choice} ${showAfter ? ui.choicePrimary : ''}`} aria-pressed={showAfter} onClick={() => setShowAfter(true)}>Concept</button>
               </div>
@@ -155,6 +160,26 @@ export default function GuidePage() {
             {afterUrl ? <p className={g.rendering}>Concept: an AI-generated picture, not a photo of a finished piece.</p> : null}
           </section>
 
+
+          <div className={g.actions}>
+            <button type="button" className={ui.button} aria-expanded={storyOpen} onClick={() => setStoryOpen((v) => !v)}>
+              Create Garment Story card
+            </button>
+          </div>
+          {storyOpen ? (
+            <StoryCard
+              scanId={scanId}
+              garmentType={load.guide.story?.garmentType ?? 'garment'}
+              fabric={load.guide.story?.fabric ?? 'unknown'}
+              recipeTitle={load.guide.story?.recipeTitle ?? 'Redesign'}
+              difficulty={load.guide.story?.difficulty ?? null}
+              history={load.guide.history.map((h) => ({ title: h.title, sources: h.sources }))}
+              isConcept={Boolean(afterUrl && showAfter)}
+              imageUrl={showAfter && afterUrl ? afterUrl : beforeUrl}
+            />
+          ) : null}
+            </div>
+            <div className={ui.colSide}>
           <section className={ui.section} aria-labelledby="steps-title">
             <h2 id="steps-title" className={ui.sectionTitle}>Steps</h2>
             <span className={g.label}>AI-generated guidance</span>
@@ -199,24 +224,9 @@ export default function GuidePage() {
             </section>
           ) : null}
 
-          <div className={g.actions}>
-            <button type="button" className={ui.button} aria-expanded={storyOpen} onClick={() => setStoryOpen((v) => !v)}>
-              Create Garment Story card
-            </button>
-          </div>
           <MadeThis scanId={scanId} recipeId={recipeId} />
-          {storyOpen ? (
-            <StoryCard
-              scanId={scanId}
-              garmentType={load.guide.story?.garmentType ?? 'garment'}
-              fabric={load.guide.story?.fabric ?? 'unknown'}
-              recipeTitle={load.guide.story?.recipeTitle ?? 'Redesign'}
-              difficulty={load.guide.story?.difficulty ?? null}
-              history={load.guide.history.map((h) => ({ title: h.title, sources: h.sources }))}
-              isConcept={Boolean(afterUrl && showAfter)}
-              imageUrl={showAfter && afterUrl ? afterUrl : beforeUrl}
-            />
-          ) : null}
+            </div>
+          </div>
           {back}
         </>
       ) : null}
