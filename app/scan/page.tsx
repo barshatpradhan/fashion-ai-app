@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground, UnsupportedImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
-import { ResultView, type AnalyzeResponse } from '@/components/ResultView';
+import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
 import s from '@/components/result.module.css';
 
 const BUCKET = 'garments';
@@ -11,7 +11,7 @@ const BUCKET = 'garments';
 type Phase =
   | { kind: 'idle' }
   | { kind: 'working'; step: string }
-  | { kind: 'done'; result: AnalyzeResponse; heroSrc: string; isCutout: boolean };
+  | { kind: 'done'; result: AnalyzeResponse; heroSrc: string; isCutout: boolean; source: ScanSource };
 
 class ApiError extends Error {}
 
@@ -73,7 +73,7 @@ export default function ScanPage() {
 
       const usedCutout = cutoutPath !== imagePath && cutout !== null;
       const heroSrc = setHero(usedCutout ? cutout : prepared.jpeg);
-      setPhase({ kind: 'done', result: json as AnalyzeResponse, heroSrc, isCutout: usedCutout });
+      setPhase({ kind: 'done', result: json as AnalyzeResponse, heroSrc, isCutout: usedCutout, source: { imagePath, cutoutPath, imageHash: prepared.hash } });
       window.scrollTo({ top: 0 });
     } catch (err) {
       console.error('scan failed', err);
@@ -116,6 +116,7 @@ export default function ScanPage() {
             result={phase.result}
             heroSrc={phase.heroSrc}
             isCutout={phase.isCutout}
+            source={phase.source}
           />
           <div className={s.again}>{upload('Scan another garment', true)}</div>
         </>

@@ -31,6 +31,7 @@ export interface CorrectionRepo {
 }
 
 const lc = (s: string) => s.trim().toLowerCase();
+const MAX_GARMENT_TYPE = 60;
 
 export type ScanState = {
   scan: StoredScan;
@@ -67,6 +68,8 @@ export async function runCorrect(userId: string, input: unknown, repo: Correctio
   if (!value) return bad();
   if (field === 'fabric' && !(FABRICS as readonly string[]).includes(value)) return bad();
   if (field === 'named_style' && typeof b.accept !== 'boolean') return bad();
+  // Garment type is free text from the Result screen's edit control: keep it short.
+  if (field === 'garment_type' && value.length > MAX_GARMENT_TYPE) return bad();
 
   const state = await loadScanState(repo, b.scanId);
   if (!state || state.scan.userId !== userId) return fail(404, CORRECT_ERRORS.notFound);

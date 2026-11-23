@@ -13,6 +13,7 @@ import { StyleQuestion } from './StyleQuestion';
 import { UpgradeButton } from './UpgradeButton';
 import { LockedRecipeCard } from './LockedRecipeCard';
 import { AddToCloset } from './AddToCloset';
+import { EditGarment } from './EditGarment';
 import s from './result.module.css';
 
 export type AnalyzeResponse = {
@@ -25,9 +26,12 @@ export type AnalyzeResponse = {
   fabric?: string;
 };
 
-type Props = { result: AnalyzeResponse; heroSrc: string; isCutout: boolean };
+/** The uploaded images behind this result: re-POSTing them to /api/analyze is a free hash-cache hit. */
+export type ScanSource = { imagePath: string; cutoutPath: string; imageHash: string };
 
-type CorrectBody = { scanId: string; field: 'fabric' | 'named_style'; value: string; accept?: boolean };
+type Props = { result: AnalyzeResponse; heroSrc: string; isCutout: boolean; source?: ScanSource };
+
+type CorrectBody = { scanId: string; field: 'fabric' | 'garment_type' | 'named_style'; value: string; accept?: boolean };
 
 async function postCorrect(body: CorrectBody): Promise<{ match: PublicMatch; needsFabricConfirm: boolean }> {
   const res = await fetch('/api/correct', {
@@ -40,14 +44,51 @@ async function postCorrect(body: CorrectBody): Promise<{ match: PublicMatch; nee
   return { match: json.match, needsFabricConfirm: json.needsFabricConfirm === true };
 }
 
-export function ResultView({ result, heroSrc, isCutout }: Props) {
+export function ResultView({ result, heroSrc, isCutout, source }: Props) {
   const { scanId, vision } = result;
   const [match, setMatch] = useState(result.match);
   const [needsConfirm, setNeedsConfirm] = useState(result.needsFabricConfirm);
   const [fabric, setFabric] = useState(result.fabric ?? vision.fabric_guess.value);
+  const [garmentType, setGarmentType] = useState(vision.garment_type);
   const [busy, setBusy] = useState(false);
   const [fabricError, setFabricError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [styleError, setStyleError] = useState<{ style: string; message: string } | null>(null);
+
+  /** After an upgrade: re-read this same scan (hash-cache hit, no AI call or cap) so the result stays on screen. */
+  async function refreshAfterUpgrade() {
+    if (!source) return window.location.reload();
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(source),
+      });
+      const json = (await res.json().catch(() => ({}))) as Partial<AnalyzeResponse>;
+      if (!res.ok || !json.match) throw new Error('refresh failed');
+      setMatch(json.match);
+      if (typeof json.needsFabricConfirm === 'boolean') setNeedsConfirm(json.needsFabricConfirm);
+    } catch (err) {
+      console.error('result refresh after upgrade failed', err);
+      window.location.reload();
+    }
+  }
+
+  async function editGarment(field: 'fabric' | 'garment_type', value: string): Promise<boolean> {
+    setBusy(true);
+    setEditError(null);
+    try {
+      const r = await postCorrect({ scanId, field, value });
+      setMatch(r.match);
+      setNeedsConfirm(r.needsFabricConfirm);
+      if (field === 'fabric') setFabric(value);
+      else setGarmentType(value);
+      return true;
+    } catch (err) {
+      setEditError(messageForError((err as Error).message));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function confirmFabric(value: string) {
     setBusy(true);
@@ -81,13 +122,13 @@ export function ResultView({ result, heroSrc, isCutout }: Props) {
   const history = verifiedHistory(match.history);
   const { free, others } = splitRecipes(match.recipes, match.freeRecipeId);
   const fabricNote = match.fabricNotes[0];
-  const garmentName = humanize(vision.garment_type);
+  const garmentName = humanize(garmentType);
 
   return (
     <div>
       <HeroGarment
         src={heroSrc}
-        alt={`Your ${vision.garment_type}`}
+        alt={`Your ${garmentType}`}
         fabric={fabric}
         features={featureLabels(vision)}
         isCutout={isCutout}
@@ -102,6 +143,8 @@ export function ResultView({ result, heroSrc, isCutout }: Props) {
       </div>
 
       <AddToCloset scanId={scanId} />
+
+      <EditGarment fabric={fabric} garmentType={garmentType} busy={busy} error={editError} onSave={editGarment} />
 
       {needsConfirm ? (
         <FabricConfirm
@@ -152,7 +195,7 @@ export function ResultView({ result, heroSrc, isCutout }: Props) {
             )}
           </div>
           {others.some(isLockedRecipe) ? (
-            <p style={{ marginTop: 20 }}><UpgradeButton label="Unlock every Recipe · $7.99/month" /></p>
+            <p style={{ marginTop: 20 }}><UpgradeButton label="Unlock every Recipe · $7.99/month" onUpgraded={() => void refreshAfterUpgrade()} /></p>
           ) : null}
         </section>
       ) : null}

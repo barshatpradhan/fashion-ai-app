@@ -103,6 +103,13 @@ describe('runCorrect', () => {
     expect(e).toEqual({ status: 400, body: { error: 'bad_request' } });
   });
 
+  it('free-text garment_type longer than 60 characters -> 400', async () => {
+    const s = setup();
+    const r = await runCorrect(U, { scanId: SID, field: 'garment_type', value: 'x'.repeat(61) }, s.repo);
+    expect(r).toEqual({ status: 400, body: { error: 'bad_request' } });
+    expect(s.repo.insertCorrection).not.toHaveBeenCalled();
+  });
+
   it('field outside the allowed set -> 400, nothing written', async () => {
     const s = setup();
     const r = await runCorrect(U, { scanId: SID, field: 'colors', value: 'red' }, s.repo);
