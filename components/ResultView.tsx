@@ -127,14 +127,18 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
 
   return (
     <div>
-      <HeroGarment
-        src={heroSrc}
-        alt={`Your ${garmentType}`}
-        fabric={fabric}
-        features={featureLabels(vision)}
-        isCutout={isCutout}
-      />
+      <div className={ui.cols}>
+      <div className={ui.colSide}>
+        <HeroGarment
+          src={heroSrc}
+          alt={`Your ${garmentType}`}
+          fabric={fabric}
+          features={featureLabels(vision)}
+          isCutout={isCutout}
+        />
+      </div>
 
+      <div className={ui.colWide}>
       <div className={s.heading}>
         <div>
           <p className={ui.eyebrow}>{humanize(fabric)}</p>
@@ -166,7 +170,7 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
         />
       ))}
 
-      <section className={ui.section} aria-labelledby="history-title">
+      <section aria-labelledby="history-title">
         <h2 id="history-title" className={ui.sectionTitle}>History</h2>
         {history.length ? (
           <div className={ui.grid}>
@@ -181,11 +185,13 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
           </p>
         ) : null}
       </section>
+      </div>
+      </div>
 
       {match.recipes.length ? (
         <section className={ui.section} aria-labelledby="recipes-title">
           <h2 id="recipes-title" className={ui.sectionTitle}>Give it a second life</h2>
-          <div className={ui.grid}>
+          <div className={ui.grid4}>
             {free && !isLockedRecipe(free) ? <RecipeCard entry={free} scanId={scanId} free /> : null}
             {others.map((r) =>
               isLockedRecipe(r) ? (

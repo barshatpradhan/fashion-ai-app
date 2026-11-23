@@ -90,7 +90,8 @@ export default function ScanPage() {
   const working = phase.kind === 'working';
 
   const upload = (label: string, ghost = false) => (
-    <div className={s.upload}>
+    <div className={`${ui.imgSlot} ${s.dropzone}`}>
+      <div className={s.upload}>
       <input
         id="garment-photo"
         className={s.fileInput}
@@ -103,13 +104,12 @@ export default function ScanPage() {
         {label}
       </label>
       <p className={ui.hint}>Photograph the garment only, no faces, please.</p>
+      </div>
     </div>
   );
 
   return (
     <main className={ui.page}>
-      <p className={ui.brand}>Revivo</p>
-
       {phase.kind === 'done' ? (
         <>
           <ResultView
@@ -122,13 +122,17 @@ export default function ScanPage() {
           <div className={s.again}>{upload('Scan another garment', true)}</div>
         </>
       ) : (
-        <section aria-labelledby="scan-title">
-          <p className={ui.eyebrow}>Scan</p>
-          <h1 id="scan-title" className={ui.title}>Every garment has a second life.</h1>
-          <p className={ui.lede}>
-            Lay the piece flat or hang it in good light. We will read its fabric, its story and what it could become.
-          </p>
-          {upload('Upload a photo')}
+        <section className={ui.cols} aria-labelledby="scan-title">
+          <div className={ui.colSide}>
+            <div className={ui.head}>
+              <p className={ui.eyebrow}>Scan</p>
+              <h1 id="scan-title" className={ui.title}>Every garment has a second life.</h1>
+              <p className={ui.lede}>
+                Lay the piece flat or hang it in good light. We will read its fabric, its story and what it could become.
+              </p>
+            </div>
+          </div>
+          <div className={ui.colWide}>{upload('Upload a photo')}</div>
         </section>
       )}
 
