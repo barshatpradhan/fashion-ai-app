@@ -1,16 +1,60 @@
+/* Design tokens. Modules use these, never raw hex or one-off sizes (docs/DESIGN-SYSTEM.md). */
 :root {
+  /* Colour */
   --paper: #f5f3ee;
   --paper-raised: #fbfaf7;
   --ink: #1c1b19;
   --ink-soft: #4a4741;
+  --ink-quiet: #6f675b; /* hanger line art: 5.0:1 on --paper, 5.3:1 on --paper-raised */
   --muted: #66615a; /* 5.5:1 on --paper, 5.9:1 on --paper-raised (WCAG AA) */
   --line: #e2ddd3;
   --accent: #7c6446;
   --danger: #8c3b2e;
-  --radius: 14px;
+  --rail-light: #b9b0a2; /* closet rod gradient, top */
+  --rail-dark: #8f8678; /* closet rod gradient, bottom, and its end brackets */
+
+  /* Type */
   --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
   --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --text-xs: 0.7rem; /* uppercase labels, badges, captions */
+  --text-sm: 0.85rem; /* hints, meta, small UI */
+  --text-ui: 0.92rem; /* buttons, card body */
+  --text-base: 1rem;
+  --text-md: 1.25rem; /* card titles, feature values, prompts */
+  --text-lg: 1.6rem; /* section and detail headings */
+  --text-xl: clamp(1.8rem, 4vw, 2.6rem); /* garment name */
+  --text-display: clamp(2rem, 5vw, 3.4rem); /* page titles */
+  --text-backdrop: clamp(4.5rem, 19vw, 15rem); /* faded fabric word behind the hero garment */
+
+  /* Space (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius: 14px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 2px 3px rgba(28, 27, 25, 0.15); /* resting: the closet rod */
+  --shadow-2: 0 30px 60px -30px rgba(28, 27, 25, 0.4); /* lifted: framed photo, chosen piece */
+  --drop-1: drop-shadow(0 10px 14px rgba(28, 27, 25, 0.16)); /* filter for cut-out thumbnails */
+  --drop-2: drop-shadow(0 28px 32px rgba(28, 27, 25, 0.16)) drop-shadow(0 4px 6px rgba(28, 27, 25, 0.08)); /* hero cut-out */
+
+  /* Motion */
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 0.2s;
+  --dur-base: 0.4s;
+  --dur-slow: 1.1s;
+
+  /* Light-only on purpose: the demo runs on a projector, where a dark scheme washes out. */
   color-scheme: light;
 }
 
