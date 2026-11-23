@@ -4,33 +4,45 @@ Small on purpose: tokens in `app/globals.css`, shared primitives in `components/
 and one `Button` component. Screen modules (`result`, `closet`, `looks`, `guide`, `story`, `nav`, `home`)
 hold only what is specific to that screen.
 
-## Tokens (`app/globals.css` `:root`)
+## Tokens, v3.1 (`app/globals.css` `:root`)
 
 | Group | Token | Value | Use |
 |---|---|---|---|
-| Colour | `--paper` / `--paper-raised` | #f5f3ee / #fbfaf7 | page / raised surfaces |
-| | `--ink` / `--ink-soft` | #1c1b19 / #4a4741 | text, primary button / secondary text |
-| | `--muted` | #66615a | captions, hints (5.5:1 on paper) |
-| | `--ink-quiet` | #6f675b | hanger line art (5.0:1 on paper) |
-| | `--line` | #e2ddd3 | borders, hairlines |
-| | `--accent` / `--danger` | #7c6446 / #8c3b2e | badges, focus ring / errors, delete |
-| | `--rail-light` / `--rail-dark` | #b9b0a2 / #8f8678 | closet rod |
-| Type | `--text-xs` | 0.7rem | uppercase labels, badges, captions |
-| | `--text-sm` | 0.85rem | hints, meta, nav |
-| | `--text-ui` | 0.92rem | buttons, card body |
-| | `--text-base` | 1rem | body |
-| | `--text-md` | 1.25rem | card titles, prompts, feature values |
-| | `--text-lg` | 1.6rem | section and detail headings |
-| | `--text-xl` | clamp(1.8rem, 4vw, 2.6rem) | garment name |
-| | `--text-display` | clamp(2rem, 5vw, 3.4rem) | page titles |
-| | `--text-backdrop` | clamp(4.5rem, 19vw, 15rem) | faded fabric word behind the hero |
-| | `--font-display` / `--font-body` / `--font-mono` | | serif headings / UI / Story receipt |
-| Space | `--space-1` … `--space-8` | 4, 8, 12, 16, 24, 32, 48, 64 px | padding, gap, margin |
-| Radius | `--radius-sm` / `--radius` / `--radius-pill` | 6px / 14px / 999px | inputs, thumbs / cards / pills |
-| Shadow | `--shadow-1` / `--shadow-2` | | resting (rod) / lifted (framed photo, chosen piece) |
+| Colour | `--white` / `--surface-soft` / `--surface-sunk` | #FFFFFF / #F4F6F8 / #E8EDF1 | page / soft panels, segmented track / sunk wells |
+| | `--slate` | #263645 | ink: text, primary button |
+| | `--deep` | #2E4E64 | focus ring (2px, 3px offset), active |
+| | `--steel` / `--mist` | #5C7487 / #7792A7 | large or decorative only; never body text under 18px |
+| | `--ice` | #D9E0E4 | hairlines |
+| | `--signal` | #E8FF5A | Concept badge fill only, slate text |
+| | `--ink-soft` / `--muted` | #3A4C5C / #4A5D6C | secondary text / captions, hints |
+| | `--danger` | #A8321F | errors, delete |
+| Legacy aliases | `--paper` `--paper-raised` `--ink` `--line` `--accent` `--ink-quiet` `--rail-light` `--rail-dark` | #FFFFFF #F4F6F8 #263645 #D9E0E4 #2E4E64 #4A5D6C #D9E0E4 #7792A7 | older modules; new code uses the v3.1 names |
+| Type | `--font-display` | Oswald 500/600, uppercase | titles, card titles |
+| | `--font-body` | Inter | UI and body |
+| | `--font-mono` | JetBrains Mono 500, uppercase, 0.08em | eyebrows, badges, nav and tab labels |
+| | `--text-display` | 40px / 56px / 76px | page titles, line-height 0.95 (mobile / tablet / desktop) |
+| | `--text-xs` `--text-sm` `--text-ui` `--text-base` `--text-md` `--text-lg` `--text-xl` `--text-backdrop` | unchanged | see `globals.css` |
+| Space | `--space-1` ... `--space-8` | 4, 8, 12, 16, 24, 32, 48, 64 px | padding, gap, margin |
+| Radius | `--radius-sm` / `--radius` / `--radius-lg` / `--radius-pill` | 10 / 20 / 32 / 999px | inputs / cards, panels / stages / pills |
+| Shadow | `--shadow-1` / `--shadow-2` | `0 1px 2px` + `0 4px 12px` / `0 2px 6px` + `0 24px 48px -12px` | resting / lifted |
+| | `--shadow-floor` | `0 30px 40px -24px rgba(38,54,69,.35)` | contact shadow under a garment |
 | | `--drop-1` / `--drop-2` | `filter` values | cut-out thumbnails / hero cut-out |
-| Motion | `--dur-fast` / `--dur-base` / `--dur-slow` | 0.2s / 0.4s / 1.1s | hover / transitions / entrances, crossfade |
-| | `--ease` | cubic-bezier(0.22, 0.61, 0.36, 1) | everything |
+| Motion | `--ease-smooth` (alias `--ease`) | cubic-bezier(0.16, 1, 0.3, 1) | movement |
+| | `--dur-fast` / `--dur-base` / `--dur-slow` | 0.2s / 0.6s / 1.2s | hover / transitions / entrances |
+
+Fonts load through `next/font/google` in `app/layout.tsx`; the variable classes sit on `<html>` and keep
+fallback stacks. The app is light only (`color-scheme: light`).
+
+### Breakpoints
+
+Mobile first. Write `@media (min-width: 768px)` and `@media (min-width: 1200px)`, never container queries.
+Content max-width is 1200px.
+
+| Name | Viewport | Design width | Side margin | Columns |
+|---|---|---|---|---|
+| Mobile web (primary) | < 768px | 390 | 20px | 1 |
+| Tablet | 768-1199px | 834 | 32px | 2 where content pairs |
+| Desktop | >= 1200px | 1440 | centred | 2, sidebar 380px |
 
 Local, named timings (not tokens): `--dur-pulse` 1.6s (status dot), `--dur-backdrop` 1.4s and
 `--dur-drift` 9s (hero), and the 0.12s / 0.24s entrance stagger.
@@ -52,15 +64,20 @@ Local, named timings (not tokens): `--dur-pulse` 1.6s (status dot), `--dur-backd
 
 | Class | What | States |
 |---|---|---|
-| `.button` | Primary ink pill, 48px tall | `:hover` lifts 1px; `:disabled` / `[aria-disabled]` 50% opacity; `.loading` busy ring |
-| `.ghost` | With `.button`: outline on paper | same as `.button` |
+| `.button` | Primary slate pill, 48px tall | `:hover` lifts 1px; `:disabled` / `[aria-disabled]` 50% opacity; `.loading` busy ring |
+| `.ghost` | With `.button`: white with an inset ice hairline | same as `.button` |
 | `.loading` | With `.button`: busy | Use `<Button loading>`: sets `aria-busy="true"` and `disabled`; keep a "…ing" label. Reduced motion stops the spin. |
-| `.choice` / `.choicePrimary` / `.choices` | Small outline pill for answers and toggles, the suggested one, and their row | `:hover` ink border; `:disabled` 50% |
+| `.choice` / `.choicePrimary` / `.choices` | Segmented track: pill options in a soft track, the suggested one raised | `:hover` slate text; `:disabled` 50% |
 | `.chip` | Non-interactive pill: difficulty, tags, tools | none |
 | `.card` (+ `.cardTitle`, `.cardBody`, `.sources`, `.grid`) | Raised card | none |
 | `.status` (+ `.pulse`, `.statusInline`) | Live progress line, `role="status"` | pulse dot loops |
 | `.error` | Page-level failure, `role="alert"` | none |
 | `.note` | Inline failure under a control, `role="alert"` | none |
+
+Layout primitives: `.page` (max 1200, padding 24/20, 40/32 tablet, 56/0 desktop), `.head`, `.headRow`
+(row from tablet), `.cols` with `.col` / `.colSide` (300px, 380px desktop) / `.colWide`, `.grid` (1 column;
+auto-fill 260px from tablet), `.grid2` / `.grid3` / `.grid4` (2 from tablet; 3 and 4 from desktop), `.panel`
+(soft block), `.imgSlot` (dashed picture frame).
 
 Also shared: page shell (`.page`, `.brand`, `.eyebrow`, `.title`, `.lede`, `.section`, `.sectionTitle`),
 `.hint` / `.hintWide`, `.empty`, `.visuallyHidden`.
