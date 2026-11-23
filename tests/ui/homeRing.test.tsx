@@ -66,6 +66,12 @@ describe('HomeRing', () => {
     expect(screen.getByRole('button', { name: 'Show Denim tote' })).toBeTruthy();
   });
 
+  it('keeps a level-1 heading in Grid view', () => {
+    render(<HomeRing />);
+    fireEvent.click(screen.getByRole('button', { name: 'Grid' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Keep it in the loop' })).toBeTruthy();
+  });
+
   it('advances every 3.5 s, unless reduced motion is on', () => {
     vi.useFakeTimers();
     render(<HomeRing />);

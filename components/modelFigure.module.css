@@ -56,7 +56,7 @@
   width: 80%;
   height: 80%;
   border-radius: var(--radius-sm);
-  background: linear-gradient(160deg, var(--paper-raised), var(--line));
+  background: linear-gradient(160deg, var(--surface-soft), var(--ice));
   opacity: 0.8;
 }
 
@@ -77,8 +77,8 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--slate);
+  color: var(--white);
   font-family: var(--font-mono);
   font-size: 12px;
   cursor: pointer;
@@ -98,7 +98,7 @@
 
 .dot[data-active='true'] {
   background: var(--deep);
-  box-shadow: 0 0 0 3px var(--paper);
+  box-shadow: 0 0 0 3px var(--white);
 }
 
 @media (prefers-reduced-motion: reduce) {

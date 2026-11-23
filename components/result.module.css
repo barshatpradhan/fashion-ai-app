@@ -182,6 +182,7 @@
   line-height: 0.95;
   font-size: var(--text-display);
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ----------------------------------------------------------------- swatches */
@@ -285,11 +286,6 @@
 @media (min-width: 768px) {
   .garmentName {
     font-size: 56px;
-  }
-
-  .hero {
-    position: sticky;
-    top: var(--space-5);
   }
 }
 

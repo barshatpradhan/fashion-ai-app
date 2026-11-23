@@ -148,15 +148,6 @@
   }
 }
 
-.brand {
-  font-family: var(--font-display);
-  letter-spacing: 0.32em;
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  margin: 0 0 var(--space-6);
-}
-
 .eyebrow {
   font-family: var(--font-mono);
   font-weight: 500;
@@ -212,6 +203,11 @@
 /* A hint that runs a full sentence or two. */
 .hintWide {
   max-width: 52ch;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .empty {
@@ -346,7 +342,7 @@
 
 /* Inside .seg a choice is a segment: flat, muted; the selected one is raised and white. */
 .seg .choice {
-  min-height: 36px;
+  min-height: 44px;
   background: transparent;
   box-shadow: none;
   color: var(--muted);

@@ -86,6 +86,8 @@ export function HomeRing() {
             })}
           </>
         ) : (
+          <>
+            <h1 className={ui.visuallyHidden}>Keep it in the loop</h1>
           <div className={s.grid}>
             {SECOND_LIVES.map((l, i) => (
               <button key={l.name} type="button" className={s.cell} onClick={() => { setRot(i); setView('ring'); setPlaying(false); }}>
@@ -94,6 +96,7 @@ export function HomeRing() {
               </button>
             ))}
           </div>
+          </>
         )}
       </div>
 

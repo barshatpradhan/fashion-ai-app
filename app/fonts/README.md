@@ -6,3 +6,5 @@ licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
 
 They are bundled locally because `next/font/google` intermittently failed to self-host Oswald
 (see tests/ui/fonts.test.ts). Inter and JetBrains Mono still use `next/font/google`.
+
+The full license text, with the Oswald copyright line, is in `OFL.txt` beside this file.

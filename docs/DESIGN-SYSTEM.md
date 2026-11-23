@@ -30,7 +30,7 @@ hold only what is specific to that screen.
 | Motion | `--ease-smooth` (alias `--ease`) | cubic-bezier(0.16, 1, 0.3, 1) | movement |
 | | `--dur-fast` / `--dur-base` / `--dur-slow` | 0.2s / 0.6s / 1.2s | hover / transitions / entrances |
 
-Fonts load through `next/font/google` in `app/layout.tsx`; the variable classes sit on `<html>` and keep
+Fonts load in `app/layout.tsx`: Oswald is self-hosted via `next/font/local` (`app/fonts`), Inter and JetBrains Mono via `next/font/google`; the variable classes sit on `<html>` and keep
 fallback stacks. The app is light only (`color-scheme: light`).
 
 ### Breakpoints

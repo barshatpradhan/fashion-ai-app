@@ -9,14 +9,6 @@
   gap: var(--space-3) var(--space-4);
 }
 
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4) var(--space-6);
-}
-
 .toolbar {
   display: flex;
   flex-wrap: wrap;
