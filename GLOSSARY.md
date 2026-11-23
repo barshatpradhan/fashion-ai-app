@@ -109,3 +109,7 @@ _Avoid_: Pro, subscription (for the tier itself)
 **Garment Story Card**:
 A shareable image summarising one scanned piece of clothing: what it is, its fabric, its verified history and a chosen Recipe. It can be made before the piece is saved as a Garment.
 _Avoid_: Share card, receipt
+
+**Avatar**:
+A stylised AI drawing of the user, made once from their full-length photo and used to show Looks on them. It is always labelled as a concept.
+_Avoid_: Twin, model, mannequin
