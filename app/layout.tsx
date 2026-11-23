@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react';
-import { Inter, JetBrains_Mono, Oswald } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { SiteNav } from '@/components/SiteNav';
 
-const oswald = Oswald({ subsets: ['latin'], weight: ['500', '600'], variable: '--font-oswald' });
+// Oswald is bundled locally: next/font/google intermittently failed to self-host it.
+const oswald = localFont({
+  src: [{ path: './fonts/Oswald-latin.woff2', weight: '200 700', style: 'normal' }],
+  variable: '--font-oswald',
+  display: 'swap',
+});
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jbmono = JetBrains_Mono({ subsets: ['latin'], weight: '500', variable: '--font-jbmono' });
 
