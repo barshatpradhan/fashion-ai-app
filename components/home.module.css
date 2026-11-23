@@ -1,40 +1,10 @@
-/* Home hero: only what the shared ui primitives do not cover. */
-.actions {
+/* Home: only what the shared ui primitives and the ring do not cover. */
+.intro {
   margin-top: var(--space-5);
 }
 
-.stage {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 280px;
-  perspective: 1400px;
-  overflow: hidden;
-  color: var(--slate);
-  background: var(--surface-soft);
-}
-
-.turntable {
-  width: min(70%, 320px);
-  aspect-ratio: 1 / 1;
-  transform-style: preserve-3d;
-  animation: swing 7s ease-in-out infinite alternate;
-}
-
-.garment {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.floor {
-  position: absolute;
-  left: 25%;
-  right: 25%;
-  bottom: 14%;
-  height: 12px;
-  border-radius: 999px;
-  box-shadow: var(--shadow-floor);
+.actions {
+  margin-top: var(--space-4);
 }
 
 .num {
@@ -44,23 +14,4 @@
   font-size: 0.875rem;
   letter-spacing: 0.08em;
   color: var(--deep);
-}
-
-@media (min-width: 768px) {
-  .stage { min-height: 360px; }
-}
-
-@media (min-width: 1200px) {
-  .stage { min-height: 460px; }
-}
-
-@keyframes swing {
-  from { transform: rotateY(-28deg); }
-  to { transform: rotateY(28deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .turntable {
-    animation: none;
-  }
 }

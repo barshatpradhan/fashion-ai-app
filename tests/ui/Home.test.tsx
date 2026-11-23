@@ -32,9 +32,9 @@ describe('Home', () => {
     expect(container.querySelector('[aria-hidden="true"] svg')).toBeTruthy();
   });
 
-  it('turns the turntable animation off for reduced motion', () => {
-    const css = readFileSync('components/home.module.css', 'utf8');
+  it('turns the ring transition off for reduced motion', () => {
+    const css = readFileSync('components/homeRing.module.css', 'utf8');
     expect(css).toContain('prefers-reduced-motion');
-    expect(css).toMatch(/\.turntable\s*\{[^}]*animation:\s*none/);
+    expect(css).toMatch(/prefers-reduced-motion[^{]*\{\s*\.item\s*\{[^}]*transition:\s*none/);
   });
 });
