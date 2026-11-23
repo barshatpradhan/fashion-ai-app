@@ -1,0 +1,345 @@
+/* Shared UI primitives: page shell, buttons, chips, cards, status and error lines, badges.
+   Screen-specific styles live in their own modules. Tokens come from app/globals.css. */
+
+/* -------------------------------------------------------------- page shell */
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) calc(var(--space-7) * 2);
+}
+
+.brand {
+  font-family: var(--font-display);
+  letter-spacing: 0.32em;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 var(--space-6);
+}
+
+.eyebrow {
+  font-size: var(--text-xs);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-2);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-display);
+  line-height: 1.08;
+  margin: 0 0 var(--space-4);
+}
+
+.lede {
+  color: var(--ink-soft);
+  max-width: 36ch;
+  margin: 0 0 var(--space-6);
+}
+
+.section {
+  margin-top: var(--space-8);
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-lg);
+  margin: 0 0 var(--space-4);
+}
+
+.hint {
+  font-size: var(--text-sm);
+  color: var(--muted);
+  margin: 0;
+  max-width: 28ch;
+}
+
+/* A hint that runs a full sentence or two. */
+.hintWide {
+  max-width: 52ch;
+}
+
+.empty {
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- buttons */
+
+/* Primary pill. States: :hover lifts, :disabled / [aria-disabled] dims, .loading shows a busy ring. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: var(--text-ui);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button[aria-disabled='true'],
+.button:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* Secondary: outline on paper. Combine with .button. */
+.ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* Busy: set with aria-busy="true" (the Button component does both). The ring is decorative; the label
+   ("Saving…") and aria-busy carry the meaning. Reduced motion stops the spin, the ring stays. */
+.loading,
+.loading:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.loading::before {
+  content: '';
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin var(--dur-slow) linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Row of choices / chips. */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Small outline pill for answers, toggles and secondary actions. .choicePrimary marks the suggested one. */
+.choice {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-ui);
+  cursor: pointer;
+  transition: border-color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+}
+
+.choice:hover {
+  border-color: var(--ink);
+}
+
+.choice:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.choicePrimary {
+  border-color: var(--ink);
+}
+
+/* ------------------------------------------------------------------- chips */
+
+/* Non-interactive pill: difficulty, tags, tools. */
+.chip {
+  align-self: flex-start;
+  font-size: var(--text-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------------- cards */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-md);
+  margin: 0;
+}
+
+.cardBody {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-ui);
+}
+
+.sources {
+  margin: var(--space-1) 0 0;
+  padding: var(--space-3) 0 0;
+  border-top: 1px dashed var(--line);
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.sources li + li {
+  margin-top: var(--space-1);
+}
+
+/* ---------------------------------------------------------- status / error */
+
+/* Live progress line: <p role="status"> with a .pulse dot. */
+.status {
+  --dur-pulse: 1.6s; /* ambient loop, slower than any UI transition */
+  margin-top: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--ink-soft);
+  font-size: var(--text-ui);
+}
+
+.statusInline {
+  margin-top: 0;
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse var(--dur-pulse, 1.6s) var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Page-level failure: <p role="alert">. */
+.error {
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--danger);
+  background: var(--paper-raised);
+  color: var(--danger);
+  max-width: 52ch;
+}
+
+/* Inline failure under a control: <p role="alert">. */
+.note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+/* ------------------------------------------------------------------ badges */
+
+/* See components/Badge.tsx. Position a badge with a local class; never restyle its look. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: 1px; /* optical: sits on the text baseline when inline */
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  color: var(--accent);
+}
+
+/* AI concept picture: accent outline so it reads before anything else on the image. */
+.badgeConcept {
+  border-color: var(--accent);
+  background: var(--paper);
+}
+
+.badgeReworked,
+.badgeAccessory {
+  color: var(--accent);
+}
+
+/* Premium lock on a card corner: text and icon only, no pill. */
+.badgePremium {
+  border-color: transparent;
+  background: transparent;
+  padding-inline: 0;
+}
+
+/* Plain state label (e.g. "Before"). */
+.badgeNeutral {
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+/* Allowance counter ("3 uploads left · next in 5h"): sentence case, larger, with an accent dot. */
+.badgeAllowance {
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  line-height: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+  color: var(--ink-soft);
+}
+
+.badgeAllowance::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
