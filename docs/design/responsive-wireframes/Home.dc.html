@@ -18,38 +18,72 @@ body{margin:0}
 <div class="rv">
   <header class="rv-header">
     <a class="rv-logo" href="Home.dc.html">REVIV<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M85.91 47.49 A36 36 0 1 1 64.64 17.11" fill="none" stroke="#263645" stroke-width="12"></path><path d="M69.11 7.06 L78.34 23.21 L60.17 27.16 Z" fill="#263645"></path><circle cx="82.89" cy="35.36" r="6.5" fill="#5C7487"></circle></svg></a>
-    <span class="rv-allow">10 free</span>
+    <a class="rv-btn small" href="Scan.dc.html">Scan</a>
   </header>
   <nav class="rv-top" aria-label="Main">
     <a class="rv-logo" href="Home.dc.html">REVIV<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M85.91 47.49 A36 36 0 1 1 64.64 17.11" fill="none" stroke="#263645" stroke-width="12"></path><path d="M69.11 7.06 L78.34 23.21 L60.17 27.16 Z" fill="#263645"></path><circle cx="82.89" cy="35.36" r="6.5" fill="#5C7487"></circle></svg></a>
     <div class="rv-links"><a class="rv-link" href="Home.dc.html" aria-current="page">Home</a><a class="rv-link" href="Scan.dc.html">Scan</a><a class="rv-link" href="Closet.dc.html">Closet</a><a class="rv-link" href="Looks.dc.html">Looks</a><a class="rv-link" href="Profile.dc.html">Profile</a></div>
-    <div class="rv-top-right"><span class="rv-allow">10 free</span><a class="rv-btn small" href="Scan.dc.html">Scan a garment</a></div>
+    <div class="rv-top-right"><a class="rv-btn small" href="Scan.dc.html">Scan a garment</a></div>
   </nav>
 
-  <main class="rv-main">
-    <div class="rv-cols">
-      <div class="rv-col">
-        <p class="rv-eyebrow">// Wardrobe-first // upcycle what you own</p>
-        <h1 class="rv-title">Every garment has a second life<sup>™</sup></h1>
-        <p class="rv-lede">Scan a piece you already own, learn its story, and remake it. Nothing to buy.</p>
-        <div class="rv-btns">
-          <a class="rv-btn" href="Scan.dc.html">Scan a garment</a>
-          <a class="rv-btn ghost" href="Closet.dc.html">Your closet</a>
-          <a class="rv-btn ghost" href="Looks.dc.html">Style looks</a>
+  <main class="rv-main" style="gap: 20px;">
+    <section class="rv-ring-wrap" aria-roledescription="carousel" aria-label="Nine second lives">
+      <div class="rv-ring-stage">
+        <a class="rv-btn ghost small rv-ring-looks" href="Looks.dc.html">Looks</a>
+        <div class="rv-seg rv-ring-toggle" role="group" aria-label="View"><button type="button" aria-pressed="{{ringPressed}}" onClick="{{showRing}}">Ring</button><button type="button" aria-pressed="{{gridPressed}}" onClick="{{showGrid}}">Grid</button></div>
+
+        <sc-if value="{{ isRing }}" hint-placeholder-val="{{ true }}">
+          <div class="rv-ring-ellipse" aria-hidden="true"></div>
+          <div class="rv-ring-title">
+            <h1>Keep it in the loop</h1>
+            <span class="rv-mono">Vol. 01 — nine second lives</span>
+          </div>
+          <sc-for list="{{ items }}" as="item" hint-placeholder-count="9">
+            <button class="rv-ring-item" type="button" style="{{item.style}}" aria-label="{{item.label}}" onClick="{{item.pick}}">
+              <svg viewBox="0 0 200 200" aria-hidden="true"><path d="{{item.d}}" fill="{{item.fill}}"></path><path d="{{item.detail}}" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5"></path></svg>
+            </button>
+          </sc-for>
+        </sc-if>
+
+        <sc-if value="{{ isGrid }}" hint-placeholder-val="{{ false }}">
+          <div class="rv-ring-grid">
+            <sc-for list="{{ items }}" as="item" hint-placeholder-count="9">
+              <button class="rv-ring-cell" type="button" onClick="{{item.open}}">
+                <svg viewBox="0 0 200 200" aria-hidden="true"><path d="{{item.d}}" fill="{{item.fill}}"></path><path d="{{item.detail}}" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5"></path></svg>
+                {{item.name}}
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <div class="rv-dock" aria-live="polite">
+        <div>
+          <div class="rv-dock-count">
+            <span>{{now.num}} / 09</span>
+            <button class="rv-dock-pause" type="button" aria-label="{{playLabel}}" onClick="{{togglePlay}}">
+              <sc-if value="{{ playing }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1" width="3" height="10" fill="#263645"></rect><rect x="7" y="1" width="3" height="10" fill="#263645"></rect></svg></sc-if>
+              <sc-if value="{{ paused }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1 L11 6 L3 11 Z" fill="#263645"></path></svg></sc-if>
+            </button>
+          </div>
+          <p class="rv-dock-name">{{now.name}}</p>
         </div>
-        <div class="rv-stats">
-          <div class="rv-stat"><strong>8</strong><span class="rv-mono">Pieces</span></div>
-          <div class="rv-stat"><strong>1</strong><span class="rv-mono">Reworked</span></div>
-          <div class="rv-stat"><strong>3</strong><span class="rv-mono">Looks saved</span></div>
+        <div class="rv-chips">
+          <div class="rv-chip"><span class="rv-chip-dot"><svg viewBox="0 0 200 200" aria-hidden="true"><path d="{{now.fromD}}" fill="{{now.fromFill}}"></path></svg></span><div><strong>Made from</strong><span>{{now.from}}</span></div></div>
+          <div class="rv-chip"><span class="rv-chip-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#5C7487" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"></path></svg></span><div><strong>Recipe</strong><span>{{now.recipe}}</span></div></div>
+          <div class="rv-chip"><span class="rv-chip-dot"><svg viewBox="0 0 24 24" fill="none" stroke="#5C7487" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span><div><strong>Time</strong><span>{{now.time}}</span></div></div>
+        </div>
+        <div class="rv-dock-cta">
+          <span class="rv-mono">Remake yours</span>
+          <a class="rv-btn round" href="Scan.dc.html" aria-label="Scan a garment"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
         </div>
       </div>
-      <div class="rv-col">
-        <div class="rv-img" style="aspect-ratio: 1 / 1;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg>
-          <span>3D turntable · your latest garment</span>
-        </div>
-        <p class="rv-eyebrow">// Scan.01: puffer jacket [analysed] // fabric: nylon</p>
-      </div>
+    </section>
+
+    <div class="rv-btns">
+      <a class="rv-btn" href="Scan.dc.html">Scan a garment</a>
+      <a class="rv-btn ghost" href="Closet.dc.html">Your closet</a>
+      <a class="rv-btn ghost" href="Looks.dc.html">Style looks</a>
     </div>
 
     <section class="rv-head" aria-labelledby="how">
@@ -72,10 +106,81 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1760}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1700}}'>
+var SHAPES = {
+  shirt: 'M72 28 L128 28 L172 54 L156 92 L140 84 L140 178 L60 178 L60 84 L44 92 L28 54 Z',
+  crop: 'M72 28 L128 28 L172 54 L156 92 L140 84 L140 130 L112 144 L100 134 L88 144 L60 130 L60 84 L44 92 L28 54 Z',
+  jeans: 'M62 22 L138 22 L148 182 L110 182 L100 84 L90 182 L52 182 Z',
+  tote: 'M50 80 L150 80 L142 180 L58 180 Z M78 80 C78 36 122 36 122 80 L112 80 C112 50 88 50 88 80 Z',
+  skirt: 'M64 40 L136 40 L168 170 L32 170 Z',
+  tee: 'M66 34 L134 34 L170 60 L154 92 L138 84 L138 176 L62 176 L62 84 L46 92 L30 60 Z',
+  scarf: 'M44 26 L86 26 L86 150 L66 176 L44 150 Z M114 26 L156 26 L156 150 L134 176 L114 150 Z M86 40 L114 40 L114 70 L86 70 Z',
+  blazer: 'M66 26 L134 26 L176 56 L162 104 L146 96 L146 180 L54 180 L54 96 L38 104 L24 56 Z',
+  jacket: 'M70 32 L130 32 L174 60 L160 100 L144 92 L144 150 L56 150 L56 92 L40 100 L26 60 Z',
+  shorts: 'M58 50 L142 50 L152 144 L108 144 L100 100 L92 144 L48 144 Z',
+  chinos: 'M64 22 L136 22 L146 182 L108 182 L100 86 L92 182 L54 182 Z',
+  apron: 'M84 20 L92 20 L96 60 L104 60 L108 20 L116 20 L124 70 L160 182 L40 182 L76 70 Z',
+  hat: 'M60 112 Q60 62 100 62 Q140 62 140 112 L172 122 Q100 152 28 122 Z',
+  tank: 'M78 30 L92 30 Q100 54 108 30 L122 30 L130 70 L140 178 L60 178 L70 70 Z'
+};
+var LOOKS = [
+  { name: 'Tie-front crop', shape: 'crop', fill: '#4A6FA5', detail: 'M60 100 H140 M60 116 H140', from: 'Striped shirt', fromShape: 'shirt', fromFill: '#4A6FA5', recipe: 'No sew', time: '20 min' },
+  { name: 'Denim tote', shape: 'tote', fill: '#3E5F86', detail: 'M60 120 H140', from: 'Old jeans', fromShape: 'jeans', fromFill: '#3E5F86', recipe: 'Sewing', time: '2 h' },
+  { name: 'Wrap skirt', shape: 'skirt', fill: '#B9A6D9', detail: 'M100 40 L120 170', from: 'Linen shirt', fromShape: 'shirt', fromFill: '#B9A6D9', recipe: 'Sewing', time: '1.5 h' },
+  { name: 'Patchwork scarf', shape: 'scarf', fill: '#D4A72C', detail: 'M44 80 H86 M114 80 H156 M44 120 H86 M114 120 H156', from: 'Three old tees', fromShape: 'tee', fromFill: '#D4A72C', recipe: 'Sewing', time: '1 h' },
+  { name: 'Cropped jacket', shape: 'jacket', fill: '#4A4F57', detail: 'M100 32 V150', from: 'Long blazer', fromShape: 'blazer', fromFill: '#4A4F57', recipe: 'Sewing', time: '2 h' },
+  { name: 'Cut-off shorts', shape: 'shorts', fill: '#C9A27E', detail: 'M58 62 H142', from: 'Worn chinos', fromShape: 'chinos', fromFill: '#C9A27E', recipe: 'No sew', time: '15 min' },
+  { name: 'Apron dress', shape: 'apron', fill: '#9DB5A0', detail: 'M76 100 H124', from: 'Oversized shirt', fromShape: 'shirt', fromFill: '#9DB5A0', recipe: 'Sewing', time: '2.5 h' },
+  { name: 'Bucket hat', shape: 'hat', fill: '#5C7487', detail: 'M60 104 Q100 114 140 104', from: 'Denim jacket', fromShape: 'jacket', fromFill: '#5C7487', recipe: 'Sewing', time: '1.5 h' },
+  { name: 'Racer tank', shape: 'tank', fill: '#B5651D', detail: 'M70 110 H130', from: 'Faded tee', fromShape: 'tee', fromFill: '#B5651D', recipe: 'No sew', time: '10 min' }
+];
 class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rot: 0, playing: true, view: 'ring' };
+  }
+  componentDidMount() {
+    var self = this;
+    this.timer = setInterval(function () {
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (self.state.playing && self.state.view === 'ring' && !reduce) {
+        self.setState({ rot: (self.state.rot + 1) % LOOKS.length });
+      }
+    }, 3500);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
   renderVals() {
-    return {};
+    var self = this;
+    var n = LOOKS.length;
+    var rot = this.state.rot;
+    var items = LOOKS.map(function (l, i) {
+      var k = ((i - rot) % n + n) % n;
+      var a = (90 + k * (360 / n)) * Math.PI / 180;
+      var depth = (Math.sin(a) + 1) / 2;
+      var x = 50 + 38 * Math.cos(a);
+      var y = 50 + 30 * Math.sin(a);
+      var s = 0.62 + 0.38 * depth;
+      var style = 'left:' + x.toFixed(2) + '%;top:' + y.toFixed(2) + '%;transform:translate(-50%,-50%) scale(' + s.toFixed(3) + ');z-index:' + Math.round(depth * 30) + ';opacity:' + (0.55 + 0.45 * depth).toFixed(2);
+      return {
+        name: l.name, d: SHAPES[l.shape], fill: l.fill, detail: l.detail, style: style,
+        label: 'Show ' + l.name,
+        pick: function () { self.setState({ rot: i, playing: false }); },
+        open: function () { self.setState({ rot: i, view: 'ring', playing: false }); }
+      };
+    });
+    var cur = LOOKS[rot];
+    return {
+      items: items,
+      now: { num: (rot + 1 < 10 ? '0' : '') + (rot + 1), name: cur.name, from: cur.from, fromD: SHAPES[cur.fromShape], fromFill: cur.fromFill, recipe: cur.recipe, time: cur.time },
+      playing: this.state.playing, paused: !this.state.playing,
+      playLabel: this.state.playing ? 'Pause the ring' : 'Play the ring',
+      togglePlay: function () { self.setState({ playing: !self.state.playing }); },
+      isRing: this.state.view === 'ring', isGrid: this.state.view === 'grid',
+      ringPressed: this.state.view === 'ring' ? 'true' : 'false',
+      gridPressed: this.state.view === 'grid' ? 'true' : 'false',
+      showRing: function () { self.setState({ view: 'ring' }); },
+      showGrid: function () { self.setState({ view: 'grid', playing: false }); }
+    };
   }
 }
 </script>

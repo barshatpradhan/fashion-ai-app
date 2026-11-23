@@ -268,3 +268,57 @@
 - **Ruling: legacy token names stay as aliases with v3.1 values.**
   - Why: it keeps untouched modules consistent without a rename sweep.
   - Cost if wrong: a later cleanup pass.
+
+### Task 10: Home ring ("Keep it in the loop")
+
+Added after the user asked for the "Stay out of the loop" ring reference as the front page (2026-11-23). Spec: `docs/design/responsive-wireframes/Home.dc.html` (updated: ring stage, dock, Ring/Grid toggle; its `SHAPES` and `LOOKS` script data are the exact values) and the `/* home ring */` block of `wire.css`.
+
+**Files:**
+- Create: `components/HomeRing.tsx` (`'use client'`), `components/homeRing.module.css`, `components/secondLives.ts`
+- Modify: `app/page.tsx`, `components/home.module.css` (remove the old turntable styles only if unused)
+- Test: `tests/ui/homeRing.test.tsx`; `tests/ui/Home.test.tsx` must still pass
+
+**Interfaces:**
+- Produces, in `components/secondLives.ts`:
+  - `export type SecondLife = { name: string; d: string; fill: string; detail: string; from: string; fromD: string; fromFill: string; recipe: string; time: string }`;
+  - `export const SECOND_LIVES: SecondLife[]`: the 9 items, values copied verbatim from `Home.dc.html` (`d` = `SHAPES[shape]`, `fromD` = `SHAPES[fromShape]`);
+  - `export function ringPose(i: number, rot: number, n: number): { x: number; y: number; scale: number; z: number; opacity: number }`, implementing this algorithm:
+
+    ```
+    k = ((i - rot) % n + n) % n
+    a = (90 + k * 360 / n) degrees in radians
+    depth = (sin(a) + 1) / 2
+    x = 50 + 38 cos(a)
+    y = 50 + 30 sin(a)
+    scale = 0.62 + 0.38 * depth
+    z = round(depth * 30)
+    opacity = 0.55 + 0.45 * depth
+    ```
+- `export function HomeRing(): JSX.Element` is a client component.
+
+- [ ] **Step 1: Write failing tests** `tests/ui/homeRing.test.tsx` (jsdom; mock `next/link` as Home.test does; stub `window.matchMedia`):
+  - `ringPose(0, 0, 9)` → x 50, y 80, scale 1, z 30, opacity 1 (toBeCloseTo); `ringPose(1, 1, 9)` equals `ringPose(0, 0, 9)`.
+  - `SECOND_LIVES.map(s => s.name)` equals `['Tie-front crop','Denim tote','Wrap skirt','Patchwork scarf','Cropped jacket','Cut-off shorts','Apron dress','Bucket hat','Racer tank']`.
+  - Render `<HomeRing />`: the text "01 / 09" and "Tie-front crop" show. Clicking the button named "Show Wrap skirt" shows "03 / 09" and "Wrap skirt", and the pause button's name becomes "Play the ring".
+  - Clicking "Grid" in the group named "View" sets that button's `aria-pressed="true"` and shows 9 grid buttons. Clicking the "Denim tote" cell returns to the ring with "02 / 09".
+  - With fake timers and matchMedia reduce = false, advancing 3500 ms shows "02 / 09". With reduce = true it stays "01 / 09".
+  - The rendered text contains no `$`, "bag" or "shop" (case-insensitive).
+- [ ] **Step 2:** Run `npx vitest run tests/ui/homeRing.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement** `HomeRing`, following the `Home.dc.html` markup and `wire.css` ring rules, translated to `homeRing.module.css` with viewport media queries at 768 and 1200.
+  - **Stage:** a soft rounded stage with a dashed ellipse, the h1 "Keep it in the loop" and the mono line "Vol. 01 — nine second lives".
+  - **Ring items:** 9 garment buttons (`aria-label` "Show <name>"), positioned with `ringPose` via inline `left/top/transform/z-index/opacity`, and a 1.1s `--ease-smooth` transition (none under reduced motion).
+  - **View toggle:** `ui.seg` group "View" with Ring and Grid.
+  - **Dock (`aria-live="polite"`):** the "NN / 09" counter, the Pause/Play button ("Pause the ring" / "Play the ring"), the look name, and three chips (Made from / Recipe / Time).
+  - **Round CTA:** an `<a href="/scan">` named "Scan a garment to remake it". The exact name "Scan a garment" stays unique to the button row, for Home.test.
+  - **Autoplay:** every 3500 ms while playing, in ring view, and not reduced motion. Clicking an item pauses. ← / → on the stage move by one.
+  - **Not included:**
+    - the reference's "Looks" pill: it would duplicate the /looks link Home.test matches with /looks/i;
+    - Bag, prices, shop CTA;
+    - the fake status bar and QR.
+- [ ] **Step 4: Update `app/page.tsx`.**
+  - Render `<HomeRing />` first.
+  - Then a row with the existing three links: "Scan a garment" → /scan, "Your closet" → /closet, "Style looks" → /looks. Keep the existing lede paragraph above that row.
+  - Then the existing "How it works" section.
+  - Remove the old turntable stage.
+  - Run `npx vitest run && npx tsc --noEmit && npm run build`. Expected: PASS.
+- [ ] **Step 5:** Commit: `feat(home): "Keep it in the loop" ring front page`.
