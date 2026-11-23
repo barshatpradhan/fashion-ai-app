@@ -41,38 +41,11 @@
   left: 0;
   bottom: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px; /* optical: stacked layers read as one outfit */
-  width: 172px;
-  height: 320px;
+  justify-content: center;
+  width: 190px;
+  height: 340px;
   transform-origin: 50% 100%;
   will-change: transform, filter, opacity;
-}
-
-.layer {
-  position: relative;
-  display: grid;
-  place-items: center;
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
-}
-
-.layer img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  filter: var(--drop-1);
-  pointer-events: none;
-}
-
-/* Places a layer's Concept Badge. */
-.layerBadge {
-  position: absolute;
-  top: var(--space-1);
-  right: var(--space-1);
 }
 
 /* Silhouette for a piece without an image (was .ghost; renamed so it is not mistaken for the ghost button). */
@@ -168,6 +141,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.piece[aria-current='true'] {
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunk);
+  outline: 2px solid var(--deep);
+  outline-offset: 2px;
 }
 
 .num {

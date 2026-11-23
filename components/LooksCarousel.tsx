@@ -2,8 +2,10 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { ClosetGarment } from '@/lib/db/closet';
 import type { Look } from '@/lib/domain/types';
+import { slotFor } from '@/lib/domain/slots';
 import { depthOf, poseOf, stepSpring, wrap } from '@/lib/depth/engine';
 import { Badge } from './Badge';
+import { ModelFigure } from './ModelFigure';
 import ui from './ui.module.css';
 import c from './looks.module.css';
 
@@ -31,6 +33,8 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
   const [front, setFront] = useState(0);
   const [saved, setSaved] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
   const listId = useId();
+  const [picked, setPicked] = useState<{ look: string; id: string } | null>(null);
+  const pieceRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const paint = useCallback(() => {
     const m = motion.current;
@@ -110,6 +114,7 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
     if (n < 2 || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if ((e.target as HTMLElement).closest('button')) return; // a dot on the model, not a drag
     drag.current = { id: e.pointerId, x: e.clientX, from: motion.current.target };
     e.currentTarget.setPointerCapture(e.pointerId);
   }
@@ -147,9 +152,15 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
     }
   }
 
+  const pickedId = picked?.id;
+  useEffect(() => {
+    if (pickedId) pieceRefs.current[pickedId]?.scrollIntoView?.({ block: 'nearest' });
+  }, [pickedId, picked]);
+
   if (!n) return null;
   const current = looks[Math.min(front, n - 1)];
   const state = saved[lookKey(current)];
+  const activeId = picked && picked.look === lookKey(current) ? picked.id : null;
 
   return (
     <section className={c.wrap} aria-roledescription="carousel" aria-label="Your looks">
@@ -170,21 +181,23 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
       >
         <div className={c.floor} aria-hidden="true" />
         {looks.map((look, i) => (
-          <div key={lookKey(look)} ref={(el) => { itemRefs.current[i] = el; }} className={c.body} aria-hidden="true">
-            {look.garmentIds.map((id) => {
-              const g = garments[id];
-              return (
-                <span key={id} className={c.layer}>
-                  {g?.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
-                    <img src={g.imageUrl} alt="" draggable={false} />
-                  ) : (
-                    <span className={c.placeholder} />
-                  )}
-                  {g?.imageKind === 'concept' ? <Badge variant="concept" className={c.layerBadge} /> : null}
-                </span>
-              );
-            })}
+          <div key={lookKey(look)} ref={(el) => { itemRefs.current[i] = el; }} className={c.body} aria-hidden={i === front ? undefined : 'true'}>
+            <ModelFigure
+              pieces={look.garmentIds.map((id) => {
+                const g = garments[id];
+                return {
+                  id,
+                  slot: slotFor(g?.category ?? 'clothing', `${g?.name ?? ''} ${(g?.tags ?? []).join(' ')}`),
+                  name: g?.name ?? 'A piece from your closet',
+                  imageUrl: g?.imageUrl ?? null,
+                  concept: g?.imageKind === 'concept',
+                };
+              })}
+              showDots={i === front}
+              activeId={i === front ? activeId : null}
+              onDot={(id) => setPicked({ look: lookKey(look), id })}
+              spinKey={front}
+            />
           </div>
         ))}
       </div>
@@ -221,7 +234,12 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
           {current.garmentIds.map((id, i) => {
             const g = garments[id];
             return (
-              <li key={id} className={c.piece}>
+              <li
+                key={id}
+                ref={(el) => { pieceRefs.current[id] = el; }}
+                className={c.piece}
+                aria-current={activeId === id ? 'true' : undefined}
+              >
                 <span className={c.num} aria-hidden="true">{i + 1}</span>
                 <span className={c.thumb}>
                   {g?.imageUrl ? (
