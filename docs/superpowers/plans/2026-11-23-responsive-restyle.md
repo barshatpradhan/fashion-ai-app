@@ -322,3 +322,42 @@ Added after the user asked for the "Stay out of the loop" ring reference as the 
   - Remove the old turntable stage.
   - Run `npx vitest run && npx tsc --noEmit && npm run build`. Expected: PASS.
 - [ ] **Step 5:** Commit: `feat(home): "Keep it in the loop" ring front page`.
+
+### Task 11: Drawn model on the Looks runway (outfit change in 3D)
+
+Added 2026-11-23 at the user's request ("character changes its outfits in 3D animation", from the Try the Look reference). The user chose a drawn model now, without AI; the avatar round later swaps the model for the person's avatar.
+
+**Files:**
+- Create: `lib/domain/slots.ts`, `tests/domain/slots.test.ts`. This is exactly Task 2 of `docs/superpowers/plans/2026-11-23-avatar-try-on.md`: same names, values and tests. Build it once here; the avatar round reuses it.
+- Create: `components/ModelFigure.tsx`, `components/modelFigure.module.css`, `tests/components/ModelFigure.test.tsx`
+- Modify: `components/LooksCarousel.tsx`, `components/looks.module.css`
+- Test: existing Looks tests must still pass.
+
+**Interfaces:**
+- Consumes: `Slot`, `slotFor`, `dollLayout`, `resolveDots` from `lib/domain/slots.ts` (avatar plan Task 2); `ClosetGarment` (`lib/db/closet`); `Badge`.
+- Produces: `export function ModelFigure(props: { pieces: { id: string; slot: Slot; name: string; imageUrl: string | null; concept: boolean }[]; showDots: boolean; activeId?: string | null; onDot?: (id: string) => void; spinKey?: string | number }): JSX.Element`
+
+- [ ] **Step 1: Implement avatar-plan Task 2 exactly** (its tests first, see them fail, then `lib/domain/slots.ts`). Run `npx vitest run tests/domain/slots.test.ts`; expected: PASS.
+- [ ] **Step 2: Write failing tests** `tests/components/ModelFigure.test.tsx`:
+  - **Layers:** one layer per piece. Each layer's inline `left/top/width/height` (%) equals that piece's `dollLayout` box × 100.
+  - **Dots:** with `showDots`, the dot buttons are named "1, <name>", "2, <name>" in piece order, at the positions from `resolveDots(pieces, null)`. Clicking a dot calls `onDot(id)`.
+  - **No dots:** without `showDots`, there are no dot buttons.
+  - **Badge:** a piece with `concept: true` shows a "Concept" badge.
+  - **Model art:** the drawn model SVG has `aria-hidden="true"`.
+  - **Spin hook:** when `spinKey` changes, the root has `data-spin="true"`. It is cleared on `animationend`; in the test, dispatch `animationend`.
+- [ ] **Step 3: Implement `ModelFigure`.**
+  - **Model:** a stylised front-facing drawn model as inline SVG (viewBox `0 0 200 400`: head, neck, torso, arms slightly away from the body, legs). It uses `--ice` / `--mist` / `--surface-sunk` fills, with no face detail and no skin-tone choice.
+  - **Pieces:** each piece's cut-out `<img alt="">` sits absolutely in its slot box. Pieces with no image get a soft placeholder.
+  - **Spin:** a contact shadow (`--shadow-floor`), plus a `.spin` keyframe on `data-spin` (rotateY 0 → 360°, 0.9s `--ease-smooth`, perspective 1400px on the parent). It is off under reduced motion.
+  - **Dots:** 28px ink circles with paper numerals (as on the canvas Looks board), each a `button`.
+- [ ] **Step 4: Use `ModelFigure` in `LooksCarousel`.**
+  - **Runway:** each runway item renders a `ModelFigure` for its Look. Pieces come from `look.garmentIds` → `garments[id]`, with slot `slotFor(g.category, g.name + ' ' + g.tags.join(' '))`. Only the front item gets `showDots`.
+  - **Spin trigger:** `spinKey` is the front index, so the front model spins as it changes into the next outfit.
+  - **Dot selection:**
+    - Clicking a dot selects that piece.
+    - The matching `li` in the side "Pieces in …" list gets `aria-current="true"` and a highlighted style, and scrolls into view with `block: 'nearest'`.
+    - Changing Look clears the selection.
+  - **Keep everything else:** all strings, names, the spring, drag and keys, and the Save look behaviour.
+  - Add a LooksCarousel test: clicking the dot named "2, <second piece name>" marks the second list item `aria-current="true"`.
+- [ ] **Step 5:** Run `npx vitest run && npx tsc --noEmit && npm run build`. Expected: PASS.
+- [ ] **Step 6:** Commit: `feat(looks): drawn model wears each look and spins on change`.
