@@ -127,7 +127,8 @@
 
 @media (min-width: 1200px) {
   .page {
-    padding: 56px 0 96px;
+    max-width: 1264px; /* 1200 content + 32px side padding */
+    padding: 56px 32px 96px;
   }
 
   .cols {
@@ -291,8 +292,16 @@
   to { transform: rotate(360deg); }
 }
 
-/* Row of choices / chips. */
+/* Plain wrapping row of choices / chips. For a segmented track use .seg. */
 .choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Segmented track: wraps .choice buttons as segments. */
+.seg {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -302,24 +311,25 @@
   align-self: flex-start;
 }
 
-/* Small outline pill for answers, toggles and secondary actions. .choicePrimary marks the suggested one. */
+/* Small ghost pill for answers, toggles and secondary actions. .choicePrimary or aria-pressed="true" fills it slate. */
 .choice {
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: var(--radius-pill);
   border: 0;
-  background: transparent;
-  color: var(--muted);
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--ice);
+  color: var(--slate);
   font: inherit;
   font-weight: 500;
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  transition: color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+  transition: box-shadow var(--dur-base) var(--ease), background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
 
 .choice:hover {
-  color: var(--slate);
+  box-shadow: inset 0 0 0 1px var(--mist);
 }
 
 .choice:disabled {
@@ -327,11 +337,41 @@
   cursor: progress;
 }
 
-/* The suggested choice reads as the selected segment. */
-.choicePrimary {
+.choicePrimary,
+.choice[aria-pressed='true'] {
+  background: var(--slate);
+  color: var(--white);
+  box-shadow: none;
+}
+
+/* Inside .seg a choice is a segment: flat, muted; the selected one is raised and white. */
+.seg .choice {
+  min-height: 36px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.seg .choice:hover {
+  color: var(--slate);
+  box-shadow: none;
+}
+
+.seg .choicePrimary,
+.seg .choice[aria-pressed='true'] {
   background: var(--white);
   color: var(--slate);
   box-shadow: var(--shadow-1);
+}
+
+@media (min-width: 768px) {
+  .choice {
+    min-height: 40px;
+  }
+
+  .seg .choice {
+    min-height: 36px;
+  }
 }
 
 /* ------------------------------------------------------------------- chips */
@@ -399,25 +439,45 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  color: var(--ink-soft);
-  font-size: var(--text-ui);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .statusInline {
   margin-top: 0;
 }
 
+/* Steel dot with a soft ripple ring that expands and fades. */
 .pulse {
-  width: 8px;
-  height: 8px;
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--accent);
-  animation: pulse var(--dur-pulse, 1.6s) var(--ease) infinite;
+  background: var(--steel);
+}
+
+.pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--steel);
+  opacity: 0.5;
+  animation: pulse var(--dur-pulse, 1.6s) var(--ease-smooth) infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.25; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
+  0% { box-shadow: 0 0 0 0 var(--steel); opacity: 0.5; }
+  100% { box-shadow: 0 0 0 10px var(--steel); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse::after {
+    animation: none;
+    display: none;
+  }
 }
 
 /* Page-level failure: <p role="alert">. */

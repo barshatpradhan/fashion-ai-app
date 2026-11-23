@@ -7,12 +7,18 @@ const ui = read('components/ui.module.css');
 const globals = read('app/globals.css');
 
 describe('layout primitives', () => {
-  it.each(['cols', 'colSide', 'colWide', 'grid2', 'grid3', 'grid4', 'panel', 'headRow', 'imgSlot'])(
+  it.each(['cols', 'colSide', 'colWide', 'grid2', 'grid3', 'grid4', 'panel', 'headRow', 'imgSlot', 'seg'])(
     'ui.module.css defines .%s',
     (name) => {
       expect(ui).toMatch(new RegExp(String.raw`\.${name}\s*[{,]`));
     },
   );
+
+  it('.choices is a plain row, not a pill track', () => {
+    const rule = /\.choices\s*\{([^}]*)\}/.exec(ui);
+    expect(rule).not.toBeNull();
+    expect(rule![1]).not.toContain('border-radius');
+  });
 
   it('is mobile-first with tablet and desktop media queries', () => {
     expect(ui).toContain('@media (min-width: 768px)');

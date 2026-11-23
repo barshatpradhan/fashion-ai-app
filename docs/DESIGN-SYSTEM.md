@@ -67,14 +67,15 @@ Local, named timings (not tokens): `--dur-pulse` 1.6s (status dot), `--dur-backd
 | `.button` | Primary slate pill, 48px tall | `:hover` lifts 1px; `:disabled` / `[aria-disabled]` 50% opacity; `.loading` busy ring |
 | `.ghost` | With `.button`: white with an inset ice hairline | same as `.button` |
 | `.loading` | With `.button`: busy | Use `<Button loading>`: sets `aria-busy="true"` and `disabled`; keep a "…ing" label. Reduced motion stops the spin. |
-| `.choice` / `.choicePrimary` / `.choices` | Segmented track: pill options in a soft track, the suggested one raised | `:hover` slate text; `:disabled` 50% |
+| `.choice` / `.choicePrimary` / `.choices` | Ghost pill for answers and toggles (slate fill when `.choicePrimary` or `aria-pressed`), and a plain wrapping row for them | `:hover` mist hairline; `:disabled` 50% |
+| `.seg` | Segmented track: wrap `.choice` buttons; each is a flat segment, the selected one is raised and white | same as `.choice` |
 | `.chip` | Non-interactive pill: difficulty, tags, tools | none |
 | `.card` (+ `.cardTitle`, `.cardBody`, `.sources`, `.grid`) | Raised card | none |
 | `.status` (+ `.pulse`, `.statusInline`) | Live progress line, `role="status"` | pulse dot loops |
 | `.error` | Page-level failure, `role="alert"` | none |
 | `.note` | Inline failure under a control, `role="alert"` | none |
 
-Layout primitives: `.page` (max 1200, padding 24/20, 40/32 tablet, 56/0 desktop), `.head`, `.headRow`
+Layout primitives: `.page` (max 1200, padding 24/20, 40/32 tablet; desktop max 1264 with 32px side padding), `.head`, `.headRow`
 (row from tablet), `.cols` with `.col` / `.colSide` (300px, 380px desktop) / `.colWide`, `.grid` (1 column;
 auto-fill 260px from tablet), `.grid2` / `.grid3` / `.grid4` (2 from tablet; 3 and 4 from desktop), `.panel`
 (soft block), `.imgSlot` (dashed picture frame).
