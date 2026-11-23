@@ -1,6 +1,14 @@
 /* Closet: a clothing rail (reference video 2). Pieces hang from a rod; hover lifts one; choosing one
    brings it forward and softens the rest. Only transform, filter and opacity move. */
 
+/* Filter + allowance beside the page head. */
+.headTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
 .header {
   display: flex;
   flex-wrap: wrap;
@@ -21,7 +29,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin: var(--space-2) 0 0;
+  margin: 0;
 }
 
 /* -------------------------------------------------------------------- rail */
@@ -97,8 +105,8 @@
 }
 
 .piece:focus-visible .figure {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
 }
 
 .hanger {
@@ -114,6 +122,8 @@
   height: 190px;
   margin-top: calc(-1 * var(--space-1));
   border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-1);
   transition: box-shadow var(--dur-base) var(--ease);
 }
 
@@ -128,8 +138,8 @@
   width: 110px;
   height: 150px;
   border-radius: var(--radius-sm) var(--radius-sm) var(--radius) var(--radius);
-  background: linear-gradient(160deg, var(--paper-raised), var(--line));
-  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border: 1px solid var(--ice);
 }
 
 .pieceName {
@@ -195,7 +205,7 @@
 
 /* Two classes, so it beats the single-class .inline margin whatever the source order. */
 .inline.emptyRail {
-  margin-top: var(--space-6);
+  margin-top: 0;
 }
 
 /* ------------------------------------------------------------------ detail */
@@ -204,8 +214,8 @@
   margin-top: var(--space-2);
   padding: var(--space-5);
   max-width: 640px;
-  background: var(--paper-raised);
-  border: 1px solid var(--line);
+  background: var(--white);
+  box-shadow: var(--shadow-1);
   border-radius: var(--radius);
 }
 
@@ -271,13 +281,11 @@
 /* -------------------------------------------------------------------- form */
 
 .form {
-  margin-top: var(--space-5);
+  margin-top: 0;
   padding: var(--space-5);
-  max-width: 560px;
   display: grid;
   gap: var(--space-4);
-  background: var(--paper-raised);
-  border: 1px solid var(--line);
+  background: var(--surface-soft);
   border-radius: var(--radius);
 }
 
@@ -300,7 +308,7 @@
   padding: 0 var(--space-3);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--white);
   color: var(--ink);
   font: inherit;
 }
@@ -311,8 +319,8 @@
 }
 
 .input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
 }
 
 .fieldHint {

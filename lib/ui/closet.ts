@@ -45,3 +45,10 @@ export function looksMessage(code: string | null | undefined, nextCreditAt?: str
       return 'Something went wrong. Please try again.';
   }
 }
+
+export type ClosetFilter = 'all' | 'clothing' | 'accessory';
+
+/** Client-side closet filter; keeps the original order. */
+export function filterGarments<T extends { category: 'clothing' | 'accessory' }>(items: T[], f: ClosetFilter): T[] {
+  return f === 'all' ? items : items.filter((i) => i.category === f);
+}

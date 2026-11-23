@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ensureSession } from '@/lib/db/browser';
 import { UnsupportedImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
-import { noUploadsMessage, type AllowanceView } from '@/lib/ui/closet';
+import { filterGarments, noUploadsMessage, type AllowanceView, type ClosetFilter } from '@/lib/ui/closet';
 import { postCloset, removeUploaded, uploadPhoto } from '@/lib/ui/closetClient';
 import type { ClosetGarment } from '@/lib/db/closet';
 import { ClosetRail } from '@/components/ClosetRail';
@@ -29,6 +29,7 @@ export default function ClosetPage() {
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ClosetFilter>('all');
 
   const refresh = useCallback(async () => {
     await ensureSession();
@@ -96,6 +97,7 @@ export default function ClosetPage() {
   const outOfUploads = uploads !== undefined && uploads.remaining !== 'unlimited' && uploads.remaining < 1;
   const current = closet?.garments.filter((g) => g.status === 'active') ?? [];
   const past = closet?.garments.filter((g) => g.status === 'transformed') ?? [];
+  const shown = filterGarments(current, filter);
   const working = step !== null;
 
   const openForm = (m: Mode) => {
@@ -104,95 +106,123 @@ export default function ClosetPage() {
     setMode((cur) => (cur === m ? null : m));
   };
 
+  const FILTERS: { value: ClosetFilter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'clothing', label: 'Clothing' },
+    { value: 'accessory', label: 'Accessories' },
+  ];
+
   return (
     <main className={ui.page}>
-      <p className={ui.brand}>Revivo</p>
-
-      <div className={c.header}>
-        <div>
+      <div className={ui.headRow}>
+        <div className={ui.head}>
           <p className={ui.eyebrow}>Closet</p>
           <h1 className={ui.title}>Your rail</h1>
         </div>
-        {uploads ? <AllowanceBadge allowance={uploads} /> : null}
-      </div>
-
-      <div className={c.toolbar}>
-        <button type="button" className={`${ui.button} ${mode === 'quick_add' ? '' : ui.ghost}`} aria-expanded={mode === 'quick_add'}
-          onClick={() => openForm('quick_add')} disabled={!closet || working}>
-          Quick add
-        </button>
-        <button type="button" className={`${ui.button} ${mode === 'accessory' ? '' : ui.ghost}`} aria-expanded={mode === 'accessory'}
-          onClick={() => openForm('accessory')} disabled={!closet || working}>
-          Add accessory
-        </button>
-        <Link className={`${ui.button} ${ui.ghost}`} href="/scan">Scan a garment</Link>
-      </div>
-
-      {mode ? (
-        outOfUploads ? (
-          <p className={ui.error} role="alert">{noUploadsMessage(uploads?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p>
-        ) : (
-          <form className={c.form} onSubmit={(e) => void onSubmit(e)} aria-labelledby="add-title">
-            <h2 id="add-title" className={c.formTitle}>{FORM_COPY[mode].title}</h2>
-            <label className={c.field}>
-              Photo
-              <input className={`${c.input} ${c.fileInput}`} name="photo" type="file" required disabled={working}
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
-              <span className={c.fieldHint}>The piece only, no faces, please. Uses 1 upload.</span>
-            </label>
-            <label className={c.field}>
-              Name (optional)
-              <input className={c.input} name="name" type="text" maxLength={60} placeholder={FORM_COPY[mode].namePlaceholder} disabled={working} />
-            </label>
-            <label className={c.field}>
-              Tags (optional)
-              <input className={c.input} name="tags" type="text" placeholder={FORM_COPY[mode].tagsPlaceholder} disabled={working} />
-              <span className={c.fieldHint}>Separate with commas. We keep words from our garment, fabric and style list.</span>
-            </label>
-            <div className={c.detailActions}>
-              <Button type="submit" loading={working}>Hang it on the rail</Button>
-              <button type="button" className={ui.choice} onClick={() => setMode(null)} disabled={working}>Cancel</button>
+        <div className={c.headTools}>
+          {closet ? (
+            <div className={ui.seg} role="group" aria-label="Filter">
+              {FILTERS.map((f) => (
+                <button key={f.value} type="button" className={ui.choice} aria-pressed={filter === f.value}
+                  onClick={() => setFilter(f.value)}>
+                  {f.label}
+                </button>
+              ))}
             </div>
-          </form>
-        )
-      ) : null}
-
-      {working ? (
-        <p className={ui.status} role="status" aria-live="polite">
-          <span className={ui.pulse} aria-hidden="true" />
-          {step}…
-        </p>
-      ) : null}
-      {error ? <p className={ui.error} role="alert">{error}</p> : null}
-      {notice ? <p className={c.inline} role="status">{notice}</p> : null}
-
-      {load.kind === 'loading' ? (
-        <p className={ui.status} role="status" aria-live="polite">
-          <span className={ui.pulse} aria-hidden="true" />
-          Opening your closet…
-        </p>
-      ) : null}
-      {load.kind === 'error' ? <p className={ui.error} role="alert">We couldn&apos;t open your closet. Please refresh the page.</p> : null}
-
-      {closet ? (
-        <>
-          {current.length ? (
-            <ClosetRail garments={current} label="Your pieces" onDelete={onDelete} />
-          ) : (
-            <p className={`${ui.empty} ${c.inline} ${c.emptyRail}`}>
-              Your rail is empty. Scan a garment and choose “Add to closet”, or quick add a piece.
-            </p>
-          )}
-
-          {past.length ? (
-            <section className={ui.section} aria-labelledby="past-title">
-              <h2 id="past-title" className={ui.sectionTitle}>Given a second life</h2>
-              <p className={`${ui.hint} ${ui.hintWide}`}>The originals of pieces you reworked.</p>
-              <ClosetRail garments={past} label="Reworked originals" variant="past" onDelete={onDelete} />
-            </section>
           ) : null}
-        </>
-      ) : null}
+          {uploads ? <AllowanceBadge allowance={uploads} /> : null}
+        </div>
+      </div>
+
+      <div className={ui.cols}>
+        <div className={ui.colWide}>
+          {load.kind === 'loading' ? (
+            <p className={ui.status} role="status" aria-live="polite">
+              <span className={ui.pulse} aria-hidden="true" />
+              Opening your closet…
+            </p>
+          ) : null}
+          {load.kind === 'error' ? <p className={ui.error} role="alert">We couldn&apos;t open your closet. Please refresh the page.</p> : null}
+
+          {closet ? (
+            <>
+              <div className={ui.panel}>
+                {current.length ? (
+                  shown.length ? (
+                    <ClosetRail garments={shown} label="Your pieces" onDelete={onDelete} />
+                  ) : (
+                    <p className={c.inline}>Nothing here yet. Try another filter.</p>
+                  )
+                ) : (
+                  <p className={`${ui.empty} ${c.inline} ${c.emptyRail}`}>
+                    Your rail is empty. Scan a garment and choose “Add to closet”, or quick add a piece.
+                  </p>
+                )}
+              </div>
+
+              {past.length ? (
+                <section className={ui.section} aria-labelledby="past-title">
+                  <h2 id="past-title" className={ui.sectionTitle}>Given a second life</h2>
+                  <p className={`${ui.hint} ${ui.hintWide}`}>The originals of pieces you reworked.</p>
+                  <ClosetRail garments={past} label="Reworked originals" variant="past" onDelete={onDelete} />
+                </section>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+
+        <div className={ui.colSide}>
+          <div className={c.toolbar}>
+            <button type="button" className={`${ui.button} ${mode === 'quick_add' ? '' : ui.ghost}`} aria-expanded={mode === 'quick_add'}
+              onClick={() => openForm('quick_add')} disabled={!closet || working}>
+              Quick add
+            </button>
+            <button type="button" className={`${ui.button} ${mode === 'accessory' ? '' : ui.ghost}`} aria-expanded={mode === 'accessory'}
+              onClick={() => openForm('accessory')} disabled={!closet || working}>
+              Add accessory
+            </button>
+            <Link className={`${ui.button} ${ui.ghost}`} href="/scan">Scan a garment</Link>
+          </div>
+
+          {mode ? (
+            outOfUploads ? (
+              <p className={ui.error} role="alert">{noUploadsMessage(uploads?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p>
+            ) : (
+              <form className={c.form} onSubmit={(e) => void onSubmit(e)} aria-labelledby="add-title">
+                <h2 id="add-title" className={c.formTitle}>{FORM_COPY[mode].title}</h2>
+                <label className={c.field}>
+                  Photo
+                  <input className={`${c.input} ${c.fileInput}`} name="photo" type="file" required disabled={working}
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
+                  <span className={c.fieldHint}>The piece only, no faces, please. Uses 1 upload.</span>
+                </label>
+                <label className={c.field}>
+                  Name (optional)
+                  <input className={c.input} name="name" type="text" maxLength={60} placeholder={FORM_COPY[mode].namePlaceholder} disabled={working} />
+                </label>
+                <label className={c.field}>
+                  Tags (optional)
+                  <input className={c.input} name="tags" type="text" placeholder={FORM_COPY[mode].tagsPlaceholder} disabled={working} />
+                  <span className={c.fieldHint}>Separate with commas. We keep words from our garment, fabric and style list.</span>
+                </label>
+                <div className={c.detailActions}>
+                  <Button type="submit" loading={working}>Hang it on the rail</Button>
+                  <button type="button" className={ui.choice} onClick={() => setMode(null)} disabled={working}>Cancel</button>
+                </div>
+              </form>
+            )
+          ) : null}
+
+          {working ? (
+            <p className={ui.status} role="status" aria-live="polite">
+              <span className={ui.pulse} aria-hidden="true" />
+              {step}…
+            </p>
+          ) : null}
+          {error ? <p className={ui.error} role="alert">{error}</p> : null}
+          {notice ? <p className={c.inline} role="status">{notice}</p> : null}
+        </div>
+      </div>
     </main>
   );
 }
