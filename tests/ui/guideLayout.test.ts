@@ -17,4 +17,15 @@ describe('guide layout', () => {
     expect(src).toContain('ui.cols');
     expect(src).not.toContain('ui.brand');
   });
+
+  it('back link comes before the columns and the hidden face is aria-hidden (source check, page not rendered)', () => {
+    const src = read('app/guide/[scanId]/[recipeId]/page.tsx');
+    const ready = src.slice(src.indexOf("load.kind === 'ready'"));
+    expect(ready.indexOf('{back}')).toBeLessThan(ready.indexOf('ui.cols'));
+    expect(src).toContain('aria-hidden={conceptShown || undefined}');
+    expect(src).toContain('aria-hidden={!conceptShown || undefined}');
+    expect(src).toContain('inert={conceptShown || undefined}');
+    expect(src).toContain('inert={!conceptShown || undefined}');
+    expect(read('components/guide.module.css')).toContain('overflow-x: clip');
+  });
 });

@@ -83,18 +83,19 @@ export default function GuidePage() {
     return () => { alive = false; };
   }, [scanId, recipeId, renderImage]);
 
+  const conceptShown = Boolean(showAfter && afterUrl);
   const back = <Link className={g.backLink} href="/scan">← Back to your scan</Link>;
 
   if (load.kind === 'locked') {
     return (
       <main className={ui.page}>
+        {back}
         <section className={g.upgrade} aria-labelledby="upgrade-title">
           <p className={ui.eyebrow}>Premium</p>
           <h1 id="upgrade-title">This guide is part of Premium</h1>
           <p>Upgrade to open every redesign guide for your garments. Your free guide stays open.</p>
           <UpgradeButton label="Upgrade · $7.99/month" />
         </section>
-        {back}
       </main>
     );
   }
@@ -109,13 +110,14 @@ export default function GuidePage() {
       ) : null}
       {load.kind === 'error' ? (
         <>
-          <p className={ui.error} role="alert">{load.message}</p>
           {back}
+          <p className={ui.error} role="alert">{load.message}</p>
         </>
       ) : null}
 
       {load.kind === 'ready' ? (
         <>
+          {back}
           <div className={ui.head}>
             <p className={ui.eyebrow}>Your guide</p>
             <h1 className={ui.title}>From worn to reworked</h1>
@@ -125,8 +127,8 @@ export default function GuidePage() {
             <div className={ui.colWide}>
           <section aria-label="Before and after" className={ui.col}>
             <div className={g.stage}>
-              <div className={`${g.flip} ${showAfter && afterUrl ? g.flipped : ''}`}>
-                <div className={g.face}>
+              <div className={`${g.flip} ${conceptShown ? g.flipped : ''}`}>
+                <div className={g.face} aria-hidden={conceptShown || undefined} inert={conceptShown || undefined}>
                   {beforeUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
                     <img src={beforeUrl} alt="Your original garment" className={g.layer} />
@@ -134,7 +136,7 @@ export default function GuidePage() {
                   <Badge variant="neutral" className={g.stageBadge}>Before</Badge>
                 </div>
                 {afterUrl ? (
-                  <div className={`${g.face} ${g.back}`}>
+                  <div className={`${g.face} ${g.back}`} aria-hidden={!conceptShown || undefined} inert={!conceptShown || undefined}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL */}
                     <img src={afterUrl} alt="AI concept of the finished garment" className={g.layer} />
                     <Badge variant="concept" className={g.stageBadge} />
@@ -227,7 +229,6 @@ export default function GuidePage() {
           <MadeThis scanId={scanId} recipeId={recipeId} />
             </div>
           </div>
-          {back}
         </>
       ) : null}
     </main>
