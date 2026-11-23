@@ -193,7 +193,8 @@
   height: 140px;
 }
 
-.emptyRail {
+/* Two classes, so it beats the single-class .inline margin whatever the source order. */
+.inline.emptyRail {
   margin-top: var(--space-6);
 }
 
@@ -238,7 +239,7 @@
 }
 
 /* Destructive choices compose ui .choice, which also makes ui.module.css load before this module,
-   so the local overrides here (.danger, .inline, .emptyRail on ui primitives) win. */
+   so the local overrides here (.danger, .inline on ui primitives) win. */
 .danger {
   composes: choice from './ui.module.css';
   border-color: var(--danger);
