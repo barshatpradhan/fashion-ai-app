@@ -96,10 +96,8 @@ export default function LooksPage() {
 
   return (
     <main className={ui.page}>
-      <p className={ui.brand}>Revivo</p>
-
-      <div className={c.header}>
-        <div>
+      <div className={ui.headRow}>
+        <div className={ui.head}>
           <p className={ui.eyebrow}>Looks</p>
           <h1 className={ui.title}>Style me</h1>
         </div>

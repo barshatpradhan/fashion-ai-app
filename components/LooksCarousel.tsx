@@ -153,6 +153,8 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
 
   return (
     <section className={c.wrap} aria-roledescription="carousel" aria-label="Your looks">
+      <div className={ui.cols}>
+      <div className={ui.colWide}>
       <div
         ref={stageRef}
         className={c.stage}
@@ -192,8 +194,9 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
         <span className={c.count} aria-live="polite">{front + 1} / {n}</span>
         <button type="button" className={ui.choice} onClick={() => step(1)} disabled={n < 2} aria-label="Next look">›</button>
       </div>
+      </div>
 
-      <div id={listId} className={c.detail}>
+      <div id={listId} className={`${ui.colSide} ${c.detail}`}>
         <div className={c.detailHead}>
           <div>
             <h2 className={c.lookName}>{current.name}</h2>
@@ -239,6 +242,7 @@ export function LooksCarousel({ looks, garments, onSave }: Props) {
             );
           })}
         </ol>
+      </div>
       </div>
     </section>
   );
