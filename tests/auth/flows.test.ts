@@ -191,3 +191,13 @@ describe('logOut', () => {
     expect(deps.startGuest).toHaveBeenCalled();
   });
 });
+
+import { guestLeavesPieces } from '@/lib/auth/flows';
+describe('guestLeavesPieces (log-in warning)', () => {
+  it('warns only a guest who has saved pieces', () => {
+    expect(guestLeavesPieces({ id: 'g', is_anonymous: true }, 2)).toBe(true);
+    expect(guestLeavesPieces({ id: 'g', is_anonymous: true }, 0)).toBe(false);
+    expect(guestLeavesPieces({ id: 'u', is_anonymous: false, email: 'a@b.co' }, 5)).toBe(false);
+    expect(guestLeavesPieces(null, 5)).toBe(false);
+  });
+});

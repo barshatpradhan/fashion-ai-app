@@ -168,3 +168,8 @@ export async function logOut(deps: LogOutDeps): Promise<void> {
   deps.resetSession();
   await deps.startGuest();
 }
+
+/** Logging into another account leaves a guest's pieces on the guest user: warn before that happens. */
+export function guestLeavesPieces(user: PortUser | null, savedPieces: number): boolean {
+  return Boolean(user?.is_anonymous) && savedPieces > 0;
+}
