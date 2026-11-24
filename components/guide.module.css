@@ -115,7 +115,7 @@
 }
 
 .upgrade p { margin: 0 0 var(--space-4); color: var(--ink-soft); }
-.backLink { display: inline-block; margin-top: var(--space-6); font-size: var(--text-ui); text-underline-offset: 4px; }
+.backLink { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-6); font-size: var(--text-ui); text-underline-offset: 4px; }
 
 .storyNote {
   margin-top: var(--space-3);

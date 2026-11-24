@@ -18,6 +18,13 @@ describe('guide layout', () => {
     expect(src).not.toContain('ui.brand');
   });
 
+  // Regression: measured 142x23 at 390 px. A standalone link is a control, so it gets the 44 px target.
+  it('back link is a 44 px touch target', () => {
+    const rule = /.backLink {[^}]*}/.exec(read('components/guide.module.css'))?.[0] ?? '';
+    expect(rule).toContain('min-height: 44px');
+    expect(rule).toMatch(/display: inline-flex/);
+  });
+
   it('back link comes before the columns and the hidden face is aria-hidden (source check, page not rendered)', () => {
     const src = read('app/guide/[scanId]/[recipeId]/page.tsx');
     const ready = src.slice(src.indexOf("load.kind === 'ready'"));
