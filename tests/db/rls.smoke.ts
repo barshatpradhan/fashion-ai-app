@@ -1,0 +1,146 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+const url = process.env.SUPABASE_URL;
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anon = process.env.SUPABASE_ANON_KEY;
+
+// Never skip silently: vitest.smoke.config.ts loads .env and refuses to run without these.
+if (!url || !service || !anon) throw new Error('RLS smoke needs SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY');
+
+describe('RLS smoke (live Supabase)', () => {
+  const mk = (key: string) =>
+    createClient(url!, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  let admin: SupabaseClient;
+  let a: SupabaseClient;
+  let b: SupabaseClient;
+  let aId: string;
+  let bId: string;
+  let scanId: string;
+  let garmentId: string;
+  let outfitId: string;
+  let reviewedId: string;
+  let draftId: string;
+
+  beforeAll(async () => {
+    admin = mk(service!);
+    a = mk(anon!);
+    b = mk(anon!);
+    const ra = await a.auth.signInAnonymously();
+    const rb = await b.auth.signInAnonymously();
+    expect(ra.error).toBeNull();
+    expect(rb.error).toBeNull();
+    aId = ra.data.user!.id;
+    bId = rb.data.user!.id;
+
+    const s = await admin.from('scans').insert({ user_id: aId, image_path: `${aId}/x.jpg` }).select().single();
+    expect(s.error).toBeNull();
+    scanId = s.data!.id;
+    const g = await admin
+      .from('garments')
+      .insert({ user_id: aId, category: 'clothing', name: 'tee', scan_id: scanId })
+      .select()
+      .single();
+    expect(g.error).toBeNull();
+    garmentId = g.data!.id;
+    const g2 = await admin.from('garments').insert({ user_id: aId, category: 'accessory' }).select().single();
+    expect(g2.error).toBeNull();
+    const o = await admin
+      .from('outfits')
+      .insert({ user_id: aId, items: [garmentId, g2.data!.id] })
+      .select()
+      .single();
+    expect(o.error).toBeNull();
+    outfitId = o.data!.id;
+
+    const r = await admin
+      .from('kb_entries')
+      .insert({ slug: `smoke-reviewed-${Date.now()}`, kind: 'repair', title: 'smoke-reviewed', status: 'reviewed' })
+      .select()
+      .single();
+    const d = await admin
+      .from('kb_entries')
+      .insert({ slug: `smoke-draft-${Date.now()}`, kind: 'repair', title: 'smoke-draft', status: 'draft' })
+      .select()
+      .single();
+    expect(r.error).toBeNull();
+    expect(d.error).toBeNull();
+    reviewedId = r.data!.id;
+    draftId = d.data!.id;
+  });
+
+  afterAll(async () => {
+    if (!admin) return;
+    await admin.from('kb_entries').delete().in('id', [reviewedId, draftId].filter(Boolean));
+    if (aId) await admin.auth.admin.deleteUser(aId);
+    if (bId) await admin.auth.admin.deleteUser(bId);
+  });
+
+  it("B cannot select A's scans, garments or outfits", async () => {
+    for (const [table, id] of [
+      ['scans', scanId],
+      ['garments', garmentId],
+      ['outfits', outfitId],
+    ] as const) {
+      const own = await a.from(table).select('id').eq('id', id);
+      expect(own.data).toHaveLength(1);
+      const other = await b.from(table).select('id').eq('id', id);
+      expect(other.data ?? []).toHaveLength(0);
+    }
+  });
+
+  it('a signed-in user cannot insert scans or raise their own credits', async () => {
+    const ins = await a.from('scans').insert({ user_id: aId, image_path: `${aId}/forged.jpg` });
+    expect(ins.error).not.toBeNull();
+
+    await a.from('profiles').update({ upload_credits: 999 }).eq('id', aId);
+    const { data } = await admin.from('profiles').select('upload_credits').eq('id', aId).single();
+    expect(data!.upload_credits).toBe(0);
+
+    const del = await a.from('scans').delete().eq('id', scanId);
+    expect(del.error).toBeNull();
+    const still = await admin.from('scans').select('id').eq('id', scanId);
+    expect(still.data).toHaveLength(1);
+  });
+
+  // The browser shrinks photos to 1024 px before upload; the bucket must refuse anything that skipped that.
+  it('the garments bucket refuses oversized files and non-images', async () => {
+    const store = a.storage.from('garments');
+    const ok = await store.upload(`${aId}/small.jpg`, new Blob([new Uint8Array(1024)], { type: 'image/jpeg' }));
+    expect(ok.error).toBeNull();
+    const big = await store.upload(`${aId}/big.jpg`, new Blob([new Uint8Array(6 * 1024 * 1024)], { type: 'image/jpeg' }));
+    expect(big.error).not.toBeNull();
+    const txt = await store.upload(`${aId}/note.txt`, new Blob(['hi'], { type: 'text/plain' }));
+    expect(txt.error).not.toBeNull();
+    await admin.storage.from('garments').remove([`${aId}/small.jpg`, `${aId}/big.jpg`, `${aId}/note.txt`]);
+  }, 60_000);
+
+  it('profiles.display_name: max 60 characters, stored trimmed; only the service role writes it', async () => {
+    expect((await admin.from('profiles').update({ display_name: 'Ada' }).eq('id', aId)).error).toBeNull();
+    expect((await admin.from('profiles').update({ display_name: 'x'.repeat(61) }).eq('id', aId)).error).not.toBeNull();
+    expect((await admin.from('profiles').update({ display_name: ' Ada ' }).eq('id', aId)).error).not.toBeNull();
+    expect((await admin.from('profiles').update({ display_name: '' }).eq('id', aId)).error).not.toBeNull();
+
+    // The signed-in user can read their own name but not write it, or premium/demo, directly.
+    expect((await a.from('profiles').select('display_name').eq('id', aId).single()).data?.display_name).toBe('Ada');
+    await a.from('profiles').update({ display_name: 'Hacked', is_premium: true, is_demo: true }).eq('id', aId);
+    const { data } = await admin.from('profiles').select('display_name, is_premium, is_demo').eq('id', aId).single();
+    expect(data).toEqual({ display_name: 'Ada', is_premium: false, is_demo: false });
+  });
+
+  it('anyone can read a reviewed kb_entries row', async () => {
+    const anonOnly = mk(anon!);
+    for (const c of [a, b, anonOnly]) {
+      const { data } = await c.from('kb_entries').select('id').eq('id', reviewedId);
+      expect(data).toHaveLength(1);
+    }
+  });
+
+  it('nobody can read a draft kb_entries row', async () => {
+    const anonOnly = mk(anon!);
+    for (const c of [a, b, anonOnly]) {
+      const { data } = await c.from('kb_entries').select('id').eq('id', draftId);
+      expect(data ?? []).toHaveLength(0);
+    }
+  });
+});

@@ -1,0 +1,40 @@
+/* Mobile (< 768): sticky header + fixed bottom tab bar. >= 768: sticky top nav. */
+.logo { display: inline-flex; align-items: center; gap: 2px; font: 600 22px/1 var(--font-display); letter-spacing: 0.04em; color: var(--slate); }
+.logoLink { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; color: var(--slate); }
+
+.header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 20px; background: var(--white); border-bottom: 1px solid var(--ice); }
+
+.top { display: none; position: sticky; top: 0; z-index: 5; align-items: center; justify-content: space-between; gap: 24px; height: 72px; padding: 0 32px; background: var(--white); border-bottom: 1px solid var(--ice); }
+.links { display: flex; gap: 28px; }
+.link { font: 500 12px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); text-decoration: none; padding: 8px 0; border-bottom: 1.5px solid transparent; }
+.link:hover { color: var(--slate); }
+.link[aria-current='page'] { color: var(--slate); border-bottom-color: var(--slate); }
+.small { padding: 10px 18px; font-size: var(--text-sm); text-decoration: none; }
+
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: calc(68px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--white); border-top: 1px solid var(--ice); }
+.tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 44px; font: 500 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+.tab svg { width: 22px; height: 22px; }
+.tab[aria-current='page'] { color: var(--slate); font-weight: 600; }
+.tab[aria-current='page']::before { content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; background: var(--slate); border-radius: 0 0 2px 2px; }
+
+/* Account controls: Log in / Sign up for guests, Log out for accounts (header on mobile, top nav from tablet). */
+.account { display: flex; align-items: center; gap: var(--space-2); }
+.authLink { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-2); border: 0; background: transparent; font: inherit; font-size: var(--text-sm); color: var(--slate); text-decoration: none; cursor: pointer; }
+.authLink:hover { text-decoration: underline; text-underline-offset: 4px; }
+.authLink:disabled { opacity: 0.6; cursor: default; }
+.authLink:focus-visible { outline: 2px solid var(--deep); outline-offset: 3px; }
+.profileLink { display: inline-flex; align-items: center; gap: var(--space-2); }
+.initial { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius-pill); background: var(--slate); color: var(--white); font: 600 var(--text-xs)/1 var(--font-body); letter-spacing: 0; text-transform: uppercase; }
+.profileName { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Tablet top nav is tight: the Scan call-to-action returns at desktop width (Scan stays in the links). */
+.scanCta { display: none; }
+@media (min-width: 1200px) { .scanCta { display: inline-flex; } }
+
+@media (min-width: 768px) {
+  .header, .tabs { display: none; }
+  .top { display: flex; }
+}
+
+@media (min-width: 1200px) {
+  .top { padding: 0 max(32px, calc((100% - 1200px) / 2)); }
+}

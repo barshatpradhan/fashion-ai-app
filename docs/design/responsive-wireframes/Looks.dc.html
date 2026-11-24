@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Style me</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./wire.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rv-c">
+<div class="rv">
+  <header class="rv-header">
+    <a class="rv-logo" href="Home.dc.html">REVIV<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M85.91 47.49 A36 36 0 1 1 64.64 17.11" fill="none" stroke="#263645" stroke-width="12"></path><path d="M69.11 7.06 L78.34 23.21 L60.17 27.16 Z" fill="#263645"></path><circle cx="82.89" cy="35.36" r="6.5" fill="#5C7487"></circle></svg></a>
+    <span class="rv-allow">2 looks left</span>
+  </header>
+  <nav class="rv-top" aria-label="Main">
+    <a class="rv-logo" href="Home.dc.html">REVIV<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M85.91 47.49 A36 36 0 1 1 64.64 17.11" fill="none" stroke="#263645" stroke-width="12"></path><path d="M69.11 7.06 L78.34 23.21 L60.17 27.16 Z" fill="#263645"></path><circle cx="82.89" cy="35.36" r="6.5" fill="#5C7487"></circle></svg></a>
+    <div class="rv-links"><a class="rv-link" href="Home.dc.html">Home</a><a class="rv-link" href="Scan.dc.html">Scan</a><a class="rv-link" href="Closet.dc.html">Closet</a><a class="rv-link" href="Looks.dc.html" aria-current="page">Looks</a><a class="rv-link" href="Profile.dc.html">Profile</a></div>
+    <div class="rv-top-right"><span class="rv-allow">2 looks left</span><a class="rv-btn small" href="Scan.dc.html">Scan a garment</a></div>
+  </nav>
+
+  <main class="rv-main">
+    <div class="rv-headrow">
+      <div class="rv-head">
+        <p class="rv-eyebrow">// 3 looks per request // from your closet only</p>
+        <h1 class="rv-title">Style me</h1>
+      </div>
+    </div>
+    <form class="rv-cols" style="align-items: flex-end;" aria-label="Style request">
+      <div class="rv-col wide"><div class="rv-field"><label for="l-occ">Occasion</label><input id="l-occ" placeholder="Gallery evening, weekend market…"></div></div>
+      <div class="rv-col side"><button class="rv-btn" type="button">Style me</button></div>
+    </form>
+
+    <div class="rv-cols">
+      <div class="rv-col wide">
+        <div class="rv-stage" aria-label="Your looks, on your avatar">
+          <div class="rv-img" style="width: 46%; aspect-ratio: 9 / 16; background: #FFFFFF; box-shadow: 0 24px 48px -12px rgba(38, 54, 69, 0.22);"><span class="rv-badge concept">Concept</span><span>Avatar · look 1</span></div>
+          <div class="rv-img" style="width: 32%; aspect-ratio: 9 / 16; opacity: 0.6;"><span>Look 2</span></div>
+          <div class="rv-img" style="width: 22%; aspect-ratio: 9 / 16; opacity: 0.4;"><span>Look 3</span></div>
+        </div>
+        <div class="rv-dots"><span class="rv-num">1</span><span class="rv-num">2</span><span class="rv-num">3</span><span class="rv-mono">Tap a dot to see that piece</span></div>
+        <div class="rv-pager">
+          <span class="rv-mono" style="font-size: 13px; color: #263645;">01 —— 03</span>
+          <div class="rv-row"><button class="rv-btn ghost small" type="button" aria-label="Previous look">←</button><button class="rv-btn ghost small" type="button" aria-label="Next look">→</button></div>
+        </div>
+      </div>
+      <div class="rv-col side">
+        <div class="rv-card">
+          <span class="rv-mono">// Look 1 · concept on your avatar</span>
+          <h2 class="rv-h3">Gallery evening</h2>
+          <p class="rv-body">The slip dress with the woven tote keeps it light.</p>
+        </div>
+        <div class="rv-card">
+          <span class="rv-mono">// Piece 2 of 3</span>
+          <div class="rv-row" style="flex-wrap: nowrap;">
+            <div class="rv-img" style="width: 64px; height: 64px; flex: none; padding: 4px;"><span>Cut-out</span></div>
+            <div class="rv-head" style="gap: 2px;"><strong style="font-size: 14px;">Linen slip dress</strong><span class="rv-mono">Linen // S</span></div>
+          </div>
+          <a class="rv-back" href="Closet.dc.html" style="color: #2E4E64;">View in closet →</a>
+        </div>
+        <button class="rv-btn" type="button">Save outfit</button>
+        <div class="rv-locked" style="background: #F4F6F8; box-shadow: none;"><span style="font-weight: 500;">See it on you</span><span class="rv-badge premium">Premium</span></div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="rv-tabs" aria-label="Tabs">
+    <a class="rv-tab" href="Home.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7v9H3z"></path></svg>Home</a>
+    <a class="rv-tab" href="Scan.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"></rect><circle cx="12" cy="13.5" r="3.5"></circle><path d="M8 7l2-3h4l2 3"></path></svg>Scan</a>
+    <a class="rv-tab" href="Closet.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a2 2 0 1 1 2-2"></path><path d="M12 8v1L3 17h18l-9-8"></path></svg>Closet</a>
+    <a class="rv-tab" href="Looks.dc.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"></path><path d="m3 13 9 5 9-5"></path></svg>Looks</a>
+    <a class="rv-tab" href="Profile.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"></path></svg>Profile</a>
+  </nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

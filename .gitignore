@@ -8,3 +8,15 @@ graphify-out/
 reference videos/
 *.log
 .vercel/
+
+# next
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+!.env.example
+
+# raw AI output for scripts/gen-home-ring.ts
+/.cache/
+
+# Local test credentials (never commit)
+*.local.json

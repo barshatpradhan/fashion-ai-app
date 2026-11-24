@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scan a garment</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./wire.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rv-c">
+<div class="rv">
+  <header class="rv-header">
+    <a class="rv-logo" href="Home.dc.html">REVIV<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M85.91 47.49 A36 36 0 1 1 64.64 17.11" fill="none" stroke="#263645" stroke-width="12"></path><path d="M69.11 7.06 L78.34 23.21 L60.17 27.16 Z" fill="#263645"></path><circle cx="82.89" cy="35.36" r="6.5" fill="#5C7487"></circle></svg></a>
+    <span class="rv-allow">10 free</span>
+  </header>
+  <nav class="rv-top" aria-label="Main">
+    <a class="rv-logo" href="Home.dc.html">REVIV<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M85.91 47.49 A36 36 0 1 1 64.64 17.11" fill="none" stroke="#263645" stroke-width="12"></path><path d="M69.11 7.06 L78.34 23.21 L60.17 27.16 Z" fill="#263645"></path><circle cx="82.89" cy="35.36" r="6.5" fill="#5C7487"></circle></svg></a>
+    <div class="rv-links"><a class="rv-link" href="Home.dc.html">Home</a><a class="rv-link" href="Scan.dc.html" aria-current="page">Scan</a><a class="rv-link" href="Closet.dc.html">Closet</a><a class="rv-link" href="Looks.dc.html">Looks</a><a class="rv-link" href="Profile.dc.html">Profile</a></div>
+    <div class="rv-top-right"><span class="rv-allow">10 free</span><a class="rv-btn small" href="Scan.dc.html">Scan a garment</a></div>
+  </nav>
+
+  <main class="rv-main">
+    <div class="rv-cols">
+      <div class="rv-col side">
+        <div class="rv-head">
+          <p class="rv-eyebrow">// Step 1 of 2</p>
+          <h1 class="rv-title">Scan a garment</h1>
+          <p class="rv-lede">One piece per photo, laid flat or on a hanger. Please leave faces out.</p>
+        </div>
+        <div class="rv-panel">
+          <h2 class="rv-h3">For the best read</h2>
+          <ul class="rv-steps">
+            <li><span class="rv-num">1</span>Good light, plain background</li>
+            <li><span class="rv-num">2</span>Show the whole garment</li>
+            <li><span class="rv-num">3</span>Add the care label for a better fabric read</li>
+          </ul>
+        </div>
+        <p class="rv-small">Scanning is free. Your photo is analysed by an AI service and kept only in your account.</p>
+      </div>
+      <div class="rv-col wide">
+        <div class="rv-panel" style="background: #FFFFFF; box-shadow: inset 0 0 0 1.5px #C3CED6; align-items: center; text-align: center;">
+          <div class="rv-img" style="aspect-ratio: 4 / 5; max-height: 520px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-5-5L5 21"></path></svg>
+            <span>Photo preview</span>
+          </div>
+          <p class="rv-body" style="font-weight: 500; color: #263645;">Take or upload a photo</p>
+          <span class="rv-mono">JPG, PNG or HEIC</span>
+          <div class="rv-btns" style="width: 100%; justify-content: center;">
+            <button class="rv-btn" type="button">Analyse garment</button>
+            <button class="rv-btn ghost" type="button">Choose another photo</button>
+          </div>
+        </div>
+        <div class="rv-row" role="status"><span class="rv-num" style="width: 10px; height: 10px; background: #5C7487;"></span><span class="rv-small">Lifting the garment from the background…</span></div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="rv-tabs" aria-label="Tabs">
+    <a class="rv-tab" href="Home.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7v9H3z"></path></svg>Home</a>
+    <a class="rv-tab" href="Scan.dc.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"></rect><circle cx="12" cy="13.5" r="3.5"></circle><path d="M8 7l2-3h4l2 3"></path></svg>Scan</a>
+    <a class="rv-tab" href="Closet.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a2 2 0 1 1 2-2"></path><path d="M12 8v1L3 17h18l-9-8"></path></svg>Closet</a>
+    <a class="rv-tab" href="Looks.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"></path><path d="m3 13 9 5 9-5"></path></svg>Looks</a>
+    <a class="rv-tab" href="Profile.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"></path></svg>Profile</a>
+  </nav>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

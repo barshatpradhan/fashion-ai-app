@@ -1,0 +1,506 @@
+/* Closet: a clothing rail (reference video 2). Pieces hang from a rod; hover lifts one; choosing one
+   brings it forward and softens the rest. Only transform, filter and opacity move. */
+
+/* Filter + allowance beside the page head. */
+.headTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+/* Add tools sit above the rail so the rail can run the full width. */
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.tools .form {
+  max-width: 560px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------- rail */
+
+/* The rail and the chosen piece's view share one stage, so the view can sit over the blurred rail. */
+.stage {
+  position: relative;
+  margin-top: var(--space-6);
+  /* One blending group for rail, faded word and chosen piece: a photo's white drops out over all of them. */
+  isolation: isolate;
+}
+
+.railWrap {
+  position: relative;
+}
+
+/* A thin steel rod across the whole width, with round end stops. */
+.rod {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--rail-light), var(--rail-dark));
+}
+
+.rod::before,
+.rod::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--rail-dark);
+}
+
+.rod::before { left: -2px; }
+.rod::after { right: -2px; }
+
+/* Pieces hang close together, side-on. One that is hovered or focused turns to face you and takes room. */
+.rail {
+  --slot: 58px;
+  --slot-open: 210px;
+  --fig-w: 190px;
+  --fig-h: 250px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2);
+  list-style: none;
+  perspective: 1400px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  transition: filter var(--dur-base) var(--ease), opacity var(--dur-base) var(--ease);
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.slot {
+  position: relative;
+  flex: 0 0 var(--slot);
+  min-width: 0; /* let the slot be narrower than its garment, which overflows evenly */
+  /* Blend per slot (each slot is its own layer once raised), so a photo's white drops out over its neighbours. */
+  mix-blend-mode: multiply;
+  display: flex;
+  justify-content: center;
+  transition: flex-basis var(--dur-base) var(--ease);
+}
+
+.slot:hover,
+.slot:focus-within {
+  flex-basis: var(--slot-open);
+  z-index: 2;
+}
+
+.piece {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0 0 var(--space-3);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.piece:focus-visible {
+  outline: none;
+}
+
+.hook {
+  width: 34px;
+  height: 22px;
+  color: var(--rail-dark);
+  flex: none;
+}
+
+/* The figure is wider than its slot: it overflows both sides evenly and is turned edge-on. */
+.figure {
+  display: grid;
+  place-items: start center;
+  flex: none;
+  width: var(--fig-w);
+  height: var(--fig-h);
+  margin-top: -6px;
+  transform: rotateY(72deg);
+  transform-origin: 50% 0;
+  transition: transform var(--dur-base) var(--ease);
+}
+
+.figure img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.slot:hover .figure,
+.piece:focus-visible .figure,
+.piece.active .figure {
+  transform: rotateY(0deg) translateZ(40px);
+}
+
+.piece:focus-visible .hook {
+  color: var(--deep);
+}
+
+.piece:focus-visible .figure {
+  outline: 2px solid var(--deep);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.placeholder {
+  width: 70%;
+  height: 80%;
+  border-radius: var(--radius-sm) var(--radius-sm) var(--radius) var(--radius);
+  background: var(--surface-soft);
+  border: 1px solid var(--ice);
+}
+
+/* Badges sit just under the hook. Concept always shows; the other flags only once the piece faces you. */
+.flags {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+.extraFlag {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.slot:hover .extraFlag,
+.piece:focus-visible .extraFlag {
+  opacity: 1;
+}
+
+/* One caption under the rail: the piece under the pointer, or the count. */
+.caption {
+  margin: var(--space-2) 0 0;
+  min-height: 1.4em;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* A chosen piece: the rail softens behind its view. */
+.rail[data-focused='true'] {
+  filter: blur(6px);
+  opacity: 0.35;
+}
+
+.stage[data-open] .caption {
+  visibility: hidden;
+}
+
+/* Reworked originals: a shorter rail. */
+.past .rail {
+  --slot: 44px;
+  --slot-open: 150px;
+  --fig-w: 130px;
+  --fig-h: 170px;
+}
+
+/* Two classes, so it beats the single-class .inline margin whatever the source order. */
+.inline.emptyRail {
+  margin-top: 0;
+}
+
+/* ------------------------------------------------------------------ detail */
+
+/* The chosen piece, large, beside its details, over the blurred rail (reference video 3). */
+.detail {
+  position: relative;
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+}
+
+/* A big faded word behind the piece: its first tag, or its kind. */
+.ghost {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(4rem, 14vw, 11rem);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ice);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.detailFigure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  mix-blend-mode: multiply; /* a photo's white drops out over the blurred rail */
+}
+
+.detailFigure .hook {
+  width: 48px;
+  height: 30px;
+}
+
+.detailFigure img {
+  max-width: 100%;
+  max-height: 340px;
+  margin-top: -8px;
+  object-fit: contain;
+}
+
+.detailFigure .placeholder {
+  width: 220px;
+  height: 280px;
+}
+
+.detail > .detailInfo {
+  position: static;
+}
+
+.detailInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 420px;
+}
+
+.close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate);
+  cursor: pointer;
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.index {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.detailName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin: 0 0 var(--space-1);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meta {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.detailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* Destructive choices compose ui .choice, which also makes ui.module.css load before this module,
+   so the local overrides here (.danger, .inline on ui primitives) win. */
+.danger {
+  composes: choice from './ui.module.css';
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.danger:hover {
+  border-color: var(--danger);
+}
+
+.dangerSolid {
+  composes: choice from './ui.module.css';
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--paper);
+}
+
+.confirm {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--line);
+}
+
+.confirm p {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-soft);
+}
+
+/* -------------------------------------------------------------------- form */
+
+.form {
+  margin-top: 0;
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  background: var(--surface-soft);
+  border-radius: var(--radius);
+}
+
+.formTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-md);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.input {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+}
+
+/* A file picker inside .input: drop the button a little so it centres in the 44px field. */
+.fileInput {
+  padding-top: var(--space-2);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
+}
+
+.fieldHint {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.inline {
+  margin-top: var(--space-3);
+  font-size: var(--text-ui);
+  color: var(--ink-soft);
+}
+
+.inline a {
+  text-underline-offset: 4px;
+}
+
+.saveRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  margin: var(--space-5) 0 0;
+}
+
+@media (min-width: 768px) {
+  /* The view covers the rail: piece on the left, details on the right. */
+  .detail {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    padding: 0 var(--space-6);
+  }
+  .detailFigure img { max-height: 380px; }
+  .stage[data-open] { min-height: 460px; }
+}
+
+@media (max-width: 560px) {
+  .rail {
+    --slot: 40px;
+    --slot-open: 150px;
+    --fig-w: 140px;
+    --fig-h: 190px;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No turning: pieces face you, the chosen one stands out by sharpness only. */
+  .slot,
+  .figure,
+  .rail,
+  .extraFlag {
+    transition: none;
+  }
+  .figure,
+  .slot:hover .figure,
+  .piece:focus-visible .figure,
+  .piece.active .figure {
+    transform: none;
+  }
+}

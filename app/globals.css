@@ -1,0 +1,129 @@
+/* Design tokens. Modules use these, never raw hex or one-off sizes (docs/DESIGN-SYSTEM.md). */
+:root {
+  /* Colour (v3.1) */
+  --white: #FFFFFF;
+  --surface-soft: #F4F6F8;
+  --surface-sunk: #E8EDF1;
+  --slate: #263645; /* ink */
+  --deep: #2E4E64; /* focus, active */
+  --steel: #5C7487;
+  --mist: #7792A7;
+  --ice: #D9E0E4; /* hairlines */
+  --signal: #E8FF5A; /* Concept badge fill only, slate text */
+  --ink-soft: #3A4C5C;
+  --muted: #4A5D6C;
+  --danger: #A8321F;
+
+  /* Legacy aliases: older modules still use these names */
+  --paper: #FFFFFF;
+  --paper-raised: #F4F6F8;
+  --ink: #263645;
+  --line: #D9E0E4;
+  --accent: #2E4E64;
+  --ink-quiet: #4A5D6C;
+  --rail-light: #D9E0E4; /* closet rod gradient, top */
+  --rail-dark: #7792A7; /* closet rod gradient, bottom, and its end brackets */
+
+  /* Type: families come from next/font variables set on <html> (app/layout.tsx) */
+  --font-display: var(--font-oswald), 'Arial Narrow', sans-serif;
+  --font-body: var(--font-inter), 'Segoe UI', system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, Menlo, Consolas, monospace;
+  --text-xs: 0.7rem; /* uppercase labels, badges, captions */
+  --text-sm: 0.85rem; /* hints, meta, small UI */
+  --text-ui: 0.92rem; /* buttons, card body */
+  --text-base: 1rem;
+  --text-md: 1.25rem; /* card titles, feature values, prompts */
+  --text-lg: 1.6rem; /* section and detail headings */
+  --text-xl: clamp(1.8rem, 4vw, 2.6rem); /* garment name */
+  --text-display: 40px; /* page titles: 40 / 56 / 76 by breakpoint, see below */
+  --text-backdrop: clamp(4.5rem, 19vw, 15rem); /* faded fabric word behind the hero garment */
+
+  /* Space (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Shape */
+  --radius-sm: 10px;
+  --radius: 20px;
+  --radius-lg: 32px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(38, 54, 69, 0.06), 0 4px 12px rgba(38, 54, 69, 0.06); /* resting */
+  --shadow-2: 0 2px 6px rgba(38, 54, 69, 0.06), 0 24px 48px -12px rgba(38, 54, 69, 0.22); /* lifted */
+  --shadow-floor: 0 30px 40px -24px rgba(38, 54, 69, 0.35); /* contact shadow under a garment */
+  --drop-1: drop-shadow(0 10px 14px rgba(38, 54, 69, 0.16)); /* filter for cut-out thumbnails */
+  --drop-2: drop-shadow(0 28px 32px rgba(38, 54, 69, 0.16)) drop-shadow(0 4px 6px rgba(38, 54, 69, 0.08)); /* hero cut-out */
+
+  /* Motion */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1); /* movement */
+  --ease: var(--ease-smooth);
+  --dur-fast: 0.2s;
+  --dur-base: 0.6s;
+  --dur-slow: 1.2s;
+
+  /* Light-only on purpose: the demo runs on a projector, where a dark scheme washes out. */
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Page titles: 40px mobile, 56px tablet, 76px desktop. */
+@media (min-width: 768px) {
+  :root { --text-display: 56px; }
+}
+
+@media (min-width: 1200px) {
+  :root { --text-display: 76px; }
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keep the fixed bottom tab bar (components/nav.module.css) from covering content. */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}

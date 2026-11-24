@@ -1,0 +1,257 @@
+/* Home ring: "Keep it in the loop". Mobile first; 768 and 1200 viewport breakpoints. */
+.wrap {
+  /* Fills the screen under the nav: viewport minus header (56) and tab bar (68) on phones, the top nav (72)
+     from tablet, and the 12px gap above (page) and below. */
+  --hero-h: calc(100svh - 56px - 68px - env(safe-area-inset-bottom, 0px) - 2 * var(--space-3));
+  min-height: max(560px, var(--hero-h));
+  /* One hero block: the ring, the look's name, its pieces and the call to action share one soft background.
+     isolation keeps the figures' multiply blend (and their z-indexes) inside the hero. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--surface-soft);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.stage {
+  /* Takes whatever height the hero has left after the dock; the ring is laid out in percentages. */
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 440px;
+  overflow: hidden;
+}
+
+.title {
+  position: absolute;
+  left: 50%;
+  top: 44%; /* a little above centre: clear of the front figure's head */
+  transform: translate(-50%, -50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  pointer-events: none;
+}
+
+.title h1 {
+  margin: 0;
+  max-width: 9ch;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-wrap: balance;
+}
+
+/* One plain line under the headline: what REVIVO does. */
+.sub {
+  margin: 0;
+  width: max-content;
+  max-width: min(44ch, 80vw);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.item {
+  position: absolute;
+  width: 64px;
+  height: 120px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition:
+    left 1.1s var(--ease-smooth),
+    top 1.1s var(--ease-smooth),
+    transform 1.1s var(--ease-smooth),
+    opacity 1.1s ease;
+  /* The figures are painted on white: multiply drops the white into the stage, like a cut-out. */
+  mix-blend-mode: multiply;
+}
+
+/* Soft floor shadow under each figure. */
+.item::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -4%;
+  height: 10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(38 54 69 / 0.28), transparent);
+  z-index: -1;
+}
+
+.figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.concept {
+  position: absolute;
+  left: var(--space-3);
+  top: var(--space-3);
+  z-index: 60;
+}
+
+.stage:focus-visible,
+.item:focus-visible,
+.pause:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
+}
+
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 var(--space-4) var(--space-5);
+}
+
+.count {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--slate);
+}
+
+.pause {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--ice);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--slate);
+  cursor: pointer;
+}
+
+.name {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+/* Recipe and time: quiet mono meta, sentence case. */
+.meta {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.pieces {
+  /* Raised white tiles on the hero background. Phones stack them; wider screens sit side by side. Never scrolls. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.piece {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+.piece:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.swatch {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--ice);
+  object-fit: cover;
+  box-shadow: inset 0 -6px 10px rgba(38, 54, 69, 0.08);
+}
+
+.piece strong {
+  display: block;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  line-height: 1.3;
+  color: var(--slate);
+}
+
+.piece span {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* One primary and one secondary action. */
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .wrap { --hero-h: calc(100svh - 72px - 2 * var(--space-3)); }
+  .stage { min-height: 460px; }
+  .item { width: 92px; height: 172px; }
+  .title h1 { font-size: 58px; }
+  .dock {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--space-5);
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  .name { font-size: 34px; }
+  .pieces { flex-direction: row; gap: var(--space-3); }
+  .piece { flex: 1 1 0; }
+}
+
+@media (min-width: 1200px) {
+  .stage { min-height: 480px; }
+  .item { width: 108px; height: 204px; }
+  .title h1 { font-size: 76px; }
+  .name { font-size: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+  .piece,
+  .piece:hover {
+    transition: none;
+    transform: none;
+  }
+}

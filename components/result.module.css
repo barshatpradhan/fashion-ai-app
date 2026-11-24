@@ -1,0 +1,268 @@
+/* Scan + Result screen only. Calm gallery: off-white paper, the garment as the hero, restrained 2.5D motion.
+   Shared primitives (page shell, buttons, chips, cards, status, error) are in ui.module.css. */
+
+/* -------------------------------------------------------------------- hero */
+
+.hero {
+  --dur-backdrop: 1.4s;
+  --dur-drift: 9s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  overflow: hidden;
+  perspective: 1400px;
+}
+
+.fabricBackdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+  user-select: none;
+}
+
+.fabricBackdrop span {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(3.5rem, 18vw, 7rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  color: var(--slate);
+  opacity: 0.06;
+  white-space: nowrap;
+  animation: backdropIn var(--dur-backdrop) var(--ease-smooth) both;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; letter-spacing: 0.08em; }
+  to { opacity: 0.06; letter-spacing: -0.02em; }
+}
+
+.garmentWrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  transform-style: preserve-3d;
+  animation: heroIn var(--dur-slow) var(--ease-smooth) both;
+}
+
+@keyframes heroIn {
+  from { opacity: 0; transform: translateZ(-120px) scale(0.94); filter: blur(8px); }
+  to { opacity: 1; transform: translateZ(0) scale(1); filter: blur(0); }
+}
+
+.garment {
+  display: block;
+  max-width: 100%;
+  max-height: min(56vh, 480px);
+  object-fit: contain;
+  filter: var(--drop-2);
+  animation: drift var(--dur-drift) ease-in-out var(--dur-slow) infinite;
+}
+
+.garmentFramed {
+  border-radius: var(--radius);
+  filter: none;
+  box-shadow: var(--shadow-2);
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotateY(-3deg) rotateX(1deg); }
+  50% { transform: translateY(-10px) rotateY(3deg) rotateX(-1deg); }
+}
+
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3) var(--space-5);
+  position: relative;
+  z-index: 1;
+}
+
+.featuresLeft,
+.featuresRight {
+  text-align: center;
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px; /* optical: label sits on its value */
+  animation: labelIn var(--dur-slow) var(--ease-smooth) both;
+}
+
+.feature:nth-child(2) { animation-delay: 0.12s; }
+.feature:nth-child(3) { animation-delay: 0.24s; }
+
+@keyframes labelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.featureLabel {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.featureValue {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--text-md);
+}
+
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+.garmentName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 0.95;
+  font-size: var(--text-display);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------------------------------- swatches */
+
+.swatches {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+/* Colour dot; its fill is the detected colour (inline, data-driven). */
+.swatchDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--ice);
+  box-shadow: inset 0 -6px 10px rgba(38, 54, 69, 0.08); /* local: gives the dot a fabric-like roundness */
+}
+
+/* ------------------------------------------------------------------ prompts */
+
+.prompt {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-width: 640px;
+}
+
+.promptQuestion {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+}
+
+/* EditGarment: the toggle line and the second form row. */
+.editToggle {
+  margin-top: var(--space-4);
+}
+
+.editRow {
+  margin-top: var(--space-3);
+}
+
+/* ------------------------------------------------------------------ sections */
+
+/* Overrides of a ui primitive compose it, so ui.module.css is always emitted first and the override wins. */
+.fabricNote {
+  composes: cardBody from './ui.module.css';
+  margin-top: var(--space-4);
+  max-width: 62ch;
+}
+
+.upgradeRow {
+  margin-top: var(--space-4);
+}
+
+.cardFree {
+  composes: card from './ui.module.css';
+  border-color: var(--ink);
+}
+
+.cardLink {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  font-size: var(--text-ui);
+  text-underline-offset: 4px;
+}
+
+.locked {
+  color: var(--ink-soft);
+}
+
+/* Places the Premium Badge in the card corner. */
+.lockBadge {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+}
+
+.again {
+  margin-top: var(--space-8);
+  display: flex;
+  justify-content: center;
+}
+
+/* ------------------------------------------------------------ breakpoints */
+
+@media (min-width: 768px) {
+  .garmentName {
+    font-size: 56px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .garmentName {
+    font-size: 76px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fabricBackdrop span,
+  .garmentWrap,
+  .garment,
+  .feature {
+    animation: none;
+  }
+}

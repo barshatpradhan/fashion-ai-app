@@ -411,7 +411,8 @@ The owner builds alone, with Claude's help, in **under one week**. The scope is 
 - None of the reference videos' or design prompts' images ship.
 
 ## 11. Privacy and honesty
-- Photos are of garments, not people. The UI asks users not to include faces.
+- Scan and closet photos are of garments, not people. The UI asks users not to include faces.
+- Exception: Premium users may upload one full-length photo of themselves to make an Avatar (see `2026-11-23-avatar-try-on-design.md`). It is sent only to a paid AI provider, used once, and deleted. The Avatar can be deleted at any time.
 - Users can delete a scan and its images.
 - A one-line note says photos are processed by an AI provider. The free tier may use them to improve models; the paid tier is used on demo day.
 - Every history claim shows its source. AI-written steps are labelled as AI-generated guidance.

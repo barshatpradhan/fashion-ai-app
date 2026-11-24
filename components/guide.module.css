@@ -1,0 +1,124 @@
+/* Guide screen: before -> after 3D flip, AI-labelled steps. Tokens from globals.css. */
+
+.stage {
+  perspective: 1200px;
+  overflow-x: clip;
+  max-width: 520px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+/* The card that turns: front = original photo, back = concept image. */
+.flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 1.2s var(--ease-smooth);
+}
+
+.flipped { transform: rotateY(180deg); }
+
+.face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  border: 1px solid var(--ice);
+  box-shadow: var(--shadow-2);
+}
+
+.back { transform: rotateY(180deg); }
+
+.layer {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: var(--space-5);
+  display: block;
+}
+
+/* Places the Before / Concept Badge on its face. */
+.stageBadge {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip { transition: none; }
+}
+
+.toggle {
+  align-self: center;
+}
+
+.rendering {
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--text-ui);
+  margin: 0 0 var(--space-2);
+}
+
+.steps {
+  margin: 0;
+  padding: 0 0 0 1.2em;
+  max-width: 62ch;
+  color: var(--ink-soft);
+}
+
+.steps li { margin-bottom: var(--space-3); padding-left: var(--space-1); }
+
+.label {
+  display: inline-block;
+  font-size: var(--text-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-3);
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-7);
+}
+
+.upgrade {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  max-width: 560px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.upgrade h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-lg);
+  margin: 0 0 var(--space-2);
+}
+
+.upgrade p { margin: 0 0 var(--space-4); color: var(--ink-soft); }
+.backLink { display: inline-flex; align-items: center; min-height: 44px; margin-top: var(--space-6); font-size: var(--text-ui); text-underline-offset: 4px; }
+
+.storyNote {
+  margin-top: var(--space-3);
+  color: var(--muted);
+  font-size: var(--text-ui);
+}
