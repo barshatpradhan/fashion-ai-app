@@ -8,6 +8,11 @@ import type { KbEntry } from '@/lib/domain/types';
 
 // gpt-image-1 now returns 400 "does not exist". gpt-image-2 verified live 2026-11-24 (8.7 s at low quality).
 export const OPENAI_IMAGE_MODEL = 'gpt-image-2';
+/**
+ * Editing the user's photo. Measured 2026-11-24 on a printed tee: gpt-image-2 kept the print but took 91 s
+ * (over the 50 s render limit) and rejects input_fidelity; gpt-image-1.5 at high fidelity kept it in 10 s.
+ */
+export const OPENAI_EDIT_MODEL = 'gpt-image-1.5';
 
 const SIZE = '1024x1024';
 // Pinned: "auto" may choose high quality, which is slower and can approach the render timeout.
@@ -34,7 +39,7 @@ async function openaiConcept(v: VisionResult, recipe: KbEntry, photo: Uint8Array
   if (!photo) return fromText();
   try {
     const res = await client.images.edit({
-      model: OPENAI_IMAGE_MODEL,
+      model: OPENAI_EDIT_MODEL,
       image: await toFile(photo, 'garment.jpg', { type: 'image/jpeg' }),
       prompt: conceptPrompt(v, recipe, { withPhoto: true }),
       size: SIZE,

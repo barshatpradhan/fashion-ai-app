@@ -13,7 +13,7 @@ vi.mock('openai', () => ({
 vi.mock('@google/genai', () => ({ GoogleGenAI: class { models = { generateContent: h.geminiGen }; } }));
 vi.mock('@/lib/env', () => ({ getEnv: () => h.env, getEnvFor: () => h.env }));
 
-import { generateConceptImage, OPENAI_IMAGE_MODEL } from '@/lib/ai/imageGen';
+import { generateConceptImage, OPENAI_IMAGE_MODEL, OPENAI_EDIT_MODEL } from '@/lib/ai/imageGen';
 import { AiRateLimitError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
@@ -42,7 +42,10 @@ describe('generateConceptImage with the scan photo (OpenAI)', () => {
     expect(h.edit).toHaveBeenCalledTimes(1);
     expect(h.generate).not.toHaveBeenCalled();
     const params = h.edit.mock.calls[0][0];
-    expect(params).toMatchObject({ model: OPENAI_IMAGE_MODEL, size: '1024x1024', quality: 'medium' });
+    // Measured 2026-11-24 on the NY tee: gpt-image-2 kept the print but took 91 s (over the 50 s render
+    // limit) and rejects input_fidelity; gpt-image-1.5 at high fidelity kept it as well in 10 s.
+    expect(OPENAI_EDIT_MODEL).toBe('gpt-image-1.5');
+    expect(params).toMatchObject({ model: OPENAI_EDIT_MODEL, size: '1024x1024', quality: 'medium' });
     expect(params.image).toMatchObject({ name: 'garment.jpg', type: 'image/jpeg', size: 3 });
     expect(params.prompt).toMatch(/the garment in the photo/i);
     expect(params.prompt).toContain('A flat bag with two handles.');
@@ -60,6 +63,7 @@ describe('generateConceptImage with the scan photo (OpenAI)', () => {
     h.generate.mockResolvedValue({ data: [{ b64_json: b64 }] });
     await generateConceptImage(printed, recipe, null);
     expect(h.edit).not.toHaveBeenCalled();
+    expect(h.generate.mock.calls[0][0]).toMatchObject({ model: OPENAI_IMAGE_MODEL });
     expect(h.generate.mock.calls[0][0].prompt).toMatch(/cotton t-shirt after this redesign/i);
   });
 
