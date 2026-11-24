@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { runGuide, runRender, type GuideRepo, type GuideDeps, type StoredGuide, type GuideBody } from '@/lib/db/guides';
+import { runGuide, runRender, CONCEPT_VERSION, type GuideRepo, type GuideDeps, type StoredGuide, type GuideBody } from '@/lib/db/guides';
 import { AiTimeoutError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
@@ -22,7 +22,7 @@ const ENTRIES = [
   kb('r-nomatch', 'redesign', ['coat']),
 ];
 
-function setup(opts: { premium?: boolean; demo?: boolean; owner?: string; guide?: StoredGuide | null; refs?: string[]; rows?: import('@/lib/domain/corrections').CorrectionRow[] } = {}) {
+function setup(opts: { photo?: Uint8Array | null; premium?: boolean; demo?: boolean; owner?: string; guide?: StoredGuide | null; refs?: string[]; rows?: import('@/lib/domain/corrections').CorrectionRow[] } = {}) {
   let guide: StoredGuide | null = opts.guide ?? null;
   const repo: GuideRepo = {
     loadScan: vi.fn(async () => ({ id: SID, userId: opts.owner ?? U, vision, fabricFinal: 'cotton' })),
@@ -36,6 +36,7 @@ function setup(opts: { premium?: boolean; demo?: boolean; owner?: string; guide?
     saveImage: vi.fn(async () => {}),
     upload: vi.fn(async () => {}),
     signedUrl: vi.fn(async (p: string) => `https://signed/${p}`),
+    scanPhoto: vi.fn(async () => (opts.photo === undefined ? new Uint8Array([4, 5, 6]) : opts.photo)),
   };
   const deps: GuideDeps = {
     repo,
@@ -154,12 +155,12 @@ describe('runRender', () => {
     const r = await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
     const path = `${U}/concept-${SID}-r-free.png`;
     expect(repo.upload).toHaveBeenCalledWith(path, expect.any(Uint8Array));
-    expect(repo.saveImage).toHaveBeenCalledWith(SID, 'r-free', path, 'gemini');
+    expect(repo.saveImage).toHaveBeenCalledWith(SID, 'r-free', path, `gemini:${CONCEPT_VERSION}`);
     expect(r).toEqual({ status: 200, body: { imageUrl: `https://signed/${path}` } });
   });
 
   it('returns the stored image without regenerating', async () => {
-    const { deps } = setup({ premium: true, guide: { id: 'g', body: { steps: [], tools: [], historyRefs: [] }, afterImagePath: 'p/x.png', outdated: false } });
+    const { deps } = setup({ premium: true, guide: { id: 'g', body: { steps: [], tools: [], historyRefs: [] }, afterImagePath: 'p/x.png', imageProvider: `gemini:${CONCEPT_VERSION}`, outdated: false } });
     const r = await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
     expect(r).toEqual({ status: 200, body: { imageUrl: 'https://signed/p/x.png' } });
     expect(deps.generateImage).not.toHaveBeenCalled();
@@ -169,7 +170,7 @@ describe('runRender', () => {
     const { deps } = setup({ demo: true });
     await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
     const call = (deps.guard as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(call[0]).toMatch(new RegExp(`^render:${SID}:r-free:[0-9a-f]{10}$`));
+    expect(call[0]).toMatch(new RegExp(`^render:${CONCEPT_VERSION}:${SID}:r-free:[0-9a-f]{10}$`));
     expect(call[2]).toMatchObject({ demo: true });
     expect(typeof (await call[1]())).toBe('string');
   });
@@ -231,5 +232,42 @@ describe('corrections reach the writer and the image', () => {
     expect((await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps)).status).toBe(200);
     const v = (deps.generateImage as ReturnType<typeof vi.fn>).mock.calls[0][0] as VisionResult;
     expect(v.fabric_guess.value).toBe('linen');
+  });
+});
+
+describe('runRender briefs the image model with the scan photo', () => {
+  beforeEach(() => vi.clearAllMocks());
+  const render = (deps: GuideDeps) => runRender(U, { scanId: SID, recipeId: 'r-free' }, deps);
+  const body = { steps: ['s'], tools: [], historyRefs: [] };
+
+  it('passes the original scan photo to the generator', async () => {
+    const { deps, repo } = setup();
+    expect((await render(deps)).status).toBe(200);
+    expect(repo.scanPhoto).toHaveBeenCalledWith(SID);
+    expect((deps.generateImage as ReturnType<typeof vi.fn>).mock.calls[0][2]).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it('with the photos deleted, the generator gets null (draws from the description)', async () => {
+    const { deps } = setup({ photo: null });
+    await render(deps);
+    expect((deps.generateImage as ReturnType<typeof vi.fn>).mock.calls[0][2]).toBeNull();
+  });
+
+  it('records the concept method with the provider', async () => {
+    const { deps, repo } = setup();
+    await render(deps);
+    expect(repo.saveImage).toHaveBeenCalledWith(SID, 'r-free', expect.any(String), `gemini:${CONCEPT_VERSION}`);
+  });
+
+  it('a concept made the old text-only way is regenerated once', async () => {
+    const { deps } = setup({ guide: { id: 'g', body, afterImagePath: 'u/old.png', imageProvider: 'openai', outdated: false } });
+    await render(deps);
+    expect(deps.generateImage).toHaveBeenCalledTimes(1);
+  });
+
+  it('a current concept is served from storage with no image call', async () => {
+    const { deps } = setup({ guide: { id: 'g', body, afterImagePath: 'u/new.png', imageProvider: `openai:${CONCEPT_VERSION}`, outdated: false } });
+    expect(await render(deps)).toEqual({ status: 200, body: { imageUrl: 'https://signed/u/new.png' } });
+    expect(deps.generateImage).not.toHaveBeenCalled();
   });
 });

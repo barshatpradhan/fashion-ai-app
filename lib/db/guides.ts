@@ -17,7 +17,14 @@ const BUCKET = 'garments';
 const SIGNED_URL_TTL_S = 60 * 10;
 
 export type GuideBody = { steps: string[]; tools: string[]; historyRefs: string[] };
-export type StoredGuide = { id: string; body: GuideBody; afterImagePath: string | null; outdated: boolean };
+export type StoredGuide = { id: string; body: GuideBody; afterImagePath: string | null; imageProvider?: string | null; outdated: boolean };
+
+/**
+ * How Concepts are made. Stored with the provider ("openai:photo-v1"); a Concept made another way (the old
+ * text-only prompt) is regenerated once, the next time someone opens that guide.
+ */
+export const CONCEPT_VERSION = 'photo-v1';
+const isCurrentConcept = (g: StoredGuide | null) => Boolean(g?.afterImagePath && g.imageProvider?.endsWith(`:${CONCEPT_VERSION}`));
 
 export interface GuideRepo extends CorrectionRepo {
   getGuide(scanId: string, kbEntryId: string): Promise<StoredGuide | null>;
@@ -26,13 +33,15 @@ export interface GuideRepo extends CorrectionRepo {
   /** Record the image on the guide row, creating an outdated placeholder row if none exists yet. */
   saveImage(scanId: string, kbEntryId: string, path: string, provider: string): Promise<void>;
   upload(path: string, png: Uint8Array): Promise<void>;
+  /** The scan's original photo (never the cut-out), or null when its images were deleted. */
+  scanPhoto(scanId: string): Promise<Uint8Array | null>;
   signedUrl(path: string): Promise<string>;
 }
 
 export type GuideDeps = {
   repo: GuideRepo;
   write: (v: VisionResult, recipe: KbEntry, history: KbEntry[]) => Promise<GuideBody>;
-  generateImage: (v: VisionResult, recipe: KbEntry) => Promise<Uint8Array>;
+  generateImage: (v: VisionResult, recipe: KbEntry, photo: Uint8Array | null) => Promise<Uint8Array>;
   imageProvider: string;
   /** Text (guide writer) timeout. */
   timeoutMs: number;
@@ -137,16 +146,18 @@ export async function runRender(userId: string, input: unknown, deps: GuideDeps)
   if (isFail(r)) return r;
   const { repo } = deps;
   const stored = await repo.getGuide(r.scanId, r.recipe.id);
-  if (stored?.afterImagePath) return { status: 200, body: { imageUrl: await repo.signedUrl(stored.afterImagePath) } };
+  if (stored && isCurrentConcept(stored)) return { status: 200, body: { imageUrl: await repo.signedUrl(stored.afterImagePath!) } };
 
   const path = `${userId}/concept-${r.scanId}-${r.recipe.id}.png`;
   let savedPath: string;
   try {
     // Only the path (a string) goes through the JSON-only demo cache, never the image bytes.
     savedPath = await deps.guard(
-      `render:${r.scanId}:${r.recipe.id}:${r.stateKey}`,
+      `render:${CONCEPT_VERSION}:${r.scanId}:${r.recipe.id}:${r.stateKey}`,
       async () => {
-        const png = await deps.generateImage(correctedVision(r), r.recipe);
+        // The real garment goes to the image model, so the Concept keeps its colours and print.
+        const photo = await repo.scanPhoto(r.scanId).catch(() => null);
+        const png = await deps.generateImage(correctedVision(r), r.recipe, photo);
         await repo.upload(path, png);
         return path;
       },
@@ -156,7 +167,7 @@ export async function runRender(userId: string, input: unknown, deps: GuideDeps)
     if (isAiError(err)) return fail(503, SCAN_ERRORS.aiBusy);
     throw err;
   }
-  await repo.saveImage(r.scanId, r.recipe.id, savedPath, deps.imageProvider);
+  await repo.saveImage(r.scanId, r.recipe.id, savedPath, `${deps.imageProvider}:${CONCEPT_VERSION}`);
   return { status: 200, body: { imageUrl: await repo.signedUrl(savedPath) } };
 }
 
@@ -164,13 +175,13 @@ export function supabaseGuideRepo(): GuideRepo {
   const db = adminClient();
   const base = supabaseCorrectionRepo();
   const find = async (scanId: string, kbEntryId: string): Promise<StoredGuide | null> => {
-    const { data, error } = await db.from('guides').select('id, body, after_image_path, outdated')
+    const { data, error } = await db.from('guides').select('id, body, after_image_path, image_provider, outdated')
       .eq('scan_id', scanId).eq('kb_entry_id', kbEntryId).order('id').limit(1).maybeSingle();
     if (error) throw error;
     return data
       ? {
           id: data.id as string, body: data.body as GuideBody,
-          afterImagePath: (data.after_image_path as string | null) ?? null, outdated: data.outdated === true,
+          afterImagePath: (data.after_image_path as string | null) ?? null, imageProvider: (data.image_provider as string | null) ?? null, outdated: data.outdated === true,
         }
       : null;
   };
@@ -193,6 +204,12 @@ export function supabaseGuideRepo(): GuideRepo {
             after_image_path: path, image_provider: provider, outdated: true,
           });
       if (res.error) throw res.error;
+    },
+    async scanPhoto(scanId) {
+      const { data, error } = await db.from('scans').select('image_path').eq('id', scanId).maybeSingle();
+      if (error || !data?.image_path) return null;
+      const file = await db.storage.from(BUCKET).download(data.image_path as string);
+      return file.data ? new Uint8Array(await file.data.arrayBuffer()) : null;
     },
     async upload(path, png) {
       const { error } = await db.storage.from(BUCKET).upload(path, png, { contentType: 'image/png', upsert: true });
