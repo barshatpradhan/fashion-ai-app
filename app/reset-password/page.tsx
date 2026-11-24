@@ -9,7 +9,8 @@ import a from '@/components/auth.module.css';
 export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   return (
-    <main className={`${ui.page} ${a.shell}`}>
+    <main className={ui.page}>
+      <div className={a.shell}>
       <div className={ui.head}>
         <p className={ui.eyebrow}>Account</p>
         <h1 className={ui.title}>Choose a new password</h1>
@@ -27,6 +28,7 @@ export default function ResetPasswordPage() {
           </div>
         </>
       )}
+      </div>
     </main>
   );
 }

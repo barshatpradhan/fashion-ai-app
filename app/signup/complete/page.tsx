@@ -9,7 +9,8 @@ import a from '@/components/auth.module.css';
 export default function SignUpCompletePage() {
   const [done, setDone] = useState(false);
   return (
-    <main className={`${ui.page} ${a.shell}`}>
+    <main className={ui.page}>
+      <div className={a.shell}>
       <div className={ui.head}>
         <p className={ui.eyebrow}>Account</p>
         <h1 className={ui.title}>Choose your password</h1>
@@ -25,6 +26,7 @@ export default function SignUpCompletePage() {
           <SetPasswordForm submitLabel="Finish sign-up" onDone={() => setDone(true)} />
         </>
       )}
+      </div>
     </main>
   );
 }

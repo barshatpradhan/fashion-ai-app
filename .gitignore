@@ -17,3 +17,6 @@ next-env.d.ts
 
 # raw AI output for scripts/gen-home-ring.ts
 /.cache/
+
+# Local test credentials (never commit)
+*.local.json

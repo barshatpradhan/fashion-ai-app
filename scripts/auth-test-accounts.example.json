@@ -1,0 +1,5 @@
+{
+  "note": "Copy to scripts/auth-test-accounts.local.json (git-ignored) and fill in throwaway values. Never commit real credentials.",
+  "a": { "email": "revivo-test-a-<timestamp>@example.test", "password": "<random>", "newPassword": "<random>", "displayName": "Test Ada" },
+  "b": { "email": "revivo-test-b-<timestamp>@example.test", "password": "<random>", "newPassword": "<random>", "displayName": "Test Ben" }
+}

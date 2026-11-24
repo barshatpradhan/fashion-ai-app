@@ -29,7 +29,11 @@ export default function LogInPage() {
     setError(null);
     try {
       const r = await logIn(email, password, browserAuthPort());
-      if (!r.ok) return setError(r.message);
+      if (!r.ok) {
+        // Back to the form (where the error shows), keeping what was typed.
+        setWarnPieces(0);
+        return setError(r.message);
+      }
       resetSession();
       router.replace(safeNextPath(new URLSearchParams(window.location.search).get('next')));
     } finally {
@@ -47,7 +51,8 @@ export default function LogInPage() {
   }
 
   return (
-    <main className={`${ui.page} ${a.shell}`}>
+    <main className={ui.page}>
+      <div className={a.shell}>
       <div className={ui.head}>
         <p className={ui.eyebrow}>Account</p>
         <h1 className={ui.title}>Log in</h1>
@@ -82,6 +87,7 @@ export default function LogInPage() {
 
       <div className={a.links}>
         <span>New here? <Link className={a.link} href="/signup">Create an account</Link></span>
+      </div>
       </div>
     </main>
   );

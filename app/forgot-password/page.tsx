@@ -25,7 +25,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className={`${ui.page} ${a.shell}`}>
+    <main className={ui.page}>
+      <div className={a.shell}>
       <div className={ui.head}>
         <p className={ui.eyebrow}>Account</p>
         <h1 className={ui.title}>Reset your password</h1>
@@ -46,6 +47,7 @@ export default function ForgotPasswordPage() {
       )}
       <div className={a.links}>
         <Link className={a.link} href="/login">Back to log in</Link>
+      </div>
       </div>
     </main>
   );

@@ -59,7 +59,8 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className={`${ui.page} ${a.shell}`}>
+    <main className={ui.page}>
+      <div className={a.shell}>
       <div className={ui.head}>
         <p className={ui.eyebrow}>Account</p>
         <h1 className={ui.title}>Create your account</h1>
@@ -101,6 +102,7 @@ export default function SignUpPage() {
           </div>
         </>
       ) : null}
+      </div>
     </main>
   );
 }
