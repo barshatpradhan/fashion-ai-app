@@ -10,7 +10,7 @@ Rows titled `[DEV] ...` are development placeholders, not real content. Do not r
 
 ## Columns
 
-`id,kind,title,body,tags,difficulty,tools,steps,sources`
+`id,kind,title,body,tags,difficulty,tools,steps,sources,result`
 
 | Column | Format |
 | --- | --- |
@@ -22,6 +22,7 @@ Rows titled `[DEV] ...` are development placeholders, not real content. Do not r
 | `tools` | `|`-separated list. |
 | `steps` | `|`-separated list. Required (non-empty) for `redesign`. |
 | `sources` | JSON array of `{"citation","url","accessed"}`. Required (non-empty) for `history`; `url` must be http(s). In CSV, double every `"` inside the field. |
+| `result` | Redesign: one or two sentences on what the finished piece looks like (shape only; the garment's own colours and print come from the user's photo). Briefs the Concept image and is never shown as a claim, so changing only this column keeps a reviewed row reviewed. Max 400 characters. |
 
 ## Commands
 

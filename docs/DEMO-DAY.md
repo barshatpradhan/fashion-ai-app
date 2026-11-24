@@ -23,7 +23,7 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (same values as the URL and anon key above)
    - `GEMINI_API_KEY`, and `OPENAI_API_KEY` (required whenever `IMAGE_PROVIDER=openai`)
-   - `IMAGE_PROVIDER=openai` (Concept images use `gpt-image-2`; Gemini image generation needs a paid quota and returns 429 on a free key)
+   - `IMAGE_PROVIDER=openai` (the Concept edits the scan photo with `gpt-image-1.5`, keeping the garment's colours and print; `gpt-image-2` draws from text only when no photo is left; Gemini image generation needs a paid quota and returns 429 on a free key)
    - `DEMO_KEY`: a long random secret (30+ random characters). Anyone with it can sign in as the demo user, so do not share it.
    - `CRON_SECRET` (optional): a long random string. If set, the keep-alive job requires it (Vercel sends it automatically); if left unset, the job needs no auth.
    - `AI_TIMEOUT_MS=30000` and `RENDER_TIMEOUT_MS=50000` (leave as is; single AI calls were measured spiking near 20 s, and image generation needs the longer timeout)
