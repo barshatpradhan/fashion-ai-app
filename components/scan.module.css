@@ -200,10 +200,32 @@
 /* ------------------------------------------------------------------ controls */
 
 .controls {
+  position: relative;
+}
+
+/* Phones: Photo / Upload switch and a round shutter. */
+.phoneControls {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+}
+
+/* Tablet and desktop: one button, the frame takes drops. */
+.deskControls {
+  display: none;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.deskHint {
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+/* Beside the viewfinder, the intro sits at its vertical middle instead of leaving an empty band. */
+.intro {
+  align-self: center;
 }
 
 /* One big round shutter: slate disc inside a thin slate ring. */
@@ -244,6 +266,8 @@
 /* --------------------------------------------------------------- breakpoints */
 
 @media (min-width: 768px) {
+  .phoneControls { display: none; }
+  .deskControls { display: flex; }
   .finder {
     aspect-ratio: 4 / 3;
     max-height: 560px;

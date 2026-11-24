@@ -9,11 +9,18 @@ vi.mock('next/link', () => ({
 }));
 vi.mock('next/navigation', () => ({ usePathname: () => '/looks', useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
-import { SiteNav, activeTab } from '@/components/SiteNav';
+import { SiteNav, activeTab, showScanCta } from '@/components/SiteNav';
 
 afterEach(() => cleanup());
 
 describe('activeTab', () => {
+  it('hides the Scan a garment button only on the Scan page itself', () => {
+    expect(showScanCta('/scan')).toBe(false);
+    expect(showScanCta('/')).toBe(true);
+    expect(showScanCta('/closet')).toBe(true);
+    expect(showScanCta('/guide/s1/r1')).toBe(true);
+  });
+
   it('maps pathnames to tabs', () => {
     expect(activeTab('/')).toBe('/');
     expect(activeTab('/guide/s1/r1')).toBe('/scan');

@@ -9,6 +9,7 @@ import { ScanCapture } from '@/components/ScanCapture';
 import { loadRecentScans, supabaseRecentScans, type RecentScan } from '@/lib/ui/recentScans';
 import ui from '@/components/ui.module.css';
 import s from '@/components/result.module.css';
+import sc from '@/components/scan.module.css';
 
 const BUCKET = 'garments';
 
@@ -172,9 +173,8 @@ export default function ScanPage() {
         </>
       ) : (
         <section className={ui.cols} aria-labelledby="scan-title">
-          <div className={ui.colSide}>
+          <div className={`${ui.colSide} ${sc.intro}`}>
             <div className={ui.head}>
-              <p className={ui.eyebrow}>Scan</p>
               <h1 id="scan-title" className={ui.title}>Scan a garment</h1>
               <p className={ui.lede}>
                 Take a photo or upload one. We read its fabric and its story, then show what it could become.

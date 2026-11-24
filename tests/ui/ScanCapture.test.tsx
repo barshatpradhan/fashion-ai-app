@@ -46,8 +46,19 @@ describe('ScanCapture', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
     expect(screen.getByRole('button', { name: 'Upload' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload a photo' }));
+    expect(fileClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('on wider screens, one Choose a photo button opens the file picker', () => {
+    const { container } = setup();
+    const files = container.querySelector('input#garment-photo') as HTMLInputElement;
+    const fileClick = vi.spyOn(files, 'click');
     fireEvent.click(screen.getByRole('button', { name: 'Choose a photo' }));
     expect(fileClick).toHaveBeenCalledTimes(1);
+    // Phone and desktop controls are separate groups so CSS can show the right one.
+    expect(container.querySelector('[data-controls="phone"]')).toBeTruthy();
+    expect(container.querySelector('[data-controls="desk"]')).toBeTruthy();
   });
 
   it('hands a picked or dropped file to onFile', () => {

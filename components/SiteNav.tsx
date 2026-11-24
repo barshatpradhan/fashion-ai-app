@@ -52,8 +52,14 @@ function AccountControls({ account, onLogOut, busy }: { account: NavAccount; onL
   return null;
 }
 
+/** The nav's Scan a garment button, except on the Scan page, where it would point at itself. */
+export function showScanCta(pathname: string): boolean {
+  return pathname !== '/scan';
+}
+
 export function SiteNav() {
-  const active = activeTab(usePathname() ?? '');
+  const pathname = usePathname() ?? '';
+  const active = activeTab(pathname);
   const router = useRouter();
   const account = useNavAccount();
   const [busy, setBusy] = useState(false);
@@ -97,7 +103,9 @@ export function SiteNav() {
         </div>
         <div className={n.account}>
           <AccountControls account={account} onLogOut={() => void onLogOut()} busy={busy} />
-          <Link href="/scan" className={`${ui.button} ${n.small} ${n.scanCta}`}>Scan a garment</Link>
+          {showScanCta(pathname) ? (
+            <Link href="/scan" className={`${ui.button} ${n.small} ${n.scanCta}`}>Scan a garment</Link>
+          ) : null}
         </div>
       </nav>
       <nav className={n.tabs} aria-label="Tabs">

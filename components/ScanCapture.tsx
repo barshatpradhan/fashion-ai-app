@@ -67,9 +67,7 @@ export function ScanCapture({ working, step, preview, recent, onFile, onOpenRece
           <img src={preview} alt="Your garment photo" data-preview className={s.preview} />
         ) : (
           <div className={s.empty}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
-            </svg>
+            <UploadIcon />
             <p className={s.emptyTitle}>Drop a photo here</p>
             <p className={s.emptyHint}>Lay the piece flat or hang it in good light. The garment only, no faces, please.</p>
           </div>
@@ -113,30 +111,47 @@ export function ScanCapture({ working, step, preview, recent, onFile, onOpenRece
       ) : null}
 
       <div className={s.controls}>
-        <div className={ui.seg} role="group" aria-label="Photo source">
-          <button type="button" className={ui.choice} aria-pressed={mode === 'photo'} onClick={() => setMode('photo')}>Photo</button>
-          <button type="button" className={ui.choice} aria-pressed={mode === 'upload'} onClick={() => setMode('upload')}>Upload</button>
+        <div className={s.phoneControls} data-controls="phone">
+          <div className={ui.seg} role="group" aria-label="Photo source">
+            <button type="button" className={ui.choice} aria-pressed={mode === 'photo'} onClick={() => setMode('photo')}>Photo</button>
+            <button type="button" className={ui.choice} aria-pressed={mode === 'upload'} onClick={() => setMode('upload')}>Upload</button>
+          </div>
+          <button
+            type="button"
+            className={s.shutter}
+            aria-label={mode === 'photo' ? 'Take a photo' : 'Upload a photo'}
+            disabled={working}
+            onClick={() => (mode === 'photo' ? camera.current : files.current)?.click()}
+          >
+            {mode === 'photo' ? <CameraIcon /> : <UploadIcon />}
+          </button>
         </div>
-        <button
-          type="button"
-          className={s.shutter}
-          aria-label={mode === 'photo' ? 'Take a photo' : 'Choose a photo'}
-          disabled={working}
-          onClick={() => (mode === 'photo' ? camera.current : files.current)?.click()}
-        >
-          {mode === 'photo' ? (
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
-            </svg>
-          ) : (
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
-            </svg>
-          )}
-        </button>
+        <div className={s.deskControls} data-controls="desk">
+          <button type="button" className={ui.button} disabled={working} onClick={() => files.current?.click()}>
+            Choose a photo
+          </button>
+          <span className={s.deskHint}>or drop it on the frame</span>
+        </div>
         <input ref={camera} id="garment-camera" className={s.fileInput} type="file" accept={ACCEPT} capture="environment" tabIndex={-1} aria-hidden="true" onChange={picked} disabled={working} />
         <input ref={files} id="garment-photo" className={s.fileInput} type="file" accept={ACCEPT} tabIndex={-1} aria-hidden="true" onChange={picked} disabled={working} />
       </div>
     </div>
+  );
+}
+
+/** One line-icon size and stroke for the capture area. */
+function UploadIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
+    </svg>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
+    </svg>
   );
 }
