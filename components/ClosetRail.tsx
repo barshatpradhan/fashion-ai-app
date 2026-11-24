@@ -16,17 +16,29 @@ type Props = {
 };
 
 /**
- * The clothing rail (reference video 2). Hover or keyboard focus lifts a piece; choosing it (click,
- * Enter or Space) brings it forward and blurs the others. Arrow keys move along the rail, Escape lets go.
+ * The clothing rail (reference videos 2 and 3). Pieces hang side-on along a full-width rod; hover or
+ * keyboard focus turns one to face you and names it under the rail. Choosing it (click, Enter or Space)
+ * blurs the rail and opens the piece large beside its details. Arrow keys move along, Escape or Close lets go.
  */
 export function ClosetRail({ garments, label, variant = 'current', onDelete }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const detailId = useId();
   const active = garments.find((g) => g.id === activeId) ?? null;
+  const activeIndex = active ? garments.indexOf(active) : -1;
+  const hovered = garments.find((g) => g.id === hoverId) ?? null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  function close() {
+    const i = activeIndex;
+    setActiveId(null);
+    setConfirming(false);
+    if (i >= 0) refs.current[i]?.focus();
+  }
 
   function choose(id: string) {
     setConfirming(false);
@@ -66,7 +78,7 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
   }
 
   return (
-    <div className={variant === 'past' ? c.past : undefined}>
+    <div className={`${c.stage} ${variant === 'past' ? c.past : ''}`} data-open={active ? 'true' : undefined}>
       <div className={c.railWrap}>
         <div className={c.rod} aria-hidden="true" />
         <ul className={c.rail} aria-label={label} data-focused={active ? 'true' : 'false'}>
@@ -81,8 +93,12 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
                 aria-label={`${g.name}${g.category === 'accessory' ? ', accessory' : ''}${g.isUpcycled ? ', reworked' : ''}${g.imageKind === 'concept' ? ', concept image' : ''}`}
                 onClick={() => choose(g.id)}
                 onKeyDown={(e) => onKeyDown(e, i)}
+                onMouseEnter={() => setHoverId(g.id)}
+                onMouseLeave={() => setHoverId((h) => (h === g.id ? null : h))}
+                onFocus={() => setHoverId(g.id)}
+                onBlur={() => setHoverId((h) => (h === g.id ? null : h))}
               >
-                <Hanger />
+                <Hook />
                 <span className={c.figure}>
                   {g.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
@@ -93,69 +109,89 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
                 </span>
                 <span className={c.flags}>
                   {g.imageKind === 'concept' ? <Badge variant="concept" /> : null}
-                  {g.isUpcycled ? <Badge variant="reworked" /> : null}
-                  {!g.isUpcycled && g.category === 'accessory' ? <Badge variant="accessory" /> : null}
+                  {g.isUpcycled ? <Badge variant="reworked" className={c.extraFlag} /> : null}
+                  {!g.isUpcycled && g.category === 'accessory' ? <Badge variant="accessory" className={c.extraFlag} /> : null}
                 </span>
-                <span className={c.pieceName} aria-hidden="true">{g.name}</span>
               </button>
             </li>
           ))}
         </ul>
+        <p className={c.caption} data-testid="rail-caption" aria-hidden="true">
+          {hovered ? hovered.name : `${garments.length} ${garments.length === 1 ? 'piece' : 'pieces'} on the rail`}
+        </p>
       </div>
 
       {active ? (
         <section id={detailId} className={c.detail} aria-label={`${active.name} details`}>
-          <h3 className={c.detailName}>{active.name}</h3>
-          <p className={c.meta}>
-            {active.category === 'accessory' ? 'Accessory' : 'Clothing'}
-            {active.isUpcycled ? ' · made by you' : ''}
-            {active.status === 'transformed' ? ' · given a second life' : ''}
-          </p>
-          {active.imageKind === 'concept' ? (
+          <span className={c.ghost} aria-hidden="true">{humanize(active.tags[0] ?? active.category)}</span>
+          <div className={c.detailFigure}>
+            <Hook />
+            {active.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
+              <img src={active.imageUrl} alt="" draggable={false} />
+            ) : (
+              <span className={c.placeholder} />
+            )}
+          </div>
+          <div className={c.detailInfo}>
+            <button type="button" className={c.close} onClick={close} aria-label="Close">
+              <span aria-hidden="true">Close</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12" /></svg>
+            </button>
+            <p className={c.index}>{pad(activeIndex + 1)} / {pad(garments.length)}</p>
+            <h3 className={c.detailName}>{active.name}</h3>
             <p className={c.meta}>
-              <Badge variant="concept" />{' '}
-              Shown with its AI concept picture, not a photo of the finished piece.
+              {active.category === 'accessory' ? 'Accessory' : 'Clothing'}
+              {active.isUpcycled ? ' · made by you' : ''}
+              {active.status === 'transformed' ? ' · given a second life' : ''}
             </p>
-          ) : null}
-          {active.tags.length ? (
-            <ul className={c.tags} aria-label="Tags">
-              {active.tags.map((t) => <li key={t} className={ui.chip}>{humanize(t)}</li>)}
-            </ul>
-          ) : null}
+            {active.imageKind === 'concept' ? (
+              <p className={c.meta}>
+                <Badge variant="concept" />{' '}
+                Shown with its AI concept picture, not a photo of the finished piece.
+              </p>
+            ) : null}
+            {active.tags.length ? (
+              <ul className={c.tags} aria-label="Tags">
+                {active.tags.map((t) => <li key={t} className={ui.chip}>{humanize(t)}</li>)}
+              </ul>
+            ) : null}
 
-          {onDelete ? (
-            confirming ? (
-              <div className={c.confirm} role="group" aria-label="Confirm delete">
-                <p>Delete {active.name}? Its photos are removed for good. The upload it used is not returned.</p>
+            {onDelete ? (
+              confirming ? (
+                <div className={c.confirm} role="group" aria-label="Confirm delete">
+                  <p>Delete {active.name}? Its photos are removed for good. The upload it used is not returned.</p>
+                  <div className={c.detailActions}>
+                    <button type="button" className={c.dangerSolid} onClick={() => void confirmDelete()} disabled={deleting}>
+                      {deleting ? 'Deleting…' : 'Delete'}
+                    </button>
+                    <button type="button" className={ui.choice} onClick={() => setConfirming(false)} disabled={deleting} autoFocus>
+                      Keep it
+                    </button>
+                  </div>
+                  {deleteError ? <p className={ui.note} role="alert">{deleteError}</p> : null}
+                </div>
+              ) : (
                 <div className={c.detailActions}>
-                  <button type="button" className={c.dangerSolid} onClick={() => void confirmDelete()} disabled={deleting}>
-                    {deleting ? 'Deleting…' : 'Delete'}
-                  </button>
-                  <button type="button" className={ui.choice} onClick={() => setConfirming(false)} disabled={deleting} autoFocus>
-                    Keep it
+                  <button type="button" className={c.danger} onClick={() => setConfirming(true)}>
+                    Delete piece
                   </button>
                 </div>
-                {deleteError ? <p className={ui.note} role="alert">{deleteError}</p> : null}
-              </div>
-            ) : (
-              <div className={c.detailActions}>
-                <button type="button" className={c.danger} onClick={() => setConfirming(true)}>
-                  Delete piece
-                </button>
-              </div>
-            )
-          ) : null}
+              )
+            ) : null}
+          </div>
         </section>
       ) : null}
     </div>
   );
 }
 
-function Hanger() {
+/** A small hook and shoulder bar: the hanger shows only above the garment, as on a real rail. */
+function Hook() {
   return (
-    <svg className={c.hanger} viewBox="0 0 64 34" fill="none" aria-hidden="true">
-      <path d="M32 14c0-3 2.6-4.2 2.6-7A2.6 2.6 0 0 0 32 4.4 2.6 2.6 0 0 0 29.4 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M32 14 4 30h56L32 14Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <svg className={c.hook} viewBox="0 0 40 26" fill="none" aria-hidden="true">
+      <path d="M20 12c0-2.6 2.2-3.6 2.2-6A2.2 2.2 0 0 0 20 3.8 2.2 2.2 0 0 0 17.8 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M20 12 5 22h30L20 12Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
     </svg>
   );
 }

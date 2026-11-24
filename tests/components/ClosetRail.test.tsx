@@ -13,6 +13,26 @@ const g = (id: string, over: Partial<ClosetGarment> = {}): ClosetGarment => ({
 afterEach(cleanup);
 
 describe('ClosetRail', () => {
+  it('names the piece under the pointer in one caption below the rail', () => {
+    render(<ClosetRail garments={[g('a'), g('b')]} label="Your pieces" />);
+    const caption = screen.getByTestId('rail-caption');
+    expect(caption.textContent).toBe('2 pieces on the rail');
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Piece b' }));
+    expect(caption.textContent).toBe('Piece b');
+    fireEvent.mouseLeave(screen.getByRole('button', { name: 'Piece b' }));
+    expect(caption.textContent).toBe('2 pieces on the rail');
+  });
+
+  it('the chosen piece opens large with its place on the rail, and Close lets go', () => {
+    render(<ClosetRail garments={[g('a'), g('b'), g('c')]} label="Your pieces" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Piece b' }));
+    const detail = screen.getByRole('region', { name: 'Piece b details' });
+    expect(within(detail).getByText('02 / 03')).toBeTruthy();
+    fireEvent.click(within(detail).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('region', { name: 'Piece b details' })).toBeNull();
+    expect(screen.getByRole('list', { name: 'Your pieces' }).getAttribute('data-focused')).toBe('false');
+  });
+
   it('choosing a piece brings it forward (aria-pressed, rail focused) and Escape lets go', () => {
     render(<ClosetRail garments={[g('a'), g('b')]} label="Your pieces" />);
     const rail = screen.getByRole('list', { name: 'Your pieces' });

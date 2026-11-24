@@ -134,95 +134,91 @@ export default function ClosetPage() {
         </div>
       </div>
 
-      <div className={ui.cols}>
-        <div className={ui.colWide}>
-          {load.kind === 'loading' ? (
-            <p className={ui.status} role="status" aria-live="polite">
-              <span className={ui.pulse} aria-hidden="true" />
-              Opening your closet…
-            </p>
-          ) : null}
-          {load.kind === 'error' ? <p className={ui.error} role="alert">We couldn&apos;t open your closet. Please refresh the page.</p> : null}
+      <div className={c.tools}>
+      <div className={c.toolbar}>
+        <button type="button" className={`${ui.button} ${mode === 'quick_add' ? '' : ui.ghost}`} aria-expanded={mode === 'quick_add'}
+          onClick={() => openForm('quick_add')} disabled={!closet || working}>
+          Quick add
+        </button>
+        <button type="button" className={`${ui.button} ${mode === 'accessory' ? '' : ui.ghost}`} aria-expanded={mode === 'accessory'}
+          onClick={() => openForm('accessory')} disabled={!closet || working}>
+          Add accessory
+        </button>
+        <Link className={`${ui.button} ${ui.ghost}`} href="/scan">Scan a garment</Link>
+      </div>
 
-          {closet ? (
-            <>
-              <div className={ui.panel}>
-                {current.length ? (
-                  shown.length ? (
-                    <ClosetRail garments={shown} label="Your pieces" onDelete={onDelete} />
-                  ) : (
-                    <p className={c.inline}>Nothing here yet. Try another filter.</p>
-                  )
-                ) : (
-                  <p className={`${ui.empty} ${c.inline} ${c.emptyRail}`}>
-                    Your rail is empty. Scan a garment and choose “Add to closet”, or quick add a piece.
-                  </p>
-                )}
-              </div>
+      {mode ? (
+        outOfUploads ? (
+          <p className={ui.error} role="alert">{noUploadsMessage(uploads?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p>
+        ) : (
+          <form className={c.form} onSubmit={(e) => void onSubmit(e)} aria-labelledby="add-title">
+            <h2 id="add-title" className={c.formTitle}>{FORM_COPY[mode].title}</h2>
+            <label className={c.field}>
+              Photo
+              <input className={`${c.input} ${c.fileInput}`} name="photo" type="file" required disabled={working}
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
+              <span className={c.fieldHint}>The piece only, no faces, please. Uses 1 upload.</span>
+            </label>
+            <label className={c.field}>
+              Name (optional)
+              <input className={c.input} name="name" type="text" maxLength={60} placeholder={FORM_COPY[mode].namePlaceholder} disabled={working} />
+            </label>
+            <label className={c.field}>
+              Tags (optional)
+              <input className={c.input} name="tags" type="text" placeholder={FORM_COPY[mode].tagsPlaceholder} disabled={working} />
+              <span className={c.fieldHint}>Separate with commas. We keep words from our garment, fabric and style list.</span>
+            </label>
+            <div className={c.detailActions}>
+              <Button type="submit" loading={working}>Hang it on the rail</Button>
+              <button type="button" className={ui.choice} onClick={() => setMode(null)} disabled={working}>Cancel</button>
+            </div>
+          </form>
+        )
+      ) : null}
 
-              {past.length ? (
-                <section className={ui.section} aria-labelledby="past-title">
-                  <h2 id="past-title" className={ui.sectionTitle}>Given a second life</h2>
-                  <p className={`${ui.hint} ${ui.hintWide}`}>The originals of pieces you reworked.</p>
-                  <ClosetRail garments={past} label="Reworked originals" variant="past" onDelete={onDelete} />
-                </section>
-              ) : null}
-            </>
-          ) : null}
-        </div>
+      {working ? (
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
+          {step}…
+        </p>
+      ) : null}
+      {error ? <p className={ui.error} role="alert">{error}</p> : null}
+      {notice ? <p className={c.inline} role="status">{notice}</p> : null}
+      </div>
 
-        <div className={ui.colSide}>
-          <div className={c.toolbar}>
-            <button type="button" className={`${ui.button} ${mode === 'quick_add' ? '' : ui.ghost}`} aria-expanded={mode === 'quick_add'}
-              onClick={() => openForm('quick_add')} disabled={!closet || working}>
-              Quick add
-            </button>
-            <button type="button" className={`${ui.button} ${mode === 'accessory' ? '' : ui.ghost}`} aria-expanded={mode === 'accessory'}
-              onClick={() => openForm('accessory')} disabled={!closet || working}>
-              Add accessory
-            </button>
-            <Link className={`${ui.button} ${ui.ghost}`} href="/scan">Scan a garment</Link>
+      {load.kind === 'loading' ? (
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
+          Opening your closet…
+        </p>
+      ) : null}
+      {load.kind === 'error' ? <p className={ui.error} role="alert">We couldn&apos;t open your closet. Please refresh the page.</p> : null}
+
+      {closet ? (
+        <>
+          <div>
+            {current.length ? (
+              shown.length ? (
+                <ClosetRail garments={shown} label="Your pieces" onDelete={onDelete} />
+              ) : (
+                <p className={c.inline}>Nothing here yet. Try another filter.</p>
+              )
+            ) : (
+              <p className={`${ui.empty} ${c.inline} ${c.emptyRail}`}>
+                Your rail is empty. Scan a garment and choose “Add to closet”, or quick add a piece.
+              </p>
+            )}
           </div>
 
-          {mode ? (
-            outOfUploads ? (
-              <p className={ui.error} role="alert">{noUploadsMessage(uploads?.nextCreditAt)} <UpgradeButton label="Go Premium · $7.99/month" ghost /></p>
-            ) : (
-              <form className={c.form} onSubmit={(e) => void onSubmit(e)} aria-labelledby="add-title">
-                <h2 id="add-title" className={c.formTitle}>{FORM_COPY[mode].title}</h2>
-                <label className={c.field}>
-                  Photo
-                  <input className={`${c.input} ${c.fileInput}`} name="photo" type="file" required disabled={working}
-                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
-                  <span className={c.fieldHint}>The piece only, no faces, please. Uses 1 upload.</span>
-                </label>
-                <label className={c.field}>
-                  Name (optional)
-                  <input className={c.input} name="name" type="text" maxLength={60} placeholder={FORM_COPY[mode].namePlaceholder} disabled={working} />
-                </label>
-                <label className={c.field}>
-                  Tags (optional)
-                  <input className={c.input} name="tags" type="text" placeholder={FORM_COPY[mode].tagsPlaceholder} disabled={working} />
-                  <span className={c.fieldHint}>Separate with commas. We keep words from our garment, fabric and style list.</span>
-                </label>
-                <div className={c.detailActions}>
-                  <Button type="submit" loading={working}>Hang it on the rail</Button>
-                  <button type="button" className={ui.choice} onClick={() => setMode(null)} disabled={working}>Cancel</button>
-                </div>
-              </form>
-            )
+          {past.length ? (
+            <section className={ui.section} aria-labelledby="past-title">
+              <h2 id="past-title" className={ui.sectionTitle}>Given a second life</h2>
+              <p className={`${ui.hint} ${ui.hintWide}`}>The originals of pieces you reworked.</p>
+              <ClosetRail garments={past} label="Reworked originals" variant="past" onDelete={onDelete} />
+            </section>
           ) : null}
-
-          {working ? (
-            <p className={ui.status} role="status" aria-live="polite">
-              <span className={ui.pulse} aria-hidden="true" />
-              {step}…
-            </p>
-          ) : null}
-          {error ? <p className={ui.error} role="alert">{error}</p> : null}
-          {notice ? <p className={c.inline} role="status">{notice}</p> : null}
-        </div>
-      </div>
+        </>
+      ) : null}
     </main>
   );
 }
