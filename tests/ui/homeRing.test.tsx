@@ -60,6 +60,13 @@ describe('figures', () => {
 });
 
 describe('HomeRing', () => {
+  it('has the ring only: no Ring/Grid switch', () => {
+    render(<HomeRing />);
+    expect(screen.queryByRole('group', { name: 'View' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Grid' })).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Keep it in the loop' })).toBeTruthy();
+  });
+
   it('shows a person wearing each second life, marked as a Concept', () => {
     const { container } = render(<HomeRing />);
     const btn = screen.getByRole('button', { name: 'Show Denim tote' });
@@ -106,13 +113,6 @@ describe('HomeRing', () => {
     expect(screen.getByText('02 / 09')).toBeTruthy();
   });
 
-  it('shows the figures in Grid view too', () => {
-    const { container } = render(<HomeRing />);
-    fireEvent.click(screen.getByRole('button', { name: 'Grid' }));
-    expect(container.querySelectorAll('[data-figure]')).toHaveLength(9);
-    expect(screen.getByText('Concept')).toBeTruthy();
-  });
-
   it('starts on the first look and jumps when an item is picked, pausing', () => {
     render(<HomeRing />);
     expect(screen.getByText('01 / 09')).toBeTruthy();
@@ -121,26 +121,6 @@ describe('HomeRing', () => {
     expect(screen.getByText('03 / 09')).toBeTruthy();
     expect(screen.getAllByText('Wrap skirt').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Play the ring' })).toBeTruthy();
-  });
-
-  it('switches to a grid and back', () => {
-    render(<HomeRing />);
-    const view = screen.getByRole('group', { name: 'View' });
-    const gridBtn = Array.from(view.querySelectorAll('button')).find((b) => b.textContent === 'Grid')!;
-    fireEvent.click(gridBtn);
-    expect(gridBtn.getAttribute('aria-pressed')).toBe('true');
-    const names = SECOND_LIVES.map((s) => s.name);
-    const cells = screen.getAllByRole('button').filter((b) => names.includes(b.textContent ?? ''));
-    expect(cells).toHaveLength(9);
-    fireEvent.click(screen.getByRole('button', { name: 'Denim tote' }));
-    expect(screen.getByText('02 / 09')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Show Denim tote' })).toBeTruthy();
-  });
-
-  it('keeps a level-1 heading in Grid view', () => {
-    render(<HomeRing />);
-    fireEvent.click(screen.getByRole('button', { name: 'Grid' }));
-    expect(screen.getByRole('heading', { level: 1, name: 'Keep it in the loop' })).toBeTruthy();
   });
 
   it('advances every 3.5 s, unless reduced motion is on', () => {

@@ -34,11 +34,10 @@ function Swatch({ fabric }: { fabric: Fabric }) {
   );
 }
 
-/** Front page: nine second lives orbiting a headline. Ring or grid; autoplay stops on any interaction. */
+/** Front page: nine second lives orbiting a headline; autoplay stops on any interaction. */
 export function HomeRing() {
   const [rot, setRot] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [view, setView] = useState<'ring' | 'grid'>('ring');
   /** A figure under the pointer or keyboard focus: the dock previews it without turning the ring. */
   const [hover, setHover] = useState<number | null>(null);
 
@@ -53,10 +52,10 @@ export function HomeRing() {
   }, []);
 
   useEffect(() => {
-    if (!playing || view !== 'ring' || hover !== null) return;
+    if (!playing || hover !== null) return;
     const id = setInterval(() => setRot((r) => (r + 1) % N), 3500);
     return () => clearInterval(id);
-  }, [playing, view, hover]);
+  }, [playing, hover]);
 
   const cur = SECOND_LIVES[hover ?? rot];
   const num = String(rot + 1).padStart(2, '0');
@@ -68,7 +67,6 @@ export function HomeRing() {
   });
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (view !== 'ring') return;
     if (e.key === 'ArrowRight') { e.preventDefault(); setRot((r) => (r + 1) % N); setPlaying(false); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); setRot((r) => (r + N - 1) % N); setPlaying(false); }
   }
@@ -77,53 +75,32 @@ export function HomeRing() {
     <section className={s.wrap} aria-roledescription="carousel" aria-label="Nine second lives">
       <div className={s.stage} onKeyDown={onKeyDown} tabIndex={0} role="group" aria-label="Nine second lives, use arrow keys">
         <Badge variant="concept" className={s.concept} />
-        <div className={`${ui.seg} ${s.toggle}`} role="group" aria-label="View">
-          <button type="button" className={ui.choice} aria-pressed={view === 'ring'} onClick={() => setView('ring')}>Ring</button>
-          <button type="button" className={ui.choice} aria-pressed={view === 'grid'} onClick={() => { setView('grid'); setPlaying(false); }}>Grid</button>
+        <div className={s.title}>
+          <h1>Keep it in the loop</h1>
+          <span className={s.mono}>Vol. 01 — nine second lives</span>
         </div>
-
-        {view === 'ring' ? (
-          <>
-            <div className={s.title}>
-              <h1>Keep it in the loop</h1>
-              <span className={s.mono}>Vol. 01 — nine second lives</span>
-            </div>
-            {SECOND_LIVES.map((l, i) => {
-              const p = ringPose(i, rot, N);
-              return (
-                <button
-                  key={l.name}
-                  type="button"
-                  className={s.item}
-                  aria-label={`Show ${l.name}`}
-                  style={{
-                    left: `${p.x.toFixed(2)}%`,
-                    top: `${p.y.toFixed(2)}%`,
-                    transform: `translate(-50%, -50%) scale(${p.scale.toFixed(3)})`,
-                    zIndex: p.z,
-                    opacity: Number(p.opacity.toFixed(2)),
-                  }}
-                  onClick={() => { setRot(i); setPlaying(false); }}
-                  {...preview(i)}
-                >
-                  <Figure src={l.figure} />
-                </button>
-              );
-            })}
-          </>
-        ) : (
-          <>
-            <h1 className={ui.visuallyHidden}>Keep it in the loop</h1>
-          <div className={s.grid}>
-            {SECOND_LIVES.map((l, i) => (
-              <button key={l.name} type="button" className={s.cell} onClick={() => { setRot(i); setView('ring'); setPlaying(false); setHover(null); }} {...preview(i)}>
-                <Figure src={l.figure} />
-                {l.name}
-              </button>
-            ))}
-          </div>
-          </>
-        )}
+        {SECOND_LIVES.map((l, i) => {
+          const p = ringPose(i, rot, N);
+          return (
+            <button
+              key={l.name}
+              type="button"
+              className={s.item}
+              aria-label={`Show ${l.name}`}
+              style={{
+                left: `${p.x.toFixed(2)}%`,
+                top: `${p.y.toFixed(2)}%`,
+                transform: `translate(-50%, -50%) scale(${p.scale.toFixed(3)})`,
+                zIndex: p.z,
+                opacity: Number(p.opacity.toFixed(2)),
+              }}
+              onClick={() => { setRot(i); setPlaying(false); }}
+              {...preview(i)}
+            >
+              <Figure src={l.figure} />
+            </button>
+          );
+        })}
       </div>
 
       <div className={s.dock}>
