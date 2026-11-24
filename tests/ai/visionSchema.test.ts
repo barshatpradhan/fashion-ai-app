@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseVision, VisionParseError } from '@/lib/ai/visionSchema';
+import { parseVision, VisionParseError, VISION_RESPONSE_SCHEMA } from '@/lib/ai/visionSchema';
 
 const valid = {
   is_garment: true,
@@ -96,5 +96,22 @@ describe('parseVision leniency (a first live scan must not become "stylist busy"
     const r = parseVision({ ...valid, is_garment: 'true', colors: [{ name: 'Sage', hex: '#8fa58a' }, null, 'navy'] });
     expect(r.is_garment).toBe(true);
     expect(r.colors).toEqual([{ name: 'Sage', hex: '#8fa58a' }, { name: 'navy', hex: '' }]);
+  });
+});
+
+describe('image_quality', () => {
+  const base = { is_garment: true, garment_type: 'shirt', category: 'top', parts: {}, pattern: '', colors: [],
+    fabric_guess: { value: 'cotton', confidence: 0.9, alternatives: [] }, condition_notes: '', visible_techniques: [], tags: [], named_styles: [] };
+  it('keeps blurry and too_dark, case-insensitive', () => {
+    expect(parseVision({ ...base, image_quality: 'blurry' }).image_quality).toBe('blurry');
+    expect(parseVision({ ...base, image_quality: 'Too_Dark' }).image_quality).toBe('too_dark');
+  });
+  it('defaults to clear when missing or unknown (older stored scans have no field)', () => {
+    expect(parseVision(base).image_quality).toBe('clear');
+    expect(parseVision({ ...base, image_quality: 'grainy' }).image_quality).toBe('clear');
+  });
+  it('is part of the schema Gemini must fill in', () => {
+    expect(VISION_RESPONSE_SCHEMA.required).toContain('image_quality');
+    expect(VISION_RESPONSE_SCHEMA.properties.image_quality.enum).toEqual(['clear', 'blurry', 'too_dark']);
   });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  prepareImage, removeBackground, BG_REMOVAL_TIMEOUT_MS, UnsupportedImageError, JPEG_QUALITY, MAX_EDGE,
+  prepareImage, removeBackground, BG_REMOVAL_TIMEOUT_MS, UnsupportedImageError, TooLargeImageError, MAX_INPUT_BYTES, JPEG_QUALITY, MAX_EDGE,
   type ImageIO, type Decoded,
 } from '@/lib/image/prepare';
 
@@ -85,6 +85,17 @@ describe('prepareImage', () => {
     const err = await prepareImage(bad, io).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(UnsupportedImageError);
     expect((err as Error).message).toBe("This photo format isn't supported. Try a JPG or PNG.");
+  });
+
+  it('a file over 25 MB rejects with TooLargeImageError before decoding', async () => {
+    expect(MAX_INPUT_BYTES).toBe(25 * 1024 * 1024);
+    const big = pngFile(4000, 3000);
+    Object.defineProperty(big, 'size', { value: MAX_INPUT_BYTES + 1 });
+    const decode = vi.fn();
+    const err = await prepareImage(big, { decode }).catch((e) => e);
+    expect(err).toBeInstanceOf(TooLargeImageError);
+    expect(err.message).toMatch(/too large/i);
+    expect(decode).not.toHaveBeenCalled();
   });
 
   it('an empty file rejects with UnsupportedImageError', async () => {

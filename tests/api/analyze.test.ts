@@ -15,7 +15,7 @@ const NOW = new Date('2026-11-22T15:30:00Z');
 const vision = (over: Partial<VisionResult> = {}, conf = 0.9): VisionResult => ({
   is_garment: true, garment_type: 'jacket', category: 'outerwear', parts: {}, pattern: '', colors: [],
   fabric_guess: { value: 'denim', confidence: conf, alternatives: [] },
-  condition_notes: '', visible_techniques: [], tags: ['denim'], named_styles: [], ...over,
+  condition_notes: '', visible_techniques: [], tags: ['denim'], named_styles: [], image_quality: 'clear', ...over,
 });
 const kb = (id: string, kind: KbEntry['kind'], tags: string[]): KbEntry => ({
   id, kind, title: id, body: '', tags, status: 'reviewed',
@@ -51,6 +51,27 @@ describe('runAnalyze', () => {
     expect(r).toEqual({ status: 422, body: { error: 'not_a_garment' } });
     expect(s.repo.insertScan).toHaveBeenCalledTimes(1);
     expect(s.repo.insertMatches).not.toHaveBeenCalled();
+  });
+
+  it('422 photo_unclear for a blurry or dark photo: persisted, no matches', async () => {
+    for (const q of ['blurry', 'too_dark'] as const) {
+      const s = setup({ analyze: async () => vision({ image_quality: q }) });
+      const r = await runAnalyze(U, body, s.deps);
+      expect(r).toEqual({ status: 422, body: { error: 'photo_unclear' } });
+      expect(s.repo.insertScan).toHaveBeenCalledTimes(1);
+      expect(s.repo.insertMatches).not.toHaveBeenCalled();
+    }
+  });
+
+  it('an unclear photo is reported as unclear, not as "no garment"', async () => {
+    const s = setup({ analyze: async () => vision({ image_quality: 'blurry', is_garment: false }) });
+    expect((await runAnalyze(U, body, s.deps)).body).toEqual({ error: 'photo_unclear' });
+  });
+
+  it('re-upload of an unclear photo hits the cache: 422 photo_unclear, no AI call', async () => {
+    const s = setup({ existing: { id: 'old', vision: vision({ image_quality: 'blurry' }) } });
+    expect(await runAnalyze(U, body, s.deps)).toEqual({ status: 422, body: { error: 'photo_unclear' } });
+    expect(s.analyze).not.toHaveBeenCalled();
   });
 
   it('re-upload of a non-garment hits the cache: 422, no AI call', async () => {

@@ -11,6 +11,7 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    3. `supabase/migrations/0003_kb_slug.sql`
    4. `supabase/migrations/0004_closet.sql`
    5. `supabase/migrations/0005_grants.sql` (gives the API roles table access; without it every request fails with "permission denied", code 42501. RLS still decides which rows each user sees.)
+   6. `supabase/migrations/0006_garments_bucket_limits.sql` (caps photo uploads at 5 MB, JPEG/PNG only)
 
    Either paste each file into the SQL editor and run it, or set `SUPABASE_DB_URL` in `.env` (Connect > Session pooler URI, with the database password) and run, for each file:
    `psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -1 -f supabase/migrations/<file>`

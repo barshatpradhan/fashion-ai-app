@@ -18,6 +18,7 @@ export const SCAN_ERRORS = {
   badRequest: 'bad_request',
   imageNotFound: 'image_not_found',
   notAGarment: 'not_a_garment',
+  photoUnclear: 'photo_unclear',
   dailyCap: 'daily_cap',
   aiBusy: 'ai_busy',
   serverError: 'server_error',
@@ -100,6 +101,16 @@ export function toMatchRows(match: MatchResult): MatchRow[] {
   return [...rows].map(([kbEntryId, score]) => ({ kbEntryId, score }));
 }
 
+/**
+ * Why a scan cannot be used, or null. An unclear photo is reported first: a blurry garment often also
+ * reads as "no garment", and "retake it" is the useful advice. image_quality is absent on older rows.
+ */
+function rejectReason(v: VisionResult): string | null {
+  if (v.image_quality && v.image_quality !== 'clear') return SCAN_ERRORS.photoUnclear;
+  if (!v.is_garment) return SCAN_ERRORS.notAGarment;
+  return null;
+}
+
 export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDeps): Promise<AnalyzeResult> {
   const b = input as { imagePath?: unknown; cutoutPath?: unknown; imageHash?: unknown } | null;
   if (
@@ -145,7 +156,8 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   // Hash cache first: no cap check, no AI call.
   const existing = await repo.findByHash(userId, hash);
   if (existing) {
-    if (!existing.vision.is_garment) return fail(422, SCAN_ERRORS.notAGarment);
+    const rejected = rejectReason(existing.vision);
+    if (rejected) return fail(422, rejected);
     // The user deleted this scan's images earlier: this request's upload becomes the scan's images again.
     if (existing.imagePath === null || existing.cutoutPath === null) {
       await repo.attachImages(existing.id, imagePath, cutoutPath);
@@ -177,10 +189,11 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
     fabricFinal: vision.fabric_guess.value, fabricSource: 'vision',
     modelName: GEMINI_VISION_MODEL, modelVersion: GEMINI_VISION_MODEL,
   });
-  if (!vision.is_garment) {
+  const rejected = rejectReason(vision);
+  if (rejected) {
     // Persist so the attempt counts toward the daily cap and a re-upload hits the cache.
     await repo.insertScan(newScan());
-    return fail(422, SCAN_ERRORS.notAGarment);
+    return fail(422, rejected);
   }
 
   const entries = await repo.loadReviewedEntries();

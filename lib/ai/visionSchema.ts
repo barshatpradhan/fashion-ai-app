@@ -12,6 +12,9 @@ export class VisionParseError extends Error {
 const BANNED_KEYS = new Set(['history', 'origin']);
 
 export const CATEGORIES = ['top', 'bottom', 'dress', 'outerwear', 'accessory', 'other'] as const;
+/** Whether the photo is sharp and bright enough to read; anything but clear is rejected with photo_unclear. */
+export const IMAGE_QUALITIES = ['clear', 'blurry', 'too_dark'] as const;
+export type ImageQuality = (typeof IMAGE_QUALITIES)[number];
 type Category = (typeof CATEGORIES)[number];
 
 const namedStyleSet = new Set<string>(NAMED_STYLES);
@@ -104,6 +107,11 @@ export const visionSchema = z
       }
       return out;
     }),
+    // Missing on scans stored before this field existed: treat those as clear.
+    image_quality: z.unknown().optional().transform((v): ImageQuality => {
+      const q = typeof v === 'string' ? lc(v) : '';
+      return (IMAGE_QUALITIES as readonly string[]).includes(q) ? (q as ImageQuality) : 'clear';
+    }),
     named_styles: z.unknown().transform((v) => {
       if (!Array.isArray(v)) return [] as { style: string; confidence: number }[];
       return v.flatMap((s) => {
@@ -115,8 +123,10 @@ export const visionSchema = z
   })
   .strip();
 
-export type VisionResult = Omit<z.infer<typeof visionSchema>, 'named_styles'> & {
+export type VisionResult = Omit<z.infer<typeof visionSchema>, 'named_styles' | 'image_quality'> & {
   named_styles: { style: (typeof NAMED_STYLES)[number]; confidence: number }[];
+  /** Always set by parseVision; absent on scans stored before the field existed (read as clear). */
+  image_quality?: ImageQuality;
 };
 
 /** JSON Schema sent to Gemini (responseJsonSchema) so the model returns the right shape in the first place. */
@@ -124,6 +134,7 @@ export const VISION_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
     is_garment: { type: 'boolean' },
+    image_quality: { type: 'string', enum: [...IMAGE_QUALITIES] },
     garment_type: { type: 'string' },
     category: { type: 'string', enum: [...CATEGORIES] },
     parts: { type: 'object', additionalProperties: { type: 'string' } },
@@ -154,7 +165,7 @@ export const VISION_RESPONSE_SCHEMA = {
     },
   },
   required: [
-    'is_garment', 'garment_type', 'category', 'parts', 'pattern', 'colors', 'fabric_guess',
+    'is_garment', 'image_quality', 'garment_type', 'category', 'parts', 'pattern', 'colors', 'fabric_guess',
     'condition_notes', 'visible_techniques', 'tags', 'named_styles',
   ],
 } as const;

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
-import { prepareImage, removeBackground, UnsupportedImageError } from '@/lib/image/prepare';
+import { prepareImage, removeBackground, UnsupportedImageError, TooLargeImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
 import ui from '@/components/ui.module.css';
@@ -81,7 +81,9 @@ export default function ScanPage() {
       setError(
         err instanceof UnsupportedImageError
           ? MESSAGES.unsupportedFormat
-          : messageForError(err instanceof ApiError ? err.message : null),
+          : err instanceof TooLargeImageError
+            ? MESSAGES.photoTooLarge
+            : messageForError(err instanceof ApiError ? err.message : null),
       );
       setPhase({ kind: 'idle' });
     }

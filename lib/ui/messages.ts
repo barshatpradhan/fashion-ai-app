@@ -1,6 +1,8 @@
 /** All user-facing error copy in one place. */
 export const MESSAGES = {
   notAGarment: "We couldn't find a garment in this photo. Try another.",
+  photoUnclear: 'This photo is too blurry or dark to read. Retake it in good light and hold the camera steady.',
+  photoTooLarge: 'This photo is too large (over 25 MB). Try a smaller one.',
   aiBusy: 'Our stylist is busy right now. Please try again in a moment.',
   dailyCap: "You've reached today's scan limit. Come back tomorrow.",
   uploadFailed: 'Something went wrong uploading your photo. Please try again.',
@@ -27,6 +29,8 @@ export function messageForError(code: string | null | undefined, context?: 'guid
   switch (code) {
     case 'not_a_garment':
       return MESSAGES.notAGarment;
+    case 'photo_unclear':
+      return MESSAGES.photoUnclear;
     case 'ai_busy':
       return MESSAGES.aiBusy;
     case 'daily_cap':

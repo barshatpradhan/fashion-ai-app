@@ -103,6 +103,18 @@ describe('RLS smoke (live Supabase)', () => {
     expect(still.data).toHaveLength(1);
   });
 
+  // The browser shrinks photos to 1024 px before upload; the bucket must refuse anything that skipped that.
+  it('the garments bucket refuses oversized files and non-images', async () => {
+    const store = a.storage.from('garments');
+    const ok = await store.upload(`${aId}/small.jpg`, new Blob([new Uint8Array(1024)], { type: 'image/jpeg' }));
+    expect(ok.error).toBeNull();
+    const big = await store.upload(`${aId}/big.jpg`, new Blob([new Uint8Array(6 * 1024 * 1024)], { type: 'image/jpeg' }));
+    expect(big.error).not.toBeNull();
+    const txt = await store.upload(`${aId}/note.txt`, new Blob(['hi'], { type: 'text/plain' }));
+    expect(txt.error).not.toBeNull();
+    await admin.storage.from('garments').remove([`${aId}/small.jpg`, `${aId}/big.jpg`, `${aId}/note.txt`]);
+  }, 60_000);
+
   it('anyone can read a reviewed kb_entries row', async () => {
     const anonOnly = mk(anon!);
     for (const c of [a, b, anonOnly]) {

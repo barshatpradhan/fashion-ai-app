@@ -7,11 +7,20 @@ import { MESSAGES } from '@/lib/ui/messages';
 
 export const MAX_EDGE = 1024;
 export const JPEG_QUALITY = 0.85;
+/** Refuse before decoding: a huge file can stall or crash the tab. Phone photos are well under this. */
+export const MAX_INPUT_BYTES = 25 * 1024 * 1024;
 
 export class UnsupportedImageError extends Error {
   constructor(cause?: unknown) {
     super(MESSAGES.unsupportedFormat, { cause });
     this.name = 'UnsupportedImageError';
+  }
+}
+
+export class TooLargeImageError extends Error {
+  constructor() {
+    super(MESSAGES.photoTooLarge);
+    this.name = 'TooLargeImageError';
   }
 }
 
@@ -101,6 +110,7 @@ export const browserImageIO: ImageIO = {
 export async function prepareImage(file: File, overrides: Partial<ImageIO> = {}): Promise<PreparedImage> {
   const io: ImageIO = { ...browserImageIO, ...overrides };
   if (file.size === 0) throw new UnsupportedImageError();
+  if (file.size > MAX_INPUT_BYTES) throw new TooLargeImageError();
 
   let source: Blob = file;
   if (isHeic(file)) {
