@@ -1,43 +1,6 @@
 /* Scan + Result screen only. Calm gallery: off-white paper, the garment as the hero, restrained 2.5D motion.
    Shared primitives (page shell, buttons, chips, cards, status, error) are in ui.module.css. */
 
-/* ------------------------------------------------------------------ upload */
-
-.upload {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-}
-
-/* Dashed imgSlot-style drop panel on the scan page (composes ui.imgSlot via class list). */
-.dropzone {
-  min-height: 260px;
-  padding: var(--space-6) var(--space-4);
-  gap: var(--space-4);
-  background: var(--white);
-}
-
-.fileInput {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* The <label> styled as ui.button that opens the hidden file input. */
-.fileInput:focus-visible + .uploadLabel {
-  outline: 2px solid var(--deep);
-  outline-offset: 3px;
-}
-
-.uploadLabel {
-  cursor: pointer;
-  min-height: 44px;
-}
-
 /* -------------------------------------------------------------------- hero */
 
 .hero {

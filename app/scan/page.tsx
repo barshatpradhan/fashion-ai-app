@@ -1,9 +1,11 @@
 'use client';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground, preloadBackgroundRemoval, UnsupportedImageError, TooLargeImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError, isExpectedOutcome } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
+import { ScanCapture } from '@/components/ScanCapture';
+import { loadRecentScans, supabaseRecentScans, type RecentScan } from '@/lib/ui/recentScans';
 import ui from '@/components/ui.module.css';
 import s from '@/components/result.module.css';
 
@@ -19,7 +21,19 @@ class ApiError extends Error {}
 export default function ScanPage() {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [recent, setRecent] = useState<RecentScan[]>([]);
   const objectUrl = useRef<string | null>(null);
+  const previewUrl = useRef<string | null>(null);
+
+  const refreshRecent = useCallback(async () => {
+    try {
+      await ensureSession();
+      setRecent(await loadRecentScans(supabaseRecentScans(browserClient()), 5));
+    } catch {
+      setRecent([]);
+    }
+  }, []);
 
   // Anonymous start: no sign-up wall. Premium access is decided server-side (locked Recipes arrive redacted).
   useEffect(() => {
@@ -32,9 +46,63 @@ export default function ScanPage() {
     if (!conn?.saveData) void preloadBackgroundRemoval();
   }, []);
 
+  useEffect(() => {
+    if (phase.kind === 'idle') void refreshRecent();
+  }, [phase.kind, refreshRecent]);
+
   useEffect(() => () => {
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
   }, []);
+
+  function showPreview(blob: Blob | null) {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    previewUrl.current = blob ? URL.createObjectURL(blob) : null;
+    setPreview(previewUrl.current);
+  }
+
+  function fail(err: unknown) {
+    const expected =
+      err instanceof UnsupportedImageError || err instanceof TooLargeImageError ||
+      (err instanceof ApiError && isExpectedOutcome(err.message));
+    (expected ? console.warn : console.error)('scan failed', err);
+    setError(
+      err instanceof UnsupportedImageError
+        ? MESSAGES.unsupportedFormat
+        : err instanceof TooLargeImageError
+          ? MESSAGES.photoTooLarge
+          : messageForError(err instanceof ApiError ? err.message : null),
+    );
+    showPreview(null);
+    setPhase({ kind: 'idle' });
+  }
+
+  async function analyze(source: ScanSource): Promise<AnalyzeResponse> {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(source),
+    });
+    const json = (await res.json().catch(() => ({}))) as Partial<AnalyzeResponse> & { error?: string };
+    if (!res.ok || !json.scanId || !json.vision || !json.match) throw new ApiError(json.error ?? 'server_error');
+    return json as AnalyzeResponse;
+  }
+
+  /** A recent scan answers from the server's hash cache: no AI call and no daily-cap spend. */
+  async function onOpenRecent(r: RecentScan) {
+    setError(null);
+    showPreview(null);
+    setPreview(r.thumb);
+    try {
+      setPhase({ kind: 'working', step: 'Opening your scan' });
+      const result = await analyze(r.source);
+      setPhase({ kind: 'done', result, heroSrc: r.thumb, isCutout: r.isCutout, source: r.source });
+      setPreview(null);
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      fail(err);
+    }
+  }
 
   function setHero(blob: Blob): string {
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
@@ -42,15 +110,13 @@ export default function ScanPage() {
     return objectUrl.current;
   }
 
-  async function onFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // allow picking the same file again
-    if (!file) return;
+  async function onFile(file: File) {
     setError(null);
     try {
       setPhase({ kind: 'working', step: 'Preparing your photo' });
       const userId = await ensureSession();
       const prepared = await prepareImage(file);
+      showPreview(prepared.jpeg);
 
       setPhase({ kind: 'working', step: 'Lifting the garment from the background' });
       const cutout = await removeBackground(prepared.jpeg);
@@ -70,54 +136,20 @@ export default function ScanPage() {
       }
 
       setPhase({ kind: 'working', step: 'Reading the garment' });
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imagePath, cutoutPath, imageHash: prepared.hash }),
-      });
-      const json = (await res.json().catch(() => ({}))) as Partial<AnalyzeResponse> & { error?: string };
-      if (!res.ok || !json.scanId || !json.vision || !json.match) throw new ApiError(json.error ?? 'server_error');
+      const source = { imagePath, cutoutPath, imageHash: prepared.hash };
+      const result = await analyze(source);
 
       const usedCutout = cutoutPath !== imagePath && cutout !== null;
       const heroSrc = setHero(usedCutout ? cutout : prepared.jpeg);
-      setPhase({ kind: 'done', result: json as AnalyzeResponse, heroSrc, isCutout: usedCutout, source: { imagePath, cutoutPath, imageHash: prepared.hash } });
+      setPhase({ kind: 'done', result, heroSrc, isCutout: usedCutout, source });
+      showPreview(null);
       window.scrollTo({ top: 0 });
     } catch (err) {
-      const expected =
-        err instanceof UnsupportedImageError || err instanceof TooLargeImageError ||
-        (err instanceof ApiError && isExpectedOutcome(err.message));
-      (expected ? console.warn : console.error)('scan failed', err);
-      setError(
-        err instanceof UnsupportedImageError
-          ? MESSAGES.unsupportedFormat
-          : err instanceof TooLargeImageError
-            ? MESSAGES.photoTooLarge
-            : messageForError(err instanceof ApiError ? err.message : null),
-      );
-      setPhase({ kind: 'idle' });
+      fail(err);
     }
   }
 
   const working = phase.kind === 'working';
-
-  const upload = (label: string, ghost = false) => (
-    <div className={`${ui.imgSlot} ${s.dropzone}`}>
-      <div className={s.upload}>
-      <input
-        id="garment-photo"
-        className={s.fileInput}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-        onChange={onFile}
-        disabled={working}
-      />
-      <label htmlFor="garment-photo" className={`${ui.button} ${s.uploadLabel} ${ghost ? ui.ghost : ''}`} aria-disabled={working}>
-        {label}
-      </label>
-      <p className={ui.hint}>Photograph the garment only, no faces, please.</p>
-      </div>
-    </div>
-  );
 
   return (
     <main className={ui.page}>
@@ -130,29 +162,36 @@ export default function ScanPage() {
             isCutout={phase.isCutout}
             source={phase.source}
           />
-          <div className={s.again}>{upload('Scan another garment', true)}</div>
+          <div className={s.again}>
+            <button type="button" className={`${ui.button} ${ui.ghost}`} onClick={() => { setPhase({ kind: 'idle' }); window.scrollTo({ top: 0 }); }}>
+              Scan another garment
+            </button>
+          </div>
         </>
       ) : (
         <section className={ui.cols} aria-labelledby="scan-title">
           <div className={ui.colSide}>
             <div className={ui.head}>
               <p className={ui.eyebrow}>Scan</p>
-              <h1 id="scan-title" className={ui.title}>Every garment has a second life.</h1>
+              <h1 id="scan-title" className={ui.title}>Scan a garment</h1>
               <p className={ui.lede}>
-                Lay the piece flat or hang it in good light. We will read its fabric, its story and what it could become.
+                Take a photo or upload one. We read its fabric and its story, then show what it could become.
               </p>
             </div>
           </div>
-          <div className={ui.colWide}>{upload('Upload a photo')}</div>
+          <div className={ui.colWide}>
+            <ScanCapture
+              working={working}
+              step={phase.kind === 'working' ? phase.step : null}
+              preview={preview}
+              recent={recent}
+              onFile={onFile}
+              onOpenRecent={onOpenRecent}
+            />
+          </div>
         </section>
       )}
 
-      {working ? (
-        <p className={ui.status} role="status" aria-live="polite">
-          <span className={ui.pulse} aria-hidden="true" />
-          {phase.step}…
-        </p>
-      ) : null}
       {error ? (
         <p className={ui.error} role="alert">
           {error}
