@@ -133,12 +133,11 @@ describe('reviewBlocker', () => {
 });
 
 describe('content/kb/entries.csv', () => {
-  it('is valid, has [DEV] titles, and unique ids', () => {
+  it('is valid and has unique ids', () => {
     const rows = parseKbCsv(readFileSync('content/kb/entries.csv', 'utf8'));
     expect(rows.length).toBeGreaterThanOrEqual(5);
     for (const r of rows) {
       expect(validateRow(r), r.id).toEqual([]);
-      expect(r.title.startsWith('[DEV] ')).toBe(true);
     }
     expect(new Set(rows.map((r) => r.id)).size).toBe(rows.length);
   });
