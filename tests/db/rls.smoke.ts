@@ -115,6 +115,19 @@ describe('RLS smoke (live Supabase)', () => {
     await admin.storage.from('garments').remove([`${aId}/small.jpg`, `${aId}/big.jpg`, `${aId}/note.txt`]);
   }, 60_000);
 
+  it('profiles.display_name: max 60 characters, stored trimmed; only the service role writes it', async () => {
+    expect((await admin.from('profiles').update({ display_name: 'Ada' }).eq('id', aId)).error).toBeNull();
+    expect((await admin.from('profiles').update({ display_name: 'x'.repeat(61) }).eq('id', aId)).error).not.toBeNull();
+    expect((await admin.from('profiles').update({ display_name: ' Ada ' }).eq('id', aId)).error).not.toBeNull();
+    expect((await admin.from('profiles').update({ display_name: '' }).eq('id', aId)).error).not.toBeNull();
+
+    // The signed-in user can read their own name but not write it, or premium/demo, directly.
+    expect((await a.from('profiles').select('display_name').eq('id', aId).single()).data?.display_name).toBe('Ada');
+    await a.from('profiles').update({ display_name: 'Hacked', is_premium: true, is_demo: true }).eq('id', aId);
+    const { data } = await admin.from('profiles').select('display_name, is_premium, is_demo').eq('id', aId).single();
+    expect(data).toEqual({ display_name: 'Ada', is_premium: false, is_demo: false });
+  });
+
   it('anyone can read a reviewed kb_entries row', async () => {
     const anonOnly = mk(anon!);
     for (const c of [a, b, anonOnly]) {
