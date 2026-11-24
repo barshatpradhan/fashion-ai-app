@@ -17,7 +17,7 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    `psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -1 -f supabase/migrations/<file>`
 3. **Turn on Anonymous sign-ins**: Supabase dashboard > Authentication > Sign In / Providers > enable "Allow anonymous sign-ins". Without this, visitors cannot use the app.
 4. **Storage bucket**: nothing to click. `0001_init.sql` creates the private `garments` bucket and its access rules. Just check it exists under Storage after migrating.
-5. **Get a Gemini API key** (Google AI Studio). For demo day also get an **OpenAI API key** (used when `IMAGE_PROVIDER=openai`).
+5. **Get a Gemini API key** (Google AI Studio) **and turn on billing for its project.** The free tier allows only **20 requests per day per model**: every scan, guide and "Style me" is one request, so a single rehearsal uses it up (the app then answers "Our stylist is busy"). Also get an **OpenAI API key** (Concept images, `IMAGE_PROVIDER=openai`).
 6. **Fill `.env`**: copy `.env.example` to `.env` and fill in:
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (same values as the URL and anon key above)
@@ -45,7 +45,7 @@ All history claims come from `content/kb/entries.csv` and only show once a team 
 
 1. In Vercel, set `IMAGE_PROVIDER=openai` (make sure `OPENAI_API_KEY` is set) and **redeploy**. Use the same value in `.env` so `prescan` uses the same provider.
 2. On the **laptop** and the **phone**, open `https://<your-site>/demo?key=<DEMO_KEY>`. It signs you in as the demo user and goes to the home page.
-3. Upload **each stage photo once** in `/scan`, through the real app, **on the exact device and browser you will present from** (the browser resizes and re-encodes uploads, so a different phone or browser can produce different image bytes and miss the cache). If you might present from both the laptop and the phone, upload each photo on both. Background removal gives up after 12 s and uses the original photo, so a slow network cannot hang an upload.
+3. Upload **each stage photo once** in `/scan`, through the real app, **on the exact device and browser you will present from** (the browser resizes and re-encodes uploads, so a different phone or browser can produce different image bytes and miss the cache). If you might present from both the laptop and the phone, upload each photo on both. Background removal runs on the GPU in a background worker (the page stays responsive) and its ~111 MB model starts downloading as soon as `/scan` opens, so **open `/scan` a minute before you upload**. It gives up after 12 s and uses the original photo, so a slow network cannot hang an upload.
 4. Run `npm run prescan`. It pre-generates the free guide and concept image for the demo account's scans (`-- --scan <id>` for just one). Check its last line: **"images warmed" must equal the number of scans**. If it is lower, run it again (guides and images already stored are reused, not regenerated).
 5. Check Supabase is awake: free projects pause after inactivity. The daily keep-alive cron prevents this; confirm the project is Active in the dashboard and the site loads data.
 6. **Rehearse the whole demo once** (see section 4) on the real phone and network. Rehearse **"Style me" with the final closet** and the occasion you will use on stage, then **do not add or remove closet pieces afterwards**: the demo fallback for Looks is keyed by the closet's pieces plus the occasion, so any change means no cached Looks if the AI is slow.
@@ -72,4 +72,20 @@ Order, with what to say or point at:
 ## 6. Known limits and owner decisions
 
 - The background-removal library (`@imgly/background-removal`) is **AGPL-3.0** and downloads its model files from **IMG.LY** at runtime. Decide on licensing and hosting before any public launch.
-- The app has **never been run against a real backend yet**. Rehearse fully, and expect to fix small things.
+- **Knowledge base review is still open.** The 8 history entries are drafts, so results show "No verified history" until a team member reviews them (`kb:review`). The 20 recipes and 5 fabric notes were marked reviewed as `claude-dev` so the flow could be tested: re-review them under your own names.
+- The anonymous Free allowance (10 uploads, 10 looks) is per browser session; the demo account is never blocked.
+
+## 7. Verified against the real project (2026-11-23/24)
+
+Checked by hand in the browser (desktop Chrome) against the live Supabase project, Gemini `gemini-3.5-flash` and OpenAI `gpt-image-2`:
+
+- **Database**: all 10 tables answer through the API; anonymous sign-in works; `npm run test:smoke` passes 5/5 (RLS isolation, no client writes to scans or credits, reviewed vs draft KB rows, bucket refuses files over 5 MB and non-images).
+- **Scan**: denim jacket photo -> features (type, collar, pockets, pattern, sleeves, front, colours), fabric note, 1 free + 3 Premium recipes. Breton shirt -> `breton-stripe` 0.95 and the sourced Marinière history (checked with that row reviewed, then returned to draft). Blurry photo -> "too blurry or dark"; coffee cup -> "couldn't find a garment".
+- **Premium gate**: as a Free user, the 3 locked recipes return `402 premium_required` with no steps; recipes not matched to the scan return `404`.
+- **Correction**: changing the type to "shirt" re-ran the lookup (new free recipe, `scan_matches` replaced) and the guide was rewritten for a shirt.
+- **Guide**: steps, Concept image with the CONCEPT badge (render ~30 s), Before/Concept toggle, "I made this" -> remake on the rail as a concept piece, original marked transformed, Garment Story card with the badge.
+- **Closet**: list, Quick add (cut-out, allowance 9 -> 8), delete (row and Storage files removed, in-page confirm).
+- **Looks**: "Style me" built a Look from two real closet pieces on the drawn model; saving it wrote an `outfits` row.
+- **Demo tooling**: `seed:demo` created the Premium demo account; `/demo?key=` signs in (307) and a wrong key is 404; the keep-alive cron answers 200 with `CRON_SECRET` and 401 without.
+- **Layout**: at 390 px every page has no horizontal scroll and every control is >= 44 px (inline text links excepted); 1440 px checked for overflow.
+- **Not verified**: `prescan` (blocked by the Gemini free-tier daily limit, see setup step 5), the Download button on the Story card, and a real phone.
