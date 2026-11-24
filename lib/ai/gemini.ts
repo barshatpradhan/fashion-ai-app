@@ -2,8 +2,9 @@ import { GoogleGenAI } from '@google/genai';
 import { getEnvFor } from '@/lib/env';
 import { mapSdkError } from '@/lib/ai/errors';
 
-export const GEMINI_VISION_MODEL = 'gemini-2.5-flash';
-export const GEMINI_TEXT_MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash is closed to new API keys (404). 3.5-flash verified live 2026-11-23.
+export const GEMINI_VISION_MODEL = 'gemini-3.5-flash';
+export const GEMINI_TEXT_MODEL = 'gemini-3.5-flash';
 export const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
 export function geminiClient(): GoogleGenAI {

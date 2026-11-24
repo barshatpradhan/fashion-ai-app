@@ -22,7 +22,11 @@ export function mapSdkError(err: unknown): unknown {
   if (err instanceof AiRateLimitError || err instanceof AiBadOutputError || err instanceof AiTimeoutError) return err;
   const e = err as { status?: unknown; code?: unknown; message?: unknown } | null;
   const msg = typeof e?.message === 'string' ? e.message : '';
-  if (e?.status === 429 || e?.code === 429 || e?.status === 'RESOURCE_EXHAUSTED' || /RESOURCE_EXHAUSTED/.test(msg)) {
+  // 429 = quota; 503 = provider overloaded ("high demand"). Both are temporary: tell the user to retry.
+  if (
+    e?.status === 429 || e?.code === 429 || e?.status === 'RESOURCE_EXHAUSTED' || /RESOURCE_EXHAUSTED/.test(msg) ||
+    e?.status === 503 || e?.code === 503 || e?.status === 'UNAVAILABLE' || /"UNAVAILABLE"/.test(msg)
+  ) {
     return new AiRateLimitError(undefined, { cause: err });
   }
   return err;
