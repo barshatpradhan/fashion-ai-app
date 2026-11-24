@@ -34,3 +34,8 @@ export function ensureSession(): Promise<string> {
   });
   return session;
 }
+
+/** Forget the memoised user id: call after logging in or out so ensureSession() reads the new session. */
+export function resetSession(): void {
+  session = undefined;
+}
