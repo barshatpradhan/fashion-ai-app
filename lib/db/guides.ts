@@ -36,7 +36,7 @@ export type GuideDeps = {
   imageProvider: string;
   /** Text (guide writer) timeout. */
   timeoutMs: number;
-  /** Image generation timeout: separate and longer (gpt-image-1 often exceeds the text timeout). */
+  /** Image generation timeout: separate and longer (image models often exceed the text timeout). */
   renderTimeoutMs: number;
   guard: <T>(key: string, fn: () => Promise<T>, opts: { timeoutMs: number; demo: boolean }) => Promise<T>;
 };

@@ -5,7 +5,8 @@ import { AiBadOutputError, mapSdkError } from '@/lib/ai/errors';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
 
-export const OPENAI_IMAGE_MODEL = 'gpt-image-1';
+// gpt-image-1 now returns 400 "does not exist". gpt-image-2 verified live 2026-11-24 (8.7 s at low quality).
+export const OPENAI_IMAGE_MODEL = 'gpt-image-2';
 
 export function conceptPrompt(v: VisionResult, recipe: KbEntry): string {
   return `A ${v.fabric_guess.value} ${v.garment_type} redesigned as: ${recipe.title}. ${recipe.body}
@@ -22,6 +23,8 @@ export async function generateConceptImage(v: VisionResult, recipe: KbEntry): Pr
         model: OPENAI_IMAGE_MODEL,
         prompt,
         size: '1024x1024',
+        // Pinned: "auto" may choose high quality, which is slower and can approach the render timeout.
+        quality: 'medium',
       });
       b64 = res.data?.[0]?.b64_json;
     } catch (err) {

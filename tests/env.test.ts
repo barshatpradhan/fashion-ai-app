@@ -12,10 +12,10 @@ const valid = {
 };
 
 describe('parseEnv', () => {
-  it('defaults IMAGE_PROVIDER to gemini, AI_TIMEOUT_MS to 20000 and RENDER_TIMEOUT_MS to 50000', () => {
+  it('defaults IMAGE_PROVIDER to gemini, AI_TIMEOUT_MS to 30000 and RENDER_TIMEOUT_MS to 50000', () => {
     const e = parseEnv({ ...valid, IMAGE_PROVIDER: undefined });
     expect(e.IMAGE_PROVIDER).toBe('gemini');
-    expect(e.AI_TIMEOUT_MS).toBe(20000);
+    expect(e.AI_TIMEOUT_MS).toBe(30000);
     expect(e.RENDER_TIMEOUT_MS).toBe(50000);
   });
   it('requires OPENAI_API_KEY when IMAGE_PROVIDER is openai', () => {
@@ -33,7 +33,7 @@ describe('parseEnvFor (per-use validation)', () => {
     expect(() => parseEnvFor({ SUPABASE_URL: 'u' }, ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'])).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
   });
   it('applies defaults and the openai rule when IMAGE_PROVIDER is requested', () => {
-    expect(parseEnvFor({}, ['AI_TIMEOUT_MS', 'RENDER_TIMEOUT_MS'])).toEqual({ AI_TIMEOUT_MS: 20000, RENDER_TIMEOUT_MS: 50000 });
+    expect(parseEnvFor({}, ['AI_TIMEOUT_MS', 'RENDER_TIMEOUT_MS'])).toEqual({ AI_TIMEOUT_MS: 30000, RENDER_TIMEOUT_MS: 50000 });
     expect(() => parseEnvFor({ IMAGE_PROVIDER: 'openai' }, ['IMAGE_PROVIDER'])).toThrow(/OPENAI_API_KEY/);
   });
 });

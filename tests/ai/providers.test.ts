@@ -101,6 +101,14 @@ describe('generateConceptImage', () => {
     expect(h.geminiGen).not.toHaveBeenCalled();
     expect(Array.from(out)).toEqual([1, 2, 3]);
   });
+  // Regression: OpenAI now answers "The model 'gpt-image-1' does not exist" (400). gpt-image-2 verified live
+  // (8.7 s); quality is pinned so "auto" cannot pick a slow high-quality render near the 50 s limit.
+  it('asks OpenAI for gpt-image-2 at medium quality', async () => {
+    h.env.IMAGE_PROVIDER = 'openai';
+    h.openaiGen.mockResolvedValue({ data: [{ b64_json: Buffer.from(bytes).toString('base64') }] });
+    await generateConceptImage(vision, recipe);
+    expect(h.openaiGen.mock.calls[0][0]).toMatchObject({ model: 'gpt-image-2', quality: 'medium', size: '1024x1024' });
+  });
   it('uses Gemini when IMAGE_PROVIDER=gemini', async () => {
     h.geminiGen.mockResolvedValue({
       candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from(bytes).toString('base64') } }] } }],

@@ -22,14 +22,14 @@ Plain-language guide for the presenter. Work top to bottom. Commands are run in 
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (same values as the URL and anon key above)
    - `GEMINI_API_KEY`, and `OPENAI_API_KEY` (required whenever `IMAGE_PROVIDER=openai`)
-   - `IMAGE_PROVIDER=gemini` for now
+   - `IMAGE_PROVIDER=openai` (Concept images use `gpt-image-2`; Gemini image generation needs a paid quota and returns 429 on a free key)
    - `DEMO_KEY`: a long random secret (30+ random characters). Anyone with it can sign in as the demo user, so do not share it.
    - `CRON_SECRET` (optional): a long random string. If set, the keep-alive job requires it (Vercel sends it automatically); if left unset, the job needs no auth.
-   - `AI_TIMEOUT_MS=20000` and `RENDER_TIMEOUT_MS=50000` (leave as is; image generation needs the longer timeout)
+   - `AI_TIMEOUT_MS=30000` and `RENDER_TIMEOUT_MS=50000` (leave as is; single AI calls were measured spiking near 20 s, and image generation needs the longer timeout)
    - `DEMO_USER_ID`: filled in the next step.
 7. **Create the demo account**: run `npm run seed:demo` (it only needs the Supabase variables; `DEMO_USER_ID` may still be blank). It prints a `DEMO_USER_ID`; copy it into `.env` (and later into Vercel). The demo user is created with the email `demo@revivo.local`, which `/demo` needs to sign you in. Optional: `npm run seed:demo -- --photos <folder>`.
 8. **Check the security rules once**: run `npm run test:smoke`. It reads `.env` and should pass. It **fails** (never skips) if the Supabase variables are missing; if it fails, stop and fix before going on.
-9. **Deploy to Vercel (the owner does this)**: import the repo, set the same env vars from `.env`, with `IMAGE_PROVIDER=gemini`. `vercel.json` already schedules the daily keep-alive job (`/api/cron/keepalive`, 06:00 UTC).
+9. **Deploy to Vercel (the owner does this)**: import the repo, set the same env vars from `.env`, with `IMAGE_PROVIDER=openai`. `vercel.json` already schedules the daily keep-alive job (`/api/cron/keepalive`, 06:00 UTC).
 
 ## 2. Knowledge base
 
@@ -64,7 +64,7 @@ Order, with what to say or point at:
 
 ## 5. If something goes wrong
 
-- **Slow network**: the demo cache answers within `AI_TIMEOUT_MS` (20 s). Wait it out; do not refresh repeatedly.
+- **Slow network**: the demo cache answers within `AI_TIMEOUT_MS` (30 s). Wait it out; do not refresh repeatedly.
 - **"Our stylist is busy right now. Please try again in a moment."**: wait a few seconds and retry once.
 - **Do not** scan new, un-prescanned photos on stage. Stick to the photos you uploaded and prescanned.
 - If sign-in fails, reopen `/demo?key=...`. If it still fails, check `DEMO_USER_ID` and that the Supabase project is awake.

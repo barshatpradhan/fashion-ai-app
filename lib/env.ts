@@ -9,8 +9,9 @@ const shape = z.object({
   IMAGE_PROVIDER: z.enum(['gemini', 'openai']).default('gemini'),
   DEMO_KEY: z.string().min(1),
   DEMO_USER_ID: z.string().min(1),
-  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
-  /** Image generation (gpt-image-1) routinely exceeds the text timeout; stays under the route's 60 s maxDuration. */
+  /** Single text/vision calls were measured spiking near 20 s; the AI routes allow 60 s. */
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+  /** Image generation routinely exceeds the text timeout; stays under the route's 60 s maxDuration. */
   RENDER_TIMEOUT_MS: z.coerce.number().int().positive().default(50000),
 });
 
