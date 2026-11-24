@@ -1,6 +1,7 @@
 'use client';
 import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground } from '@/lib/image/prepare';
+import { cropToContent } from '@/lib/image/crop';
 
 const BUCKET = 'garments';
 
@@ -29,7 +30,8 @@ export async function uploadPhoto(file: File, onStep?: (step: string) => void): 
   const userId = await ensureSession();
   const prepared = await prepareImage(file);
   onStep?.('Lifting it from the background');
-  const cutout = await removeBackground(prepared.jpeg);
+  const raw = await removeBackground(prepared.jpeg);
+  const cutout = raw ? await cropToContent(raw) : null; // trimmed to the garment
   onStep?.('Uploading');
   const storage = browserClient().storage.from(BUCKET);
   const id = crypto.randomUUID();
@@ -56,5 +58,34 @@ export async function removeUploaded(paths: string[]): Promise<void> {
     await browserClient().storage.from(BUCKET).remove(paths);
   } catch (err) {
     console.warn('could not remove uploaded photo', err);
+  }
+}
+
+/**
+ * A piece saved as its plain photo (background removal failed at the time): cut it out now in the browser,
+ * trim it to the garment, upload it and point the garment at it. Returns an object URL of the new cut-out,
+ * or null when it could not be cut out (the photo stays as it is).
+ */
+export async function cutOutSavedPhoto(garmentId: string, photoUrl: string): Promise<string | null> {
+  try {
+    const userId = await ensureSession();
+    const res = await fetch(photoUrl);
+    if (!res.ok) return null;
+    const raw = await removeBackground(await res.blob());
+    if (!raw) return null;
+    const cutout = await cropToContent(raw);
+    const path = `${userId}/${crypto.randomUUID()}-cutout.png`;
+    const storage = browserClient().storage.from(BUCKET);
+    const up = await storage.upload(path, cutout, { contentType: 'image/png', upsert: false });
+    if (up.error) return null;
+    const r = await postCloset({ action: 'set_cutout', garmentId, cutoutPath: path });
+    if (r.status !== 200) {
+      await removeUploaded([path]);
+      return null;
+    }
+    return URL.createObjectURL(cutout);
+  } catch (err) {
+    console.warn('could not cut out a saved photo', err);
+    return null;
   }
 }

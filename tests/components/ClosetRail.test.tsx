@@ -7,7 +7,7 @@ import type { ClosetGarment } from '@/lib/db/closet';
 
 const g = (id: string, over: Partial<ClosetGarment> = {}): ClosetGarment => ({
   id, category: 'clothing', name: `Piece ${id}`, imageKind: 'photo', tags: ['denim'], status: 'active',
-  isUpcycled: false, scanId: null, recipeId: null, createdAt: '2026-11-22T00:00:00Z', imageUrl: null, ...over,
+  isUpcycled: false, scanId: null, recipeId: null, createdAt: '2026-11-22T00:00:00Z', imageUrl: null, needsCutout: false, ...over,
 });
 
 afterEach(cleanup);

@@ -1,11 +1,11 @@
 'use client';
 import Link from 'next/link';
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ensureSession } from '@/lib/db/browser';
 import { UnsupportedImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError } from '@/lib/ui/messages';
 import { filterGarments, noUploadsMessage, type AllowanceView, type ClosetFilter } from '@/lib/ui/closet';
-import { postCloset, removeUploaded, uploadPhoto } from '@/lib/ui/closetClient';
+import { cutOutSavedPhoto, postCloset, removeUploaded, uploadPhoto } from '@/lib/ui/closetClient';
 import type { ClosetGarment } from '@/lib/db/closet';
 import { ClosetRail } from '@/components/ClosetRail';
 import { AllowanceBadge } from '@/components/AllowanceBadge';
@@ -30,6 +30,9 @@ export default function ClosetPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<ClosetFilter>('all');
+  /** Photo-only pieces being cut out now (ids), so each is tried once per visit. */
+  const [cutting, setCutting] = useState<number>(0);
+  const tried = useRef(new Set<string>());
 
   const refresh = useCallback(async () => {
     await ensureSession();
@@ -45,6 +48,31 @@ export default function ClosetPage() {
       setLoad({ kind: 'error' });
     });
   }, [refresh]);
+
+  // Pieces saved as a plain photo get cut out and cropped to the cloth, one at a time, in the background.
+  const garmentsNow = load.kind === 'ready' ? load.closet.garments : null;
+  useEffect(() => {
+    if (!garmentsNow) return;
+    const todo = garmentsNow.filter((g) => g.needsCutout && g.imageUrl && !tried.current.has(g.id)).slice(0, 6);
+    if (!todo.length) return;
+    todo.forEach((g) => tried.current.add(g.id));
+    let live = true;
+    setCutting(todo.length);
+    void (async () => {
+      for (const g of todo) {
+        const url = await cutOutSavedPhoto(g.id, g.imageUrl as string);
+        if (!live) return;
+        setCutting((n) => Math.max(0, n - 1));
+        if (url) {
+          setLoad((l) => l.kind !== 'ready' ? l : {
+            kind: 'ready',
+            closet: { ...l.closet, garments: l.closet.garments.map((x) => (x.id === g.id ? { ...x, imageUrl: url, needsCutout: false } : x)) },
+          });
+        }
+      }
+    })();
+    return () => { live = false; };
+  }, [garmentsNow]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -184,6 +212,12 @@ export default function ClosetPage() {
       ) : null}
       {error ? <p className={ui.error} role="alert">{error}</p> : null}
       {notice ? <p className={c.inline} role="status">{notice}</p> : null}
+      {cutting ? (
+        <p className={ui.status} role="status" aria-live="polite">
+          <span className={ui.pulse} aria-hidden="true" />
+          Cutting {cutting === 1 ? 'one photo' : `${cutting} photos`} out of their backgrounds…
+        </p>
+      ) : null}
       </div>
 
       {load.kind === 'loading' ? (

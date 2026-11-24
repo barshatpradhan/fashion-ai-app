@@ -34,6 +34,8 @@
 .stage {
   position: relative;
   margin-top: var(--space-6);
+  /* One blending group for rail, faded word and chosen piece: a photo's white drops out over all of them. */
+  isolation: isolate;
 }
 
 .railWrap {
@@ -242,7 +244,6 @@
   gap: var(--space-5);
   margin-top: var(--space-4);
   padding: var(--space-5);
-  isolation: isolate;
 }
 
 /* A big faded word behind the piece: its first tag, or its kind. */

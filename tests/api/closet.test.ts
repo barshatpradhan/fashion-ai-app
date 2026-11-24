@@ -84,6 +84,10 @@ function world(opts: { profile?: Partial<Profile>; gate?: RecipeGate } = {}) {
       return true;
     }),
     deleteGarment: vi.fn(async (id: string) => { garments.delete(id); }),
+    setCutout: vi.fn(async (id: string, path: string) => {
+      const g = garments.get(id)!;
+      garments.set(id, { ...g, cutoutPath: path });
+    }),
     insertActivity: vi.fn(async (userId: string, kind, garmentId: string | null) => { activity.push({ userId, kind, garmentId }); }),
     clearScanImages: vi.fn(async (scanId: string) => {
       const s = scans.get(scanId)!;
@@ -384,6 +388,48 @@ describe('delete_scan', () => {
     w.addGarment({ scanId: 'scan-1' });
     expect(await post(w, { action: 'delete_scan', scanId: 'scan-1' })).toEqual({ status: 409, body: { error: 'scan_in_use' } });
     expect(w.storage.size).toBe(2);
+  });
+});
+
+describe('set_cutout (a photo-only piece gets its cut-out later)', () => {
+  const photoPiece = (w: ReturnType<typeof world>, over: Partial<GarmentRow> = {}) =>
+    w.addGarment({ imagePath: `${U}/p.jpg`, cutoutPath: `${U}/p.jpg`, ...over });
+
+  it('swaps the photo for the uploaded cut-out', async () => {
+    const w = world();
+    const g = photoPiece(w);
+    const r = await post(w, { action: 'set_cutout', garmentId: g.id, cutoutPath: `${U}/p-cutout.png` });
+    expect(r.status).toBe(200);
+    expect(w.garments.get(g.id)!.cutoutPath).toBe(`${U}/p-cutout.png`);
+  });
+
+  it('refuses a piece that already has a cut-out, a concept piece, or someone else\'s piece', async () => {
+    const w = world();
+    const cut = w.addGarment({ imagePath: `${U}/a.jpg`, cutoutPath: `${U}/a-cutout.png` });
+    const concept = w.addGarment({ imageKind: 'concept', imagePath: null, cutoutPath: `${U}/concept.png` });
+    const theirs = photoPiece(w, { userId: OTHER, imagePath: `${OTHER}/p.jpg`, cutoutPath: `${OTHER}/p.jpg` });
+    expect((await post(w, { action: 'set_cutout', garmentId: cut.id, cutoutPath: `${U}/x-cutout.png` })).status).toBe(409);
+    expect((await post(w, { action: 'set_cutout', garmentId: concept.id, cutoutPath: `${U}/x-cutout.png` })).status).toBe(409);
+    expect((await post(w, { action: 'set_cutout', garmentId: theirs.id, cutoutPath: `${U}/x-cutout.png` })).status).toBe(404);
+    expect(w.repo.setCutout).not.toHaveBeenCalled();
+  });
+
+  it('only accepts a PNG cut-out in the user\'s own folder', async () => {
+    const w = world();
+    const g = photoPiece(w);
+    for (const cutoutPath of [`${OTHER}/p-cutout.png`, `${U}/p-cutout.jpg`, `${U}/../x.png`, 7, undefined]) {
+      expect((await post(w, { action: 'set_cutout', garmentId: g.id, cutoutPath })).status).toBe(400);
+    }
+    expect(w.repo.setCutout).not.toHaveBeenCalled();
+  });
+
+  it('GET flags photo-only pieces as needing a cut-out', async () => {
+    const w = world();
+    const a = photoPiece(w);
+    const b = w.addGarment({ imagePath: `${U}/b.jpg`, cutoutPath: `${U}/b-cutout.png` });
+    const r = await loadCloset(U, w.deps);
+    const byId = Object.fromEntries(r.body.garments.map((g) => [g.id, g.needsCutout]));
+    expect(byId).toEqual({ [a.id]: true, [b.id]: false });
   });
 });
 

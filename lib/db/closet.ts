@@ -16,6 +16,7 @@ export const CLOSET_ERRORS = {
   alreadySaved: 'already_saved',
   noUploads: 'no_uploads',
   notActive: 'not_active',
+  hasCutout: 'has_cutout',
   scanInUse: 'scan_in_use',
   busy: 'concurrent_spend',
 } as const;
@@ -54,6 +55,8 @@ export type ClosetGarment = {
   id: string; category: GarmentRow['category']; name: string; imageKind: GarmentRow['imageKind'];
   tags: string[]; status: GarmentStatus; isUpcycled: boolean; scanId: string | null; recipeId: string | null;
   createdAt: string; imageUrl: string | null;
+  /** A photo saved without a cut-out (background removal failed then): the page cuts it out and saves it. */
+  needsCutout: boolean;
 };
 export type AllowanceOut = { remaining: number | 'unlimited'; nextCreditAt: string | null };
 
@@ -80,6 +83,8 @@ export interface ClosetRepo {
   /** Compare-and-set on status. Returns whether the row changed. */
   setStatus(garmentId: string, from: GarmentStatus, to: GarmentStatus): Promise<boolean>;
   deleteGarment(garmentId: string): Promise<void>;
+  /** Point a photo-only garment at its new cut-out. */
+  setCutout(garmentId: string, cutoutPath: string): Promise<void>;
   insertActivity(userId: string, kind: 'upload' | 'reconstruct', garmentId: string | null): Promise<void>;
   /** Null the scan's image paths; text, vision and corrections stay. */
   clearScanImages(scanId: string): Promise<void>;
@@ -311,6 +316,20 @@ async function deleteGarment(userId: string, b: Body, deps: ClosetDeps): Promise
   return { status: 200, body: { deleted: g.id } };
 }
 
+/**
+ * A piece saved as its plain photo (background removal failed or timed out at the time) gets its cut-out
+ * later: the browser cuts it out, uploads <own folder>/...-cutout.png and points the garment at it.
+ */
+async function setCutout(userId: string, b: Body, deps: ClosetDeps): Promise<ClosetResult> {
+  if (!str(b.garmentId) || !ownedPath(userId, b.cutoutPath) || !/-cutout\.png$/.test(b.cutoutPath)) return bad();
+  const { repo } = deps;
+  const g = await repo.getGarment(b.garmentId);
+  if (!g || g.userId !== userId) return fail(404, CLOSET_ERRORS.notFound);
+  if (g.imageKind !== 'photo' || !g.imagePath || g.cutoutPath !== g.imagePath) return fail(409, CLOSET_ERRORS.hasCutout);
+  await repo.setCutout(g.id, b.cutoutPath);
+  return { status: 200, body: { garmentId: g.id } };
+}
+
 async function deleteScan(userId: string, b: Body, deps: ClosetDeps): Promise<ClosetResult> {
   if (!str(b.scanId)) return bad();
   const { repo } = deps;
@@ -334,6 +353,7 @@ export async function runClosetAction(userId: string, input: unknown, deps: Clos
     case 'made_this': return madeThis(userId, b, deps);
     case 'delete': return deleteGarment(userId, b, deps);
     case 'delete_scan': return deleteScan(userId, b, deps);
+    case 'set_cutout': return setCutout(userId, b, deps);
     default: return bad();
   }
 }
@@ -360,6 +380,7 @@ export async function loadCloset(
         id: g.id, category: g.category, name: g.name ?? 'Untitled piece', imageKind: g.imageKind, tags: g.tags,
         status: g.status, isUpcycled: isUpcycledRow(g), scanId: g.scanId, recipeId: g.recipeId,
         createdAt: g.createdAt, imageUrl: g.cutoutPath ? urls[g.cutoutPath] ?? null : null,
+        needsCutout: g.imageKind === 'photo' && !!g.imagePath && g.cutoutPath === g.imagePath,
       })),
       allowance: { uploads: out(peek(up.state, now, display(up.tier))), looks: out(peek(look.state, now, display(look.tier))) },
     },
@@ -446,6 +467,10 @@ export function supabaseClosetRepo(): ClosetRepo {
         .eq('id', garmentId).eq('status', from).select('id');
       if (error) throw error;
       return (data?.length ?? 0) > 0;
+    },
+    async setCutout(garmentId, cutoutPath) {
+      const { error } = await db.from('garments').update({ cutout_path: cutoutPath }).eq('id', garmentId);
+      if (error) throw error;
     },
     async deleteGarment(garmentId) {
       const { error } = await db.from('garments').delete().eq('id', garmentId);

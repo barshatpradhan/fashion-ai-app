@@ -3,6 +3,7 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { ClosetGarment } from '@/lib/db/closet';
 import { humanize } from '@/lib/ui/result';
 import { Badge } from './Badge';
+import { ClothImage } from './ClothImage';
 import ui from './ui.module.css';
 import c from './closet.module.css';
 
@@ -101,8 +102,7 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
                 <Hook />
                 <span className={c.figure}>
                   {g.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
-                    <img src={g.imageUrl} alt="" loading="lazy" draggable={false} />
+                    <ClothImage src={g.imageUrl} loading="lazy" />
                   ) : (
                     <span className={c.placeholder} />
                   )}
@@ -127,8 +127,7 @@ export function ClosetRail({ garments, label, variant = 'current', onDelete }: P
           <div className={c.detailFigure}>
             <Hook />
             {active.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- short-lived signed Storage URL
-              <img src={active.imageUrl} alt="" draggable={false} />
+              <ClothImage src={active.imageUrl} />
             ) : (
               <span className={c.placeholder} />
             )}

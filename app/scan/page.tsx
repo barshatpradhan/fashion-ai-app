@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground, preloadBackgroundRemoval, UnsupportedImageError, TooLargeImageError } from '@/lib/image/prepare';
+import { cropToContent } from '@/lib/image/crop';
 import { MESSAGES, messageForError, isExpectedOutcome } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
 import { ScanCapture } from '@/components/ScanCapture';
@@ -119,7 +120,8 @@ export default function ScanPage() {
       showPreview(prepared.jpeg);
 
       setPhase({ kind: 'working', step: 'Lifting the garment from the background' });
-      const cutout = await removeBackground(prepared.jpeg);
+      const rawCutout = await removeBackground(prepared.jpeg);
+      const cutout = rawCutout ? await cropToContent(rawCutout) : null; // trimmed to the garment
 
       setPhase({ kind: 'working', step: 'Uploading' });
       const storage = browserClient().storage.from(BUCKET);
