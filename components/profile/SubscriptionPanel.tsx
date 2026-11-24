@@ -38,11 +38,11 @@ export function SubscriptionPanel({ isPremium, isGuest, provider, onChange, chil
       <div className={a.form}>
         <div>
           <strong>{PLANS.free.name}</strong>
-          <ul className={ui.hint}>{PLANS.free.includes.map((i) => <li key={i}>{i}</li>)}</ul>
+          <ul className={a.planList}>{PLANS.free.includes.map((i) => <li key={i}>{i}</li>)}</ul>
         </div>
         <div>
           <strong>{PLANS.premium.name} · {PLANS.premium.price}</strong>
-          <ul className={ui.hint}>{PLANS.premium.includes.map((i) => <li key={i}>{i}</li>)}</ul>
+          <ul className={a.planList}>{PLANS.premium.includes.map((i) => <li key={i}>{i}</li>)}</ul>
         </div>
       </div>
 

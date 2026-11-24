@@ -12,3 +12,14 @@ describe.each(['app/signup/page.tsx', 'app/signup/complete/page.tsx', 'app/login
     });
   },
 );
+
+// The plan lists used ui.hint (a narrow uppercase caption style), so "1 free recipe per scan" wrapped
+// into a cramped column. They use a plain body-text list instead.
+describe('SubscriptionPanel lists', () => {
+  it('use the plan list style, not the caption hint', () => {
+    const src = readFileSync('components/profile/SubscriptionPanel.tsx', 'utf8');
+    expect(src).not.toMatch(/<ul className=\{ui\.hint\}>/);
+    expect(src).toContain('<ul className={a.planList}>');
+    expect(readFileSync('components/auth.module.css', 'utf8')).toMatch(/\.planList \{[^}]*font-family: var\(--font-body\)/);
+  });
+});

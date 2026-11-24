@@ -214,8 +214,11 @@ describe('changeEmail', () => {
     expect(await changeEmail('nope', port(me), ORIGIN)).toEqual({ ok: false, message: 'Enter a valid email address.' });
     expect(await changeEmail('OLD@example.test', port(me), ORIGIN)).toEqual({ ok: false, message: 'That is already your email.' });
   });
-  it('a taken address gets the neutral message', async () => {
-    const p = port(me, { updateUser: vi.fn(async () => ({ user: null, error: err(422, 'email_exists') })) });
-    expect(await changeEmail('new@example.test', p, ORIGIN)).toEqual({ ok: false, message: "We couldn't use that email. If you already have an account, log in instead." });
-  });
+  // Regression: on the profile page this said "...log in instead", which makes no sense to a signed-in user.
+  it.each([['email_exists'], ['email_address_invalid'], ['email_address_not_authorized']])(
+    '%s gets profile wording that reveals nothing', async (code) => {
+      const p = port(me, { updateUser: vi.fn(async () => ({ user: null, error: err(400, code) })) });
+      expect(await changeEmail('new@example.test', p, ORIGIN)).toEqual({ ok: false, message: "We couldn't send a confirmation to that address. Check it, or try another one." });
+    },
+  );
 });

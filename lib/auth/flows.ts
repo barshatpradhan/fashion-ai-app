@@ -182,6 +182,9 @@ export async function changeEmail(next: string, port: AuthPort, origin: string):
   if (user?.email && user.email.toLowerCase() === email.toLowerCase()) return { ok: false, message: 'That is already your email.' };
   const r = await port.updateUser({ email }, { emailRedirectTo: callbackUrl(origin, '/profile') });
   if (!r.error) return { ok: true };
-  const mapped = signUpError(r.error);
-  return { ok: false, message: mapped.kind === 'error' ? mapped.message : GENERIC };
+  if (isRateLimit(r.error)) return { ok: false, message: RATE_LIMITED };
+  if (r.error.code && /email|user_already_exists/.test(r.error.code)) {
+    return { ok: false, message: "We couldn't send a confirmation to that address. Check it, or try another one." };
+  }
+  return { ok: false, message: GENERIC };
 }

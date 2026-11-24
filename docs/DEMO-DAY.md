@@ -59,7 +59,7 @@ Order, with what to say or point at:
 2. **Result** - Point at the detected garment, fabric and named style.
 3. **Free Recipe Guide** - Open the free recipe: step-by-step redesign with tools and difficulty, plus the sourced history.
 4. **Story Card** - Show the shareable card for the piece.
-5. **Free/Premium switch** (hidden, on the Profile page) - Before the demo, open **Profile** in the nav (`/profile`) and tap **Free** (under "Flip this account between Free and Premium to show both experiences"). Back on the result screen, point at the locked Recipe cards (marked "Premium", no link). The Upload and Look allowance counters are on **Closet** (`/closet`), **Looks** (`/looks`) and **Profile** (`/profile`), not on the result screen; on Free they show the real free counts (the demo account is still never blocked). Then tap **Upgrade to Premium · $7.99/month** on `/profile` (or **Premium** in the same switch) to unlock everything. If you open a locked guide instead, its page says "This guide is part of Premium" with an **Upgrade · $7.99/month** button.
+5. **Free/Premium switch** (hidden, on the Profile page) - Before the demo, open **Profile** in the nav (`/profile`) and tap **Free** (under "Flip this account between Free and Premium to show both experiences"). Back on the result screen, point at the locked Recipe cards (marked "Premium", no link). The Upload and Look allowance counters are on **Closet** (`/closet`), **Looks** (`/looks`) and **Profile** (`/profile`), not on the result screen; on Free they show the real free counts (the demo account is still never blocked). Then tap **Upgrade to Premium** in the Subscription section on `/profile` (or **Premium** in the same switch) to unlock everything. If you open a locked guide instead, its page says "This guide is part of Premium" with an **Upgrade · $7.99/month** button.
 6. **Closet** - Show the saved pieces.
 7. **Style me** - Generate outfits from the closet.
 
@@ -89,4 +89,28 @@ Checked by hand in the browser (desktop Chrome) against the live Supabase projec
 - **Looks**: "Style me" built a Look from two real closet pieces on the drawn model; saving it wrote an `outfits` row.
 - **Demo tooling**: `seed:demo` created the Premium demo account; `/demo?key=` signs in (307) and a wrong key is 404; the keep-alive cron answers 200 with `CRON_SECRET` and 401 without.
 - **Layout**: at 390 px every page has no horizontal scroll and every control is >= 44 px (inline text links excepted); 1440 px checked for overflow.
-- **Not verified**: `prescan` (blocked by the Gemini free-tier daily limit, see setup step 5), the Download button on the Story card, and a real phone.
+- **Not verified**: the Download button on the Story card, and a real phone. (`prescan` was verified later, after the Gemini key was replaced: 1 guide and 1 image warmed.)
+
+## 8. Accounts (sign up, log in, profile)
+
+Guests are still signed in anonymously, so there is no sign-up wall. **Sign up** turns that same guest into an account: same user id, so the closet, scans and looks stay. **Log in** to another account leaves the guest's pieces behind, with a warning first. Premium needs an account: a guest who taps Upgrade is sent to sign up. The subscription section is a placeholder ("Demo: no payment is taken."); a real payment provider plugs in at `lib/billing/paymentProvider.ts`.
+
+Supabase dashboard settings:
+
+1. **Authentication > Sign In / Providers > Email**: provider on. **"Confirm email"** is **off for development**. With it on, sign-up shows "Check your email" and the password is set from the link on `/signup/complete`. Turn it back **on** before a public launch.
+2. **Authentication > URL Configuration**: Site URL `http://localhost:3000` (the production URL once deployed); Redirect URLs `http://localhost:3000/auth/callback`, `http://localhost:3002/auth/callback` and `https://<your-site>/auth/callback`.
+3. **Authentication > Emails > SMTP Settings**: the built-in sender only delivers to project team members, a few emails per hour, and refuses test domains. Forgot-password and email-change emails need a custom SMTP provider to reach real users.
+
+Test accounts for local checks: copy `scripts/auth-test-accounts.example.json` to `scripts/auth-test-accounts.local.json` (git-ignored) with throwaway values.
+
+Verified on localhost (2026-11-24):
+
+- A guest scanned a garment, signed up, and the piece stayed (same user id, no longer anonymous).
+- Log out started an empty guest; logging back in showed the account's piece.
+- The log-in warning for a guest with saved pieces; Cancel keeps what was typed. One generic error for a wrong password.
+- Forgot password always answers "If an account exists, we've sent a link". The reset link (generated on the server, since the built-in sender refuses test domains) went through `/auth/callback` to `/reset-password`; afterwards the old password was refused and the new one worked.
+- Display name (trimmed; the nav updated), password change (a wrong current password changes nothing), email change applied through its confirmation link.
+- Upgrade and Cancel flipped `is_premium` with no payment; a guest's upgrade was refused (403).
+- Delete account removed the user, profile, scans, garments, activity and Storage photos.
+- At 390 px the account pages have no horizontal scroll and every input is labelled.
+- Not verified: email delivery itself (needs SMTP, setting 3).
