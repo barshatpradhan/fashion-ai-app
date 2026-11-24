@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     } catch {
       return NextResponse.json({ error: SCAN_ERRORS.badRequest }, { status: 400 });
     }
-    const result = await runPremiumAction(data.user.id, input, supabasePremiumRepo());
+    const result = await runPremiumAction(data.user.id, input, supabasePremiumRepo(), { isGuest: data.user.is_anonymous === true });
     return NextResponse.json(result.body, { status: result.status });
   } catch (err) {
     console.error('premium failed', err);

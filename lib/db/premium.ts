@@ -17,11 +17,15 @@ export type PremiumResult = {
  * Premium is a toggle, not a payment. `upgrade`/`downgrade` act on the caller; `demo_toggle` is the
  * presenter's switch and only works for the demo account. Downgrading never touches Garments.
  */
-export async function runPremiumAction(userId: string, input: unknown, repo: PremiumRepo): Promise<PremiumResult> {
+export async function runPremiumAction(
+  userId: string, input: unknown, repo: PremiumRepo, opts: { isGuest: boolean } = { isGuest: false },
+): Promise<PremiumResult> {
   const action = (input as { action?: unknown } | null)?.action;
   if (action !== 'upgrade' && action !== 'downgrade' && action !== 'demo_toggle') {
     return { status: 400, body: { error: 'bad_request' } };
   }
+  // A guest (anonymous user) must create an account first, so Premium is never tied to a throwaway session.
+  if (action === 'upgrade' && opts.isGuest) return { status: 403, body: { error: 'signup_required' } };
   const flags = await repo.getFlags(userId);
   let next: boolean;
   if (action === 'demo_toggle') {
