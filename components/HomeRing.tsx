@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ui from '@/components/ui.module.css';
 import s from '@/components/homeRing.module.css';
+import { Badge } from '@/components/Badge';
 import { SECOND_LIVES, ringPose } from '@/components/secondLives';
 
 const N = SECOND_LIVES.length;
@@ -17,11 +18,21 @@ function Garment({ d, fill, detail }: { d: string; fill: string; detail?: string
   );
 }
 
+/** An original AI-made person wearing the second life, seen from above. The button carries the name. */
+function Figure({ src }: { src: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- small static WebP; next/image adds nothing here
+    <img src={src} alt="" data-figure draggable={false} decoding="async" className={s.figure} />
+  );
+}
+
 /** Front page: nine second lives orbiting a headline. Ring or grid; autoplay stops on any interaction. */
 export function HomeRing() {
   const [rot, setRot] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [view, setView] = useState<'ring' | 'grid'>('ring');
+  /** A figure under the pointer or keyboard focus: the dock previews it without turning the ring. */
+  const [hover, setHover] = useState<number | null>(null);
 
   // Reduced motion: never autoplay. Stop on mount and whenever the preference turns on.
   useEffect(() => {
@@ -34,13 +45,19 @@ export function HomeRing() {
   }, []);
 
   useEffect(() => {
-    if (!playing || view !== 'ring') return;
+    if (!playing || view !== 'ring' || hover !== null) return;
     const id = setInterval(() => setRot((r) => (r + 1) % N), 3500);
     return () => clearInterval(id);
-  }, [playing, view]);
+  }, [playing, view, hover]);
 
-  const cur = SECOND_LIVES[rot];
+  const cur = SECOND_LIVES[hover ?? rot];
   const num = String(rot + 1).padStart(2, '0');
+  const preview = (i: number) => ({
+    onMouseEnter: () => setHover(i),
+    onMouseLeave: () => setHover((h) => (h === i ? null : h)),
+    onFocus: () => setHover(i),
+    onBlur: () => setHover((h) => (h === i ? null : h)),
+  });
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (view !== 'ring') return;
@@ -51,6 +68,7 @@ export function HomeRing() {
   return (
     <section className={s.wrap} aria-roledescription="carousel" aria-label="Nine second lives">
       <div className={s.stage} onKeyDown={onKeyDown} tabIndex={0} role="group" aria-label="Nine second lives, use arrow keys">
+        <Badge variant="concept" className={s.concept} />
         <div className={`${ui.seg} ${s.toggle}`} role="group" aria-label="View">
           <button type="button" className={ui.choice} aria-pressed={view === 'ring'} onClick={() => setView('ring')}>Ring</button>
           <button type="button" className={ui.choice} aria-pressed={view === 'grid'} onClick={() => { setView('grid'); setPlaying(false); }}>Grid</button>
@@ -79,8 +97,9 @@ export function HomeRing() {
                     opacity: Number(p.opacity.toFixed(2)),
                   }}
                   onClick={() => { setRot(i); setPlaying(false); }}
+                  {...preview(i)}
                 >
-                  <Garment d={l.d} fill={l.fill} detail={l.detail} />
+                  <Figure src={l.figure} />
                 </button>
               );
             })}
@@ -90,8 +109,8 @@ export function HomeRing() {
             <h1 className={ui.visuallyHidden}>Keep it in the loop</h1>
           <div className={s.grid}>
             {SECOND_LIVES.map((l, i) => (
-              <button key={l.name} type="button" className={s.cell} onClick={() => { setRot(i); setView('ring'); setPlaying(false); }}>
-                <Garment d={l.d} fill={l.fill} detail={l.detail} />
+              <button key={l.name} type="button" className={s.cell} onClick={() => { setRot(i); setView('ring'); setPlaying(false); setHover(null); }} {...preview(i)}>
+                <Figure src={l.figure} />
                 {l.name}
               </button>
             ))}
@@ -117,32 +136,22 @@ export function HomeRing() {
               )}
             </button>
           </div>
-          <p className={s.name} aria-live={playing ? 'off' : 'polite'}>{cur.name}</p>
+          <p className={s.name} aria-live={playing || hover !== null ? 'off' : 'polite'}>{cur.name}</p>
+          <p className={s.meta}>{cur.recipe} · {cur.time}</p>
         </div>
 
-        <div className={s.chips}>
-          <div className={s.chip}>
-            <span className={s.dot} aria-hidden="true"><Garment d={cur.fromD} fill={cur.fromFill} /></span>
-            <div><strong>Made from</strong><span>{cur.from}</span></div>
-          </div>
-          <div className={s.chip}>
-            <span className={s.dot} aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" />
-                <path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" />
-              </svg>
-            </span>
-            <div><strong>Recipe</strong><span>{cur.recipe}</span></div>
-          </div>
-          <div className={s.chip}>
-            <span className={s.dot} aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-              </svg>
-            </span>
-            <div><strong>Time</strong><span>{cur.time}</span></div>
-          </div>
-        </div>
+        <ul className={s.chips} aria-label={`What ${cur.name} is wearing`}>
+          <li className={s.chip}>
+            <span className={s.dot} aria-hidden="true"><Garment d={cur.d} fill={cur.fill} detail={cur.detail} /></span>
+            <div><strong>{cur.name}</strong><span>{cur.from}</span></div>
+          </li>
+          {cur.pieces.map(([piece, how], k) => (
+            <li key={piece} className={s.chip}>
+              <span className={`${s.dot} ${s.num}`} aria-hidden="true">{k + 2}</span>
+              <div><strong>{piece}</strong><span>{how}</span></div>
+            </li>
+          ))}
+        </ul>
 
         <div className={s.cta}>
           <span className={s.mono}>Remake yours</span>

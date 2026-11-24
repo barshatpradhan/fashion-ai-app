@@ -9,7 +9,16 @@ export type SecondLife = {
   fromFill: string;
   recipe: string;
   time: string;
+  /** Original AI-made person wearing this second life, seen from above (public/home-ring). */
+  figure: string;
+  /** The other remade pieces in the figure's outfit: [piece, how it was remade]. */
+  pieces: [string, string][];
 };
+
+/** 'Tie-front crop' -> 'tie-front-crop'. Also the figure's file name. */
+export function figureSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
 
 const SHAPES = {
   shirt: 'M72 28 L128 28 L172 54 L156 92 L140 84 L140 178 L60 178 L60 84 L44 92 L28 54 Z',
@@ -31,23 +40,25 @@ const SHAPES = {
 type Raw = {
   name: string; shape: keyof typeof SHAPES; fill: string; detail: string;
   from: string; fromShape: keyof typeof SHAPES; fromFill: string; recipe: string; time: string;
+  pieces: [string, string][];
 };
 
 const RAW: Raw[] = [
-  { name: 'Tie-front crop', shape: 'crop', fill: '#4A6FA5', detail: 'M60 100 H140 M60 116 H140', from: 'Striped shirt', fromShape: 'shirt', fromFill: '#4A6FA5', recipe: 'No sew', time: '20 min' },
-  { name: 'Denim tote', shape: 'tote', fill: '#3E5F86', detail: 'M60 120 H140', from: 'Old jeans', fromShape: 'jeans', fromFill: '#3E5F86', recipe: 'Sewing', time: '2 h' },
-  { name: 'Wrap skirt', shape: 'skirt', fill: '#B9A6D9', detail: 'M100 40 L120 170', from: 'Linen shirt', fromShape: 'shirt', fromFill: '#B9A6D9', recipe: 'Sewing', time: '1.5 h' },
-  { name: 'Patchwork scarf', shape: 'scarf', fill: '#D4A72C', detail: 'M44 80 H86 M114 80 H156 M44 120 H86 M114 120 H156', from: 'Three old tees', fromShape: 'tee', fromFill: '#D4A72C', recipe: 'Sewing', time: '1 h' },
-  { name: 'Cropped jacket', shape: 'jacket', fill: '#4A4F57', detail: 'M100 32 V150', from: 'Long blazer', fromShape: 'blazer', fromFill: '#4A4F57', recipe: 'Sewing', time: '2 h' },
-  { name: 'Cut-off shorts', shape: 'shorts', fill: '#C9A27E', detail: 'M58 62 H142', from: 'Worn chinos', fromShape: 'chinos', fromFill: '#C9A27E', recipe: 'No sew', time: '15 min' },
-  { name: 'Apron dress', shape: 'apron', fill: '#9DB5A0', detail: 'M76 100 H124', from: 'Oversized shirt', fromShape: 'shirt', fromFill: '#9DB5A0', recipe: 'Sewing', time: '2.5 h' },
-  { name: 'Bucket hat', shape: 'hat', fill: '#5C7487', detail: 'M60 104 Q100 114 140 104', from: 'Denim jacket', fromShape: 'jacket', fromFill: '#5C7487', recipe: 'Sewing', time: '1.5 h' },
-  { name: 'Racer tank', shape: 'tank', fill: '#B5651D', detail: 'M70 110 H130', from: 'Faded tee', fromShape: 'tee', fromFill: '#B5651D', recipe: 'No sew', time: '10 min' },
+  { name: 'Tie-front crop', shape: 'crop', fill: '#4A6FA5', detail: 'M60 100 H140 M60 116 H140', from: 'Striped shirt', fromShape: 'shirt', fromFill: '#4A6FA5', recipe: 'No sew', time: '20 min', pieces: [['Spliced trousers', 'Grey wool panels added'], ['Contrast collar', 'From the cut-off sleeves']] },
+  { name: 'Denim tote', shape: 'tote', fill: '#3E5F86', detail: 'M60 120 H140', from: 'Old jeans', fromShape: 'jeans', fromFill: '#3E5F86', recipe: 'Sewing', time: '2 h', pieces: [['Mended jumper', 'Red sashiko elbows'], ['Patched trousers', 'Raw hem, denim knee']] },
+  { name: 'Wrap skirt', shape: 'skirt', fill: '#B9A6D9', detail: 'M100 40 L120 170', from: 'Linen shirt', fromShape: 'shirt', fromFill: '#B9A6D9', recipe: 'Sewing', time: '1.5 h', pieces: [['Raw-neck tank', 'Cut from an old tee'], ['Cuff ties', 'From the old shirt cuffs']] },
+  { name: 'Patchwork scarf', shape: 'scarf', fill: '#D4A72C', detail: 'M44 80 H86 M114 80 H156 M44 120 H86 M114 120 H156', from: 'Three old tees', fromShape: 'tee', fromFill: '#D4A72C', recipe: 'Sewing', time: '1 h', pieces: [['Patched sweatshirt', 'Contrast elbow panels'], ['Mended jeans', 'Raw hem, knee patch']] },
+  { name: 'Cropped jacket', shape: 'jacket', fill: '#4A4F57', detail: 'M100 32 V150', from: 'Long blazer', fromShape: 'blazer', fromFill: '#4A4F57', recipe: 'Sewing', time: '2 h', pieces: [['Pocket tee', 'Hand-dyed indigo pocket'], ['Spliced trousers', 'Two checked wools joined']] },
+  { name: 'Cut-off shorts', shape: 'shorts', fill: '#C9A27E', detail: 'M58 62 H142', from: 'Worn chinos', fromShape: 'chinos', fromFill: '#C9A27E', recipe: 'No sew', time: '15 min', pieces: [['Shirt pockets', 'From a striped shirt'], ['Cropped tee', 'Raw hem, mended shoulder']] },
+  { name: 'Apron dress', shape: 'apron', fill: '#9DB5A0', detail: 'M76 100 H124', from: 'Oversized shirt', fromShape: 'shirt', fromFill: '#9DB5A0', recipe: 'Sewing', time: '2.5 h', pieces: [['Spliced tee', 'Lilac sleeve panels'], ['Collar straps', 'Shirt collar as straps']] },
+  { name: 'Bucket hat', shape: 'hat', fill: '#5C7487', detail: 'M60 104 Q100 114 140 104', from: 'Denim jacket', fromShape: 'jacket', fromFill: '#5C7487', recipe: 'Sewing', time: '1.5 h', pieces: [['Patched hoodie', 'Denim patch pockets'], ['Spliced trousers', 'Denim knee panel']] },
+  { name: 'Racer tank', shape: 'tank', fill: '#B5651D', detail: 'M70 110 H130', from: 'Faded tee', fromShape: 'tee', fromFill: '#B5651D', recipe: 'No sew', time: '10 min', pieces: [['Patchwork jeans', 'Contrast thigh panel'], ['Frayed hems', 'Jeans cut to length']] },
 ];
 
 export const SECOND_LIVES: SecondLife[] = RAW.map((r) => ({
   name: r.name, d: SHAPES[r.shape], fill: r.fill, detail: r.detail,
   from: r.from, fromD: SHAPES[r.fromShape], fromFill: r.fromFill, recipe: r.recipe, time: r.time,
+  figure: `/home-ring/${figureSlug(r.name)}.webp`, pieces: r.pieces,
 }));
 
 /** Position of item i on an n-item ring rotated to rot. x and y are percentages inside the stage. */

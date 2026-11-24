@@ -11,7 +11,8 @@
     "kb:import": "tsx --env-file=.env --conditions=react-server scripts/import-kb.ts",
     "kb:review": "tsx --env-file=.env --conditions=react-server scripts/review-kb.ts",
     "seed:demo": "tsx --env-file=.env --conditions=react-server scripts/seed-demo.ts",
-    "prescan": "tsx --env-file=.env --conditions=react-server scripts/prescan.ts"
+    "prescan": "tsx --env-file=.env --conditions=react-server scripts/prescan.ts",
+    "gen:ring": "tsx --env-file=.env scripts/gen-home-ring.ts"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",
