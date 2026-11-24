@@ -1,0 +1,15 @@
+{
+  "note": "Throwaway test accounts for localhost checks. Never commit.",
+  "a": {
+    "email": "revivo-test-a2-1795545468652@example.test",
+    "password": "O2KySkqCLpmzp9Rv",
+    "newPassword": "CJF-Y143XfWVr_AS",
+    "displayName": "Test Ada"
+  },
+  "b": {
+    "email": "revivo-test-b-1795545468652@example.test",
+    "password": "LdlhLYV_TETqMGwT",
+    "newPassword": "buQ6_62G7CePWMk5",
+    "displayName": "Test Ben"
+  }
+}
