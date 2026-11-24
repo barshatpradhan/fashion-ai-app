@@ -1,4 +1,9 @@
 /* Home: only what the shared ui primitives and the ring do not cover. */
+
+/* The hero sits close under the nav. Doubled class: beats ui .page (and its breakpoints) whatever the load order. */
+.page.page {
+  padding-top: var(--space-3);
+}
 .intro {
   margin-top: var(--space-5);
 }

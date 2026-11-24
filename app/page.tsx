@@ -12,7 +12,7 @@ const STEPS = [
 /** Front page: the "Keep it in the loop" ring, then where to start and how it works. */
 export default function Home() {
   return (
-    <main className={ui.page}>
+    <main className={`${ui.page} ${h.page}`}>
       <HomeRing />
 
       <section className={`${ui.head} ${h.intro}`} aria-label="Start here">

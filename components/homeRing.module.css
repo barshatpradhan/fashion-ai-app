@@ -1,5 +1,9 @@
 /* Home ring: "Keep it in the loop". Mobile first; 768 and 1200 viewport breakpoints. */
 .wrap {
+  /* Fills the screen under the nav: viewport minus header (56) and tab bar (68) on phones, the top nav (72)
+     from tablet, and the 12px gap above (page) and below. */
+  --hero-h: calc(100svh - 56px - 68px - env(safe-area-inset-bottom, 0px) - 2 * var(--space-3));
+  min-height: max(560px, var(--hero-h));
   /* One hero block: the ring, the look's name, its pieces and the call to action share one soft background.
      isolation keeps the figures' multiply blend (and their z-indexes) inside the hero. */
   position: relative;
@@ -12,8 +16,10 @@
 }
 
 .stage {
+  /* Takes whatever height the hero has left after the dock; the ring is laid out in percentages. */
   position: relative;
-  height: 460px;
+  flex: 1 1 auto;
+  min-height: 440px;
   overflow: hidden;
 }
 
@@ -159,9 +165,10 @@
 }
 
 .pieces {
-  /* On the hero's own background, split by hairlines. Phones stack rows; wider screens sit side by side. Never scrolls. */
+  /* Raised white tiles on the hero background. Phones stack them; wider screens sit side by side. Never scrolls. */
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -172,11 +179,16 @@
   align-items: center;
   gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-3) 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
 }
 
-.piece + .piece {
-  border-top: 1px solid var(--ice);
+.piece:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
 }
 
 .swatch {
@@ -221,7 +233,8 @@
 }
 
 @media (min-width: 768px) {
-  .stage { height: 600px; }
+  .wrap { --hero-h: calc(100svh - 72px - 2 * var(--space-3)); }
+  .stage { min-height: 460px; }
   .item { width: 92px; height: 172px; }
   .title h1 { font-size: 58px; }
   .dock {
@@ -232,14 +245,12 @@
     padding: 0 var(--space-6) var(--space-6);
   }
   .name { font-size: 34px; }
-  .pieces { flex-direction: row; }
-  .piece { flex: 1 1 0; padding: 0 var(--space-4); }
-  .piece:first-child { padding-left: 0; }
-  .piece + .piece { border-top: 0; border-left: 1px solid var(--ice); }
+  .pieces { flex-direction: row; gap: var(--space-3); }
+  .piece { flex: 1 1 0; }
 }
 
 @media (min-width: 1200px) {
-  .stage { height: 680px; }
+  .stage { min-height: 480px; }
   .item { width: 108px; height: 204px; }
   .title h1 { font-size: 76px; }
   .name { font-size: 40px; }
@@ -248,5 +259,10 @@
 @media (prefers-reduced-motion: reduce) {
   .item {
     transition: none;
+  }
+  .piece,
+  .piece:hover {
+    transition: none;
+    transform: none;
   }
 }
