@@ -4,6 +4,7 @@
  * heic2any, background removal) sit behind small injectable functions so tests can use fakes.
  */
 import { MESSAGES } from '@/lib/ui/messages';
+import { cutoutLooksBroken, measureCutout, type Coverage } from '@/lib/image/crop';
 
 export const MAX_EDGE = 1024;
 export const JPEG_QUALITY = 0.85;
@@ -185,12 +186,29 @@ export async function preloadBackgroundRemoval(load: () => Promise<Preload> = lo
 export const BG_REMOVAL_TIMEOUT_MS = 12_000;
 
 /**
- * Cut-out PNG with transparent background, or null on any failure or after `timeoutMs` (loading the
- * model included); the caller then uses the original photo.
+ * Cut-out PNG with transparent background, or null on any failure, after `timeoutMs` (loading the
+ * model included), or when the cut-out lost too much of the garment (a light garment on a light
+ * background); the caller then uses the original photo.
  */
 export async function removeBackground(
   jpeg: Blob, load: () => Promise<RemoveBg> = loadImgly, timeoutMs: number = BG_REMOVAL_TIMEOUT_MS,
+  measure: (png: Blob) => Promise<Coverage> = measureCutout,
 ): Promise<Blob | null> {
+  const out = await removeBackgroundRaw(jpeg, load, timeoutMs);
+  if (!out) return null;
+  try {
+    const coverage = await measure(out);
+    if (cutoutLooksBroken(coverage)) {
+      console.warn('background removal lost part of the garment; using the original photo');
+      return null;
+    }
+  } catch {
+    // Measuring is a safety check only: never let it block a cut-out.
+  }
+  return out;
+}
+
+async function removeBackgroundRaw(jpeg: Blob, load: () => Promise<RemoveBg>, timeoutMs: number): Promise<Blob | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<null>((resolve) => {
     timer = setTimeout(() => {

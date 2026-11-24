@@ -102,3 +102,54 @@ export async function croppedObjectUrl(url: string): Promise<string | null> {
     return null;
   }
 }
+
+export type Coverage = { frame: number; box: number };
+
+/**
+ * How much of a cut-out survived background removal: the share of the whole frame that is solid, and the
+ * share of the solid pixels' own bounding box that is solid. Faint pixels (alpha < ALPHA_MIN) count as gone.
+ */
+export function alphaCoverage(data: Uint8ClampedArray, width: number, height: number): Coverage {
+  let solid = 0, minX = width, minY = height, maxX = -1, maxY = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] < ALPHA_MIN) continue;
+      solid++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (!solid) return { frame: 0, box: 0 };
+  return { frame: solid / (width * height), box: solid / ((maxX - minX + 1) * (maxY - minY + 1)) };
+}
+
+/**
+ * True when background removal ate the garment. Measured on real cut-outs: a cream tee on a near-white
+ * background kept 30% of its box (body gone, sleeve and print left); good cut-outs kept 75-78%.
+ */
+export const MIN_BOX_COVERAGE = 0.4;
+export const MIN_FRAME_COVERAGE = 0.1;
+export function cutoutLooksBroken(c: Coverage): boolean {
+  return c.box < MIN_BOX_COVERAGE || c.frame < MIN_FRAME_COVERAGE;
+}
+
+/** Browser: measure a cut-out PNG on a small copy. */
+export async function measureCutout(blob: Blob): Promise<Coverage> {
+  const pic = await decode(blob);
+  try {
+    const scale = Math.min(1, MEASURE_EDGE / Math.max(pic.width, pic.height));
+    const w = Math.max(1, Math.round(pic.width * scale));
+    const h = Math.max(1, Math.round(pic.height * scale));
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    if (!ctx) throw new Error('2D canvas unavailable');
+    ctx.drawImage(pic.source, 0, 0, w, h);
+    return alphaCoverage(ctx.getImageData(0, 0, w, h).data, w, h);
+  } finally {
+    pic.done();
+  }
+}
