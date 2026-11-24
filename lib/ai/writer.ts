@@ -14,7 +14,8 @@ async function jsonCall(prompt: string): Promise<unknown> {
   const res = await geminiGenerate({
     model: GEMINI_TEXT_MODEL,
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: { responseMimeType: 'application/json', temperature: 0.4 },
+    // No thinking: these calls adapt given entries; measured medians 2-5 s vs 10-15 s with it, same validity.
+    config: { responseMimeType: 'application/json', temperature: 0.4, thinkingConfig: { thinkingBudget: 0 } },
   });
   try {
     return JSON.parse(res.text ?? '');

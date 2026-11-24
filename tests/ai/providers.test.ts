@@ -92,6 +92,19 @@ describe('styleLooks', () => {
   });
 });
 
+// Live: "Style me" took 27.1 s in the app (over the old 20 s timeout). Measured medians without thinking:
+// stylist 4.6 s vs 14.9 s, writer 2.3 s vs 9.6 s, with equally valid output.
+describe('text calls run without model thinking', () => {
+  it.each([
+    ['writeGuide', () => writeGuide(vision, recipe, [hist]), '{"steps":[],"tools":[],"historyRefs":[]}'],
+    ['styleLooks', () => styleLooks([], { styles: [], avoidColors: [], occasions: [], climate: '' } as never), '{"looks":[]}'],
+  ] as const)('%s', async (_name, call, text) => {
+    h.geminiGen.mockResolvedValue({ text });
+    await call();
+    expect(h.geminiGen.mock.calls[0][0].config.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
+});
+
 describe('generateConceptImage', () => {
   it('uses OpenAI and not Gemini when IMAGE_PROVIDER=openai', async () => {
     h.env.IMAGE_PROVIDER = 'openai';
