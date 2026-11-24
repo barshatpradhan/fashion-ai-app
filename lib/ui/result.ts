@@ -42,15 +42,21 @@ export function safeUrl(url: string): string | null {
 
 export type FeatureLabel = { label: string; value: string };
 
-/** Up to `max` short labels describing what the vision step saw. */
-export function featureLabels(v: VisionResult, max = 6): FeatureLabel[] {
-  const out: FeatureLabel[] = [{ label: 'Type', value: humanize(v.garment_type) }];
+/** Up to `max` short labels describing what the vision step saw; `garmentType` is the user-corrected type. */
+export function featureLabels(v: VisionResult, max = 6, garmentType: string = v.garment_type): FeatureLabel[] {
+  const out: FeatureLabel[] = [{ label: 'Type', value: humanize(garmentType) }];
   if (v.pattern) out.push({ label: 'Pattern', value: humanize(v.pattern) });
   for (const [part, value] of Object.entries(v.parts)) {
     if (value) out.push({ label: humanize(part), value: humanize(value) });
   }
   for (const t of v.visible_techniques) out.push({ label: 'Technique', value: humanize(t) });
   return out.filter((f) => f.value).slice(0, max);
+}
+
+/** The fabric note for exactly this fabric, or null: a note is labelled "About <fabric>", so it must be that fabric's. */
+export function fabricNoteFor(notes: KbEntry[], fabric: string): KbEntry | null {
+  const f = fabric.trim().toLowerCase();
+  return notes.find((n) => n.tags.some((t) => t.toLowerCase() === f)) ?? null;
 }
 
 /** History is shown only when it carries at least one linkable source. */

@@ -5,7 +5,7 @@ import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
 import { isLockedRecipe, type PublicMatch } from '@/lib/domain/redact';
 import { messageForError } from '@/lib/ui/messages';
-import { fabricChoices, featureLabels, firstSentence, humanize, safeUrl, splitRecipes, verifiedHistory } from '@/lib/ui/result';
+import { fabricChoices, fabricNoteFor, featureLabels, firstSentence, humanize, safeUrl, splitRecipes, verifiedHistory } from '@/lib/ui/result';
 import { HeroGarment } from './HeroGarment';
 import { Swatches } from './Swatches';
 import { FabricConfirm } from './FabricConfirm';
@@ -122,7 +122,7 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
 
   const history = verifiedHistory(match.history);
   const { free, others } = splitRecipes(match.recipes, match.freeRecipeId);
-  const fabricNote = match.fabricNotes[0];
+  const fabricNote = fabricNoteFor(match.fabricNotes, fabric);
   const garmentName = humanize(garmentType);
 
   return (
@@ -133,7 +133,7 @@ export function ResultView({ result, heroSrc, isCutout, source }: Props) {
           src={heroSrc}
           alt={`Your ${garmentType}`}
           fabric={fabric}
-          features={featureLabels(vision)}
+          features={featureLabels(vision, 6, garmentType)}
           isCutout={isCutout}
         />
       </div>

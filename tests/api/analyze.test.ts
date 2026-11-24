@@ -34,6 +34,7 @@ function setup(opts: {
     insertScan: vi.fn(async () => 'scan-new'),
     attachImages: vi.fn(async () => {}),
     insertMatches: vi.fn(async () => {}),
+    deleteScan: vi.fn(async () => {}),
     loadReviewedEntries: vi.fn(async () => opts.entries ?? []),
     listCorrections: vi.fn(async () => opts.corrections ?? []),
   };
@@ -128,6 +129,15 @@ describe('runAnalyze', () => {
     const r = await runAnalyze(U, body, s.deps);
     expect(r).toEqual({ status: 503, body: { error: 'ai_busy' } });
     expect(s.repo.insertScan).not.toHaveBeenCalled();
+  });
+
+  // Regression: a network reset (ECONNRESET) between the two writes left a scan row with no matches,
+  // and every later upload of that photo hit the hash cache, so the matches were never written.
+  it('if saving the matches fails, the new scan row is removed and the error propagates', async () => {
+    const s = setup({ entries: [kb('r1', 'redesign', ['denim'])] });
+    (s.repo.insertMatches as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('fetch failed'));
+    await expect(runAnalyze(U, body, s.deps)).rejects.toThrow('fetch failed');
+    expect(s.repo.deleteScan).toHaveBeenCalledWith('scan-new');
   });
 
   it('unknown errors propagate', async () => {

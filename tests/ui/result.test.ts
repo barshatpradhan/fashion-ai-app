@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { firstSentence, fabricChoices, humanize, safeHex, safeUrl, featureLabels, verifiedHistory, splitRecipes } from '@/lib/ui/result';
+import { firstSentence, fabricChoices, humanize, safeHex, safeUrl, featureLabels, verifiedHistory, splitRecipes, fabricNoteFor } from '@/lib/ui/result';
 import { messageForError, MESSAGES } from '@/lib/ui/messages';
 import type { VisionResult } from '@/lib/ai/visionSchema';
 import type { KbEntry } from '@/lib/domain/types';
@@ -36,6 +36,23 @@ describe('result helpers', () => {
       { label: 'Type', value: 'Button down' }, { label: 'Pattern', value: 'Stripes' },
       { label: 'Collar', value: 'Point collar' }, { label: 'Technique', value: 'Topstitching' },
     ]);
+  });
+
+  // Regression: after correcting the type to "shirt" the heading changed but the panel still said
+  // "Long sleeve top".
+  it('featureLabels shows the corrected garment type when one is given', () => {
+    const v = { garment_type: 'long-sleeve top', pattern: '', parts: {}, visible_techniques: [] } as unknown as VisionResult;
+    expect(featureLabels(v, 6, 'shirt')[0]).toEqual({ label: 'Type', value: 'Shirt' });
+    expect(featureLabels(v)[0]).toEqual({ label: 'Type', value: 'Long sleeve top' });
+  });
+
+  // Regression: "About cotton." was followed by the knit note, which ranked first on tag overlap.
+  it('fabricNoteFor picks the note for the named fabric, or none', () => {
+    const knit = kb('knit', { kind: 'fabric', tags: ['knit', 'jersey'] });
+    const cotton = kb('cotton', { kind: 'fabric', tags: ['cotton', 'shirt'] });
+    expect(fabricNoteFor([knit, cotton], 'cotton')).toBe(cotton);
+    expect(fabricNoteFor([knit, cotton], 'Cotton')).toBe(cotton);
+    expect(fabricNoteFor([knit], 'cotton')).toBeNull();
   });
 
   it('verifiedHistory keeps only entries with a linkable source', () => {

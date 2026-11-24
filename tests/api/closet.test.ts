@@ -330,7 +330,7 @@ describe('delete', () => {
         return { id: s.id, vision: s.vision, imagePath: s.imagePath, cutoutPath: s.cutoutPath };
       },
       countSince: async () => 0, download: async () => new Uint8Array([1]),
-      insertScan: vi.fn(async () => 'scan-new'), insertMatches: async () => {},
+      insertScan: vi.fn(async () => 'scan-new'), insertMatches: async () => {}, deleteScan: async () => {},
       attachImages: async (id, imagePath, cutoutPath) => {
         w.scans.set(id, { ...w.scans.get(id)!, imagePath, cutoutPath });
         w.storage.add(imagePath);

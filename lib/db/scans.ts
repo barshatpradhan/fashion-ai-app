@@ -55,6 +55,8 @@ export interface ScanRepo {
   /** Re-attach freshly uploaded images to a cached scan whose images were deleted. */
   attachImages(scanId: string, imagePath: string, cutoutPath: string): Promise<void>;
   insertMatches(scanId: string, rows: MatchRow[]): Promise<void>;
+  /** Undo insertScan when the follow-up writes fail, so no half-written scan answers later cache hits. */
+  deleteScan(scanId: string): Promise<void>;
   loadReviewedEntries(): Promise<KbEntry[]>;
   /** Corrections for a scan, oldest first (later rows win). */
   listCorrections(scanId: string): Promise<CorrectionRow[]>;
@@ -200,7 +202,14 @@ export async function runAnalyze(userId: string, input: unknown, deps: AnalyzeDe
   const built = build(vision, entries);
   const scanId = await repo.insertScan(newScan());
   const rows = toMatchRows(built.match);
-  if (rows.length) await repo.insertMatches(scanId, rows);
+  try {
+    if (rows.length) await repo.insertMatches(scanId, rows);
+  } catch (err) {
+    // Two writes without a transaction: remove the scan so a retry analyses afresh instead of
+    // hitting the hash cache of a scan that has no matches.
+    await repo.deleteScan(scanId).catch((e) => console.error('could not remove half-written scan', scanId, e));
+    throw err;
+  }
   return built.respond(scanId);
 }
 
@@ -282,6 +291,10 @@ export function supabaseScanRepo(): ScanRepo {
     async attachImages(scanId, imagePath, cutoutPath) {
       const { error } = await db.from('scans').update({ image_path: imagePath, cutout_path: cutoutPath })
         .eq('id', scanId).or('image_path.is.null,cutout_path.is.null');
+      if (error) throw error;
+    },
+    async deleteScan(scanId) {
+      const { error } = await db.from('scans').delete().eq('id', scanId);
       if (error) throw error;
     },
     async insertMatches(scanId, rows) {
