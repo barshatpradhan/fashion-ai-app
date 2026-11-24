@@ -159,4 +159,12 @@ describe('analyzeImage response schema', () => {
     expect(config.responseMimeType).toBe('application/json');
     expect(config.responseJsonSchema).toMatchObject({ type: 'object', required: expect.arrayContaining(['is_garment', 'category']) });
   });
+
+  // Regression: with default thinking, gemini-3.5-flash took 17.6-20.3 s per scan, right at the 20 s
+  // AI timeout. Describing a photo needs no reasoning; thinkingBudget 0 measured 8.8-14.1 s, same output.
+  it('turns model thinking off so a scan stays well inside the AI timeout', async () => {
+    h.geminiGen.mockResolvedValue({ text: JSON.stringify(goodVision) });
+    await analyzeImage(bytes);
+    expect(h.geminiGen.mock.calls[0][0].config.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
 });

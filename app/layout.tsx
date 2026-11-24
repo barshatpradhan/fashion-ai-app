@@ -17,8 +17,8 @@ export const metadata = { title: 'REVIVO' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${oswald.variable} ${inter.variable} ${jbmono.variable}`}>
-      <body>
+    <html lang="en" className={`${oswald.variable} ${inter.variable} ${jbmono.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <SiteNav />
         {children}
       </body>

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
 import { prepareImage, removeBackground, UnsupportedImageError, TooLargeImageError } from '@/lib/image/prepare';
-import { MESSAGES, messageForError } from '@/lib/ui/messages';
+import { MESSAGES, messageForError, isExpectedOutcome } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
 import ui from '@/components/ui.module.css';
 import s from '@/components/result.module.css';
@@ -77,7 +77,10 @@ export default function ScanPage() {
       setPhase({ kind: 'done', result: json as AnalyzeResponse, heroSrc, isCutout: usedCutout, source: { imagePath, cutoutPath, imageHash: prepared.hash } });
       window.scrollTo({ top: 0 });
     } catch (err) {
-      console.error('scan failed', err);
+      const expected =
+        err instanceof UnsupportedImageError || err instanceof TooLargeImageError ||
+        (err instanceof ApiError && isExpectedOutcome(err.message));
+      (expected ? console.warn : console.error)('scan failed', err);
       setError(
         err instanceof UnsupportedImageError
           ? MESSAGES.unsupportedFormat

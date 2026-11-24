@@ -3,6 +3,9 @@ import { serverClient } from '@/lib/db/server';
 import { SCAN_ERRORS } from '@/lib/db/scans';
 import { runGuide, defaultGuideDeps } from '@/lib/db/guides';
 
+/** AI call inside: allow up to 60 s on the host (the AI timeouts stay shorter). */
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const supabase = await serverClient();

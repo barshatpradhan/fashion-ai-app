@@ -18,7 +18,11 @@ export async function analyzeImage(jpeg: Uint8Array): Promise<VisionResult> {
   const res = await geminiGenerate({
     model: GEMINI_VISION_MODEL,
     contents: [{ role: 'user', parts: [jpegPart(jpeg), { text: VISION_PROMPT }] }],
-    config: { responseMimeType: 'application/json', responseJsonSchema: VISION_RESPONSE_SCHEMA, temperature: 0.2 },
+    // No thinking: describing what is visible needs none, and it roughly halves latency (20 s -> ~10 s).
+    config: {
+      responseMimeType: 'application/json', responseJsonSchema: VISION_RESPONSE_SCHEMA, temperature: 0.2,
+      thinkingConfig: { thinkingBudget: 0 },
+    },
   });
   try {
     return parseVision(res.text ?? '');

@@ -3,6 +3,9 @@ import { serverClient } from '@/lib/db/server';
 import { SCAN_ERRORS } from '@/lib/db/scans';
 import { runOutfitsAction, defaultOutfitDeps } from '@/lib/db/outfits';
 
+/** AI call inside: allow up to 60 s on the host (the AI timeouts stay shorter). */
+export const maxDuration = 60;
+
 async function currentUserId(): Promise<string | null> {
   const supabase = await serverClient();
   const { data } = await supabase.auth.getUser();

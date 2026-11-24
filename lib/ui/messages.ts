@@ -20,6 +20,12 @@ export const MESSAGES = {
   unauthorized: 'Your session ended. Reload the page to continue.',
 } as const;
 
+/** Outcomes the user caused or can fix by retrying: shown as a message, logged as a warning, not an error. */
+const EXPECTED = new Set(['not_a_garment', 'photo_unclear', 'daily_cap', 'ai_busy', 'unsupported_format']);
+export function isExpectedOutcome(code: string | null | undefined): boolean {
+  return !!code && EXPECTED.has(code);
+}
+
 /**
  * Map an API error code to copy. `context` refines codes whose meaning depends on the screen
  * (a guide's not_found means its Recipe no longer matches after an edit). Unknown codes, server
