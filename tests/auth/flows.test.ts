@@ -201,3 +201,21 @@ describe('guestLeavesPieces (log-in warning)', () => {
     expect(guestLeavesPieces(null, 5)).toBe(false);
   });
 });
+
+import { changeEmail } from '@/lib/auth/flows';
+describe('changeEmail', () => {
+  const me = { id: 'u-1', is_anonymous: false, email: 'old@example.test' };
+  it('asks Supabase to change it, with the confirmation link returning to /profile', async () => {
+    const p = port(me);
+    expect(await changeEmail('new@example.test', p, ORIGIN)).toEqual({ ok: true });
+    expect(p.updateUser).toHaveBeenCalledWith({ email: 'new@example.test' }, { emailRedirectTo: `${ORIGIN}/auth/callback?next=%2Fprofile` });
+  });
+  it('validates the address and refuses the same one', async () => {
+    expect(await changeEmail('nope', port(me), ORIGIN)).toEqual({ ok: false, message: 'Enter a valid email address.' });
+    expect(await changeEmail('OLD@example.test', port(me), ORIGIN)).toEqual({ ok: false, message: 'That is already your email.' });
+  });
+  it('a taken address gets the neutral message', async () => {
+    const p = port(me, { updateUser: vi.fn(async () => ({ user: null, error: err(422, 'email_exists') })) });
+    expect(await changeEmail('new@example.test', p, ORIGIN)).toEqual({ ok: false, message: "We couldn't use that email. If you already have an account, log in instead." });
+  });
+});

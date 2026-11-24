@@ -173,3 +173,15 @@ export async function logOut(deps: LogOutDeps): Promise<void> {
 export function guestLeavesPieces(user: PortUser | null, savedPieces: number): boolean {
   return Boolean(user?.is_anonymous) && savedPieces > 0;
 }
+
+/** Profile email change: Supabase emails a confirmation link (to both addresses with Secure email change on). */
+export async function changeEmail(next: string, port: AuthPort, origin: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const email = next.trim();
+  if (!EMAIL.test(email)) return { ok: false, message: 'Enter a valid email address.' };
+  const user = await port.getUser();
+  if (user?.email && user.email.toLowerCase() === email.toLowerCase()) return { ok: false, message: 'That is already your email.' };
+  const r = await port.updateUser({ email }, { emailRedirectTo: callbackUrl(origin, '/profile') });
+  if (!r.error) return { ok: true };
+  const mapped = signUpError(r.error);
+  return { ok: false, message: mapped.kind === 'error' ? mapped.message : GENERIC };
+}
