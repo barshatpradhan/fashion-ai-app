@@ -5,7 +5,7 @@ const url = process.env.SUPABASE_URL;
 const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anon = process.env.SUPABASE_ANON_KEY;
 
-// Never skip silently: vitest.smoke.config.ts loads .env.local and refuses to run without these.
+// Never skip silently: vitest.smoke.config.ts loads .env and refuses to run without these.
 if (!url || !service || !anon) throw new Error('RLS smoke needs SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY');
 
 describe('RLS smoke (live Supabase)', () => {
@@ -55,12 +55,12 @@ describe('RLS smoke (live Supabase)', () => {
 
     const r = await admin
       .from('kb_entries')
-      .insert({ kind: 'repair', title: 'smoke-reviewed', status: 'reviewed' })
+      .insert({ slug: `smoke-reviewed-${Date.now()}`, kind: 'repair', title: 'smoke-reviewed', status: 'reviewed' })
       .select()
       .single();
     const d = await admin
       .from('kb_entries')
-      .insert({ kind: 'repair', title: 'smoke-draft', status: 'draft' })
+      .insert({ slug: `smoke-draft-${Date.now()}`, kind: 'repair', title: 'smoke-draft', status: 'draft' })
       .select()
       .single();
     expect(r.error).toBeNull();
