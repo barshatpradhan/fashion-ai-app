@@ -5,6 +5,7 @@
  * white drops out against the stage and the soft floor shadow stays.
  * Skips figures that already exist; pass --force to redo all, or slugs to redo some.
  *   npm run gen:ring            npm run gen:ring -- denim-tote bucket-hat
+ *   npm run gen:ring -- --swatches    (the fabric swatches shown in the pieces strip; skips existing)
  *   npm run gen:ring -- --reprocess   (redo trimming/whitening from the cached raw images, no API calls)
  * Uses OPENAI_API_KEY from .env and the same image model as Concept images.
  */
@@ -13,7 +14,7 @@ import path from 'node:path';
 import OpenAI from 'openai';
 import sharp from 'sharp';
 import { OPENAI_IMAGE_MODEL } from '@/lib/ai/imageGen';
-import { SECOND_LIVES, figureSlug } from '@/components/secondLives';
+import { SECOND_LIVES, FABRICS, figureSlug, type Fabric } from '@/components/secondLives';
 
 const OUT = path.join(process.cwd(), 'public', 'home-ring');
 /** Raw model output, kept so --reprocess can redo the finishing without paying again (git-ignored). */
@@ -98,12 +99,55 @@ export async function finish(raw: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
+/** One macro texture per fabric named in the ring's pieces (FABRICS in components/secondLives.ts). */
+const SWATCH_SIZE = 96;
+const SWATCH_PROMPTS: Record<Fabric, string> = {
+  denim: 'mid-blue cotton denim with a visible diagonal twill weave',
+  'striped-cotton': 'blue-and-white striped cotton shirting',
+  'chino-twill': 'tan cotton chino twill',
+  linen: 'natural oatmeal linen with visible slubby yarns',
+  jersey: 'heather-grey cotton t-shirt jersey knit',
+  'wool-flannel': 'charcoal brushed wool flannel',
+  'wool-check': 'grey and black small-check wool suiting',
+  knit: 'cream chunky wool knit with ribbed stitches',
+  fleece: 'grey cotton sweatshirt fleece, the loopback side',
+  poplin: 'sage-green cotton poplin',
+};
+
+async function makeSwatch(client: OpenAI, f: Fabric): Promise<void> {
+  const file = path.join(OUT, `fabric-${f}.webp`);
+  const res = await client.images.generate({
+    model: OPENAI_IMAGE_MODEL,
+    prompt: `Macro close-up photo of ${SWATCH_PROMPTS[f]}, lying flat and filling the entire frame edge to edge. Even, soft daylight; true-to-life texture and colour. No folds, no edges, no objects, no text.`,
+    size: '1024x1024',
+    quality: 'low',
+  });
+  const b64 = res.data?.[0]?.b64_json;
+  if (!b64) throw new Error(`${f}: no image returned`);
+  const raw = Buffer.from(b64, 'base64');
+  await writeFile(path.join(RAW, `fabric-${f}.png`), raw);
+  // Centre crop: the middle of a macro shot is the sharpest, most even texture.
+  await writeFile(file, await sharp(raw).extract({ left: 256, top: 256, width: 512, height: 512 })
+    .resize(SWATCH_SIZE, SWATCH_SIZE).webp({ quality: 80 }).toBuffer());
+  console.log(`fabric-${f}: done`);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const force = args.includes('--force');
   const only = args.filter((a) => !a.startsWith('--'));
   await mkdir(OUT, { recursive: true });
   await mkdir(RAW, { recursive: true });
+  if (args.includes('--swatches')) {
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const todo: Fabric[] = [];
+    for (const f of FABRICS) if (force || !(await exists(path.join(OUT, `fabric-${f}.webp`)))) todo.push(f);
+    for (let k = 0; k < todo.length; k += 4) {
+      const results = await Promise.allSettled(todo.slice(k, k + 4).map((f) => makeSwatch(client, f)));
+      for (const r of results) if (r.status === 'rejected') console.error(String(r.reason?.message ?? r.reason));
+    }
+    return;
+  }
   if (args.includes('--reprocess')) {
     for (const l of SECOND_LIVES) {
       const slug = figureSlug(l.name);

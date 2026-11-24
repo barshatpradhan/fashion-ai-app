@@ -9,7 +9,7 @@ vi.mock('next/link', () => ({
 import { HomeRing } from '@/components/HomeRing';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { SECOND_LIVES, ringPose, figureSlug } from '@/components/secondLives';
+import { SECOND_LIVES, ringPose, figureSlug, FABRICS, swatchSrc } from '@/components/secondLives';
 
 function stubMatchMedia(reduce: boolean) {
   window.matchMedia = ((q: string) => ({
@@ -50,6 +50,9 @@ describe('figures', () => {
       expect(existsSync(path.join(process.cwd(), 'public', l.figure))).toBe(true);
     }
   });
+  it('has a swatch image for every fabric', () => {
+    for (const f of FABRICS) expect(existsSync(path.join(process.cwd(), 'public', swatchSrc(f)))).toBe(true);
+  });
   it('slugs names', () => {
     expect(figureSlug('Tie-front crop')).toBe('tie-front-crop');
     expect(figureSlug('Cut-off shorts')).toBe('cut-off-shorts');
@@ -70,9 +73,12 @@ describe('HomeRing', () => {
     const hat = screen.getByRole('button', { name: 'Show Bucket hat' });
     fireEvent.mouseEnter(hat);
     expect(screen.getAllByText('Bucket hat').length).toBeGreaterThan(0);
-    expect(screen.getByText('Denim jacket')).toBeTruthy();
+    expect(screen.getByText('Denim · from denim jacket')).toBeTruthy();
     expect(screen.getByText('Patched hoodie')).toBeTruthy();
-    expect(screen.getByText('Denim patch pockets')).toBeTruthy();
+    expect(screen.getByText('Fleece · denim patch pockets')).toBeTruthy();
+    const list = screen.getByRole('list', { name: 'What Bucket hat is wearing' });
+    expect(Array.from(list.querySelectorAll('img[data-swatch]')).map((i) => i.getAttribute('src')))
+      .toEqual(['/home-ring/fabric-denim.webp', '/home-ring/fabric-fleece.webp', '/home-ring/fabric-chino-twill.webp']);
     expect(screen.getByText('Sewing · 1.5 h')).toBeTruthy();
     expect(screen.getByText('01 / 09')).toBeTruthy(); // hovering previews; it does not turn the ring
     fireEvent.mouseLeave(hat);

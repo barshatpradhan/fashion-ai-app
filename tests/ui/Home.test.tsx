@@ -27,9 +27,11 @@ describe('Home', () => {
     expect(heads).toEqual(['Scan', 'Learn', 'Remake']);
   });
 
-  it('keeps the decorative stage hidden from assistive tech', () => {
+  it('keeps the decorative pictures silent for assistive tech (their names are in the text)', () => {
     const { container } = render(<Home />);
-    expect(container.querySelector('[aria-hidden="true"] svg')).toBeTruthy();
+    const pics = container.querySelectorAll('img[data-figure], img[data-swatch]');
+    expect(pics.length).toBeGreaterThan(9);
+    for (const img of Array.from(pics)) expect(img.getAttribute('alt')).toBe('');
   });
 
   it('turns the ring transition off for reduced motion', () => {

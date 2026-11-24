@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ui from '@/components/ui.module.css';
 import s from '@/components/homeRing.module.css';
 import { Badge } from '@/components/Badge';
-import { SECOND_LIVES, ringPose } from '@/components/secondLives';
+import { SECOND_LIVES, ringPose, swatchSrc, FABRIC_LABEL, type Fabric } from '@/components/secondLives';
 
 const N = SECOND_LIVES.length;
 
@@ -23,6 +23,14 @@ function Figure({ src }: { src: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- small static WebP; next/image adds nothing here
     <img src={src} alt="" data-figure draggable={false} decoding="async" className={s.figure} />
+  );
+}
+
+/** A real fabric texture for a piece in the pieces strip. Decorative: the fabric is named in text. */
+function Swatch({ fabric }: { fabric: Fabric }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- 96px static WebP
+    <img src={swatchSrc(fabric)} alt="" data-swatch={fabric} width={40} height={40} className={s.swatch} />
   );
 }
 
@@ -76,7 +84,6 @@ export function HomeRing() {
 
         {view === 'ring' ? (
           <>
-            <div className={s.ellipse} aria-hidden="true" />
             <div className={s.title}>
               <h1>Keep it in the loop</h1>
               <span className={s.mono}>Vol. 01 — nine second lives</span>
@@ -140,15 +147,15 @@ export function HomeRing() {
           <p className={s.meta}>{cur.recipe} · {cur.time}</p>
         </div>
 
-        <ul className={s.chips} aria-label={`What ${cur.name} is wearing`}>
-          <li className={s.chip}>
-            <span className={s.dot} aria-hidden="true"><Garment d={cur.d} fill={cur.fill} detail={cur.detail} /></span>
-            <div><strong>{cur.name}</strong><span>{cur.from}</span></div>
+        <ul className={s.pieces} aria-label={`What ${cur.name} is wearing`}>
+          <li className={s.piece}>
+            <Swatch fabric={cur.fabric} />
+            <div><strong>{cur.name}</strong><span>{FABRIC_LABEL[cur.fabric]} · from {cur.from.toLowerCase()}</span></div>
           </li>
-          {cur.pieces.map(([piece, how], k) => (
-            <li key={piece} className={s.chip}>
-              <span className={`${s.dot} ${s.num}`} aria-hidden="true">{k + 2}</span>
-              <div><strong>{piece}</strong><span>{how}</span></div>
+          {cur.pieces.map(([piece, how, fabric]) => (
+            <li key={piece} className={s.piece}>
+              <Swatch fabric={fabric} />
+              <div><strong>{piece}</strong><span>{FABRIC_LABEL[fabric]} · {how.charAt(0).toLowerCase() + how.slice(1)}</span></div>
             </li>
           ))}
         </ul>
