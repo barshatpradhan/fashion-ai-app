@@ -38,7 +38,7 @@ function AccountControls({ account, onLogOut, busy }: { account: NavAccount; onL
     return (
       <>
         <Link href="/login" className={n.authLink}>Log in</Link>
-        <Link href="/signup" className={`${ui.button} ${ui.ghost} ${n.small}`}>Sign up</Link>
+        <Link href="/signup" className={n.authLink}>Sign up</Link>
       </>
     );
   }

@@ -4,19 +4,67 @@
 .page.page {
   padding-top: var(--space-3);
 }
-.intro {
-  margin-top: var(--space-5);
+
+/* How it works: an open three-step strip, not a row of equal cards. */
+.how {
+  margin-top: var(--space-8);
 }
 
-.actions {
-  margin-top: var(--space-4);
+.steps {
+  display: grid;
+  gap: var(--space-5);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
 }
 
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--ice);
+}
+
+/* Same two-digit mono figures as the ring's 04 / 09. */
 .num {
-  display: inline-block;
-  margin-bottom: var(--space-2);
   font-family: var(--font-mono);
-  font-size: 0.875rem;
-  letter-spacing: 0.08em;
-  color: var(--deep);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.stepTitle {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-md);
+  color: var(--slate);
+}
+
+.stepBody {
+  margin: 0;
+  max-width: 34ch;
+  font-size: var(--text-ui);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.inline {
+  color: var(--slate);
+  text-underline-offset: 4px;
+}
+
+.inline:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (min-width: 768px) {
+  .steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-6);
+  }
 }

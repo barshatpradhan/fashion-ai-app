@@ -77,7 +77,7 @@ export function HomeRing() {
         <Badge variant="concept" className={s.concept} />
         <div className={s.title}>
           <h1>Keep it in the loop</h1>
-          <span className={s.mono}>Vol. 01 — nine second lives</span>
+          <p className={s.sub}>Scan a piece you no longer wear, learn its story, remake it</p>
         </div>
         {SECOND_LIVES.map((l, i) => {
           const p = ringPose(i, rot, N);
@@ -138,12 +138,8 @@ export function HomeRing() {
         </ul>
 
         <div className={s.cta}>
-          <span className={s.mono}>Remake yours</span>
-          <Link href="/scan" className={`${ui.button} ${s.round}`} aria-label="Scan a garment to remake it">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </Link>
+          <Link href="/scan" className={ui.button}>Scan a garment</Link>
+          <Link href="/closet" className={`${ui.button} ${ui.ghost}`}>Your closet</Link>
         </div>
       </div>
     </section>

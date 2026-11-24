@@ -20,11 +20,22 @@ describe('Home', () => {
     expect(screen.getByRole('link', { name: /looks/i }).getAttribute('href')).toBe('/looks');
   });
 
-  it('has a How it works section with Scan, Learn and Remake steps', () => {
+  it('has a How it works section with Scan, Learn and Remake steps, numbered like the ring', () => {
     render(<Home />);
     const section = screen.getByRole('region', { name: 'How it works' });
     const heads = Array.from(section.querySelectorAll('h3')).map((n) => n.textContent);
     expect(heads).toEqual(['Scan', 'Learn', 'Remake']);
+    expect(Array.from(section.querySelectorAll('[data-step]')).map((n) => n.textContent)).toEqual(['01', '02', '03']);
+  });
+
+  it('says what REVIVO does in the hero, with one primary and one secondary action', () => {
+    const { container } = render(<Home />);
+    const hero = screen.getByRole('region', { name: 'Nine second lives' });
+    expect(hero.textContent).toContain('Scan a piece you no longer wear, learn its story, remake it');
+    const actions = Array.from(hero.querySelectorAll('a')).map((a) => [a.textContent, a.getAttribute('href')]);
+    expect(actions).toEqual([['Scan a garment', '/scan'], ['Your closet', '/closet']]);
+    // No borrowed "Vol. 01" line, no hype, one spelling of the name.
+    expect(container.textContent).not.toMatch(/Vol\. 01|unlock|Revivo/);
   });
 
   it('keeps the decorative pictures silent for assistive tech (their names are in the text)', () => {
