@@ -211,3 +211,25 @@ describe('demo cache key versioning', () => {
     expect(b[1]).not.toEqual(a[1]);
   });
 });
+
+// Regression: the guide text and the Concept image were written from the raw AI reading, ignoring the
+// user's corrections (a garment corrected to "shirt" was still called a "long-sleeve top").
+describe('corrections reach the writer and the image', () => {
+  beforeEach(() => vi.clearAllMocks());
+  const linen = [{ field: 'fabric' as const, aiValue: 'cotton', userValue: 'linen' }];
+
+  it('runGuide writes from the corrected fabric', async () => {
+    const { deps } = setup({ rows: linen });
+    expect((await free(deps)).status).toBe(200);
+    const v = (deps.write as ReturnType<typeof vi.fn>).mock.calls[0][0] as VisionResult;
+    expect(v.fabric_guess.value).toBe('linen');
+    expect(v.garment_type).toBe('shirt');
+  });
+
+  it('runRender draws the corrected fabric', async () => {
+    const { deps } = setup({ rows: linen });
+    expect((await runRender(U, { scanId: SID, recipeId: 'r-free' }, deps)).status).toBe(200);
+    const v = (deps.generateImage as ReturnType<typeof vi.fn>).mock.calls[0][0] as VisionResult;
+    expect(v.fabric_guess.value).toBe('linen');
+  });
+});

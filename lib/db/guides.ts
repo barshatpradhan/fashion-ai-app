@@ -93,6 +93,11 @@ export function stripUrls(lines: string[]): string[] {
 const isAiError = (e: unknown) =>
   e instanceof AiRateLimitError || e instanceof AiTimeoutError || e instanceof AiBadOutputError;
 
+/** The AI reading with the user's corrections applied: what the writer and the image generator must describe. */
+function correctedVision(r: Resolved): VisionResult {
+  return { ...r.vision, garment_type: r.garmentType, fabric_guess: { ...r.vision.fabric_guess, value: r.fabric } };
+}
+
 export async function runGuide(userId: string, input: unknown, deps: GuideDeps): Promise<GuideResult> {
   const r = await resolveGuide(userId, input, deps.repo);
   if (isFail(r)) return r;
@@ -105,7 +110,7 @@ export async function runGuide(userId: string, input: unknown, deps: GuideDeps):
     try {
       body = await deps.guard(
         `guide:${r.scanId}:${r.recipe.id}:${r.stateKey}`,
-        () => deps.write(r.vision, r.recipe, r.history),
+        () => deps.write(correctedVision(r), r.recipe, r.history),
         { timeoutMs: deps.timeoutMs, demo: r.demo },
       );
     } catch (err) {
@@ -141,7 +146,7 @@ export async function runRender(userId: string, input: unknown, deps: GuideDeps)
     savedPath = await deps.guard(
       `render:${r.scanId}:${r.recipe.id}:${r.stateKey}`,
       async () => {
-        const png = await deps.generateImage(r.vision, r.recipe);
+        const png = await deps.generateImage(correctedVision(r), r.recipe);
         await repo.upload(path, png);
         return path;
       },
