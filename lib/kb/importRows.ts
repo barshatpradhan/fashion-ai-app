@@ -1,8 +1,10 @@
 import { parse } from 'csv-parse/sync';
 import { NAMED_STYLES, GENERIC_TAGS } from '@/lib/domain/vocabulary';
 
-export const KB_COLUMNS = ['id', 'kind', 'title', 'body', 'tags', 'difficulty', 'tools', 'steps', 'sources'] as const;
-export type KbCsvRow = Record<(typeof KB_COLUMNS)[number], string>;
+/** `result` (optional, last): what the finished piece looks like. Only the Concept-image prompt uses it. */
+export const KB_COLUMNS = ['id', 'kind', 'title', 'body', 'tags', 'difficulty', 'tools', 'steps', 'sources', 'result'] as const;
+export const RESULT_MAX = 400;
+export type KbCsvRow = Record<Exclude<(typeof KB_COLUMNS)[number], 'result'>, string> & { result?: string };
 
 const KINDS = ['history', 'redesign', 'fabric'];
 const DIFFICULTIES = ['beginner', 'intermediate', 'advanced'];
@@ -73,6 +75,7 @@ export function validateRow(row: KbCsvRow): string[] {
   if ('error' in parsed) errors.push(parsed.error);
   else if (row.kind === 'history' && parsed.sources.length === 0) errors.push('history sources must be a non-empty JSON array');
   if (row.kind === 'history' && splitList(row.tags).length === 0) errors.push('history needs at least one Named Style tag');
+  if ((row.result ?? '').trim().length > RESULT_MAX) errors.push(`result must be ${RESULT_MAX} characters or fewer`);
   return errors;
 }
 
@@ -91,6 +94,7 @@ export function toDbRow(row: KbCsvRow) {
     tools: tools.length ? tools.join(', ') : null, // stored as comma text; readers split on ','
     steps: steps.length ? steps : null,
     sources: 'sources' in parsed && parsed.sources.length ? parsed.sources : null,
+    result: (row.result ?? '').trim() || null,
     status: 'draft' as const,
   };
 }
@@ -107,8 +111,10 @@ const norm = (r: Partial<DbRow>) => JSON.stringify([
 export type ImportIo = {
   fetchExisting: (slugs: string[]) => Promise<StoredRow[]>;
   upsert: (dbRows: (DbRow & { reviewed_by: null })[]) => Promise<void>;
+  /** Write only the result line; review status untouched. Needed when a result changes on its own. */
+  updateResult?: (slug: string, result: string | null) => Promise<void>;
 };
-export type ImportResult = { inserted: number; updated: number; unchanged: number };
+export type ImportResult = { inserted: number; updated: number; unchanged: number; resultOnly: number };
 
 /**
  * Validates every row first; writes nothing if any row is bad. Unchanged rows are skipped so
@@ -127,16 +133,24 @@ export async function importRows(rows: KbCsvRow[], io: ImportIo): Promise<Import
   const incoming = rows.map(toDbRow);
   const existing = new Map((await io.fetchExisting(incoming.map((r) => r.slug))).map((e) => [e.slug, e]));
   const toWrite: (DbRow & { reviewed_by: null })[] = [];
-  let inserted = 0, updated = 0, unchanged = 0;
+  const resultWrites: { slug: string; result: string | null }[] = [];
+  let inserted = 0, updated = 0, unchanged = 0, resultOnly = 0;
   for (const r of incoming) {
     const old = existing.get(r.slug);
     if (!old) inserted++;
-    else if (norm(old) === norm(r)) { unchanged++; continue; }
+    else if (norm(old) === norm(r)) {
+      // The result line is image-prompt guidance, not a reviewed claim: changing it alone keeps the review.
+      if ((old.result ?? null) !== r.result) { resultOnly++; resultWrites.push({ slug: r.slug, result: r.result }); }
+      else unchanged++;
+      continue;
+    }
     else updated++;
     toWrite.push({ ...r, reviewed_by: null });
   }
+  if (resultWrites.length && !io.updateResult) throw new Error('KB import: updateResult is required to change result lines');
   if (toWrite.length) await io.upsert(toWrite);
-  return { inserted, updated, unchanged };
+  for (const w of resultWrites) await io.updateResult!(w.slug, w.result);
+  return { inserted, updated, unchanged, resultOnly };
 }
 
 /** Why a row may not be marked reviewed, or null if it may. Re-checks the stored row. */

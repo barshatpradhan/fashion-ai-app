@@ -82,8 +82,8 @@ function fakeDb() {
 describe('importRows', () => {
   it('inserts new rows as draft and re-import updates without duplicating', async () => {
     const { store, io } = fakeDb();
-    expect(await importRows([row(), row({ id: 'h-2' })], io)).toEqual({ inserted: 2, updated: 0, unchanged: 0 });
-    expect(await importRows([row({ title: 'Changed' })], io)).toEqual({ inserted: 0, updated: 1, unchanged: 0 });
+    expect(await importRows([row(), row({ id: 'h-2' })], io)).toEqual({ inserted: 2, updated: 0, unchanged: 0, resultOnly: 0 });
+    expect(await importRows([row({ title: 'Changed' })], io)).toEqual({ inserted: 0, updated: 1, unchanged: 0, resultOnly: 0 });
     expect(store.size).toBe(2);
     expect(store.get('h-1')!.title).toBe('Changed');
     expect([...store.values()].every((r) => r.status === 'draft')).toBe(true);
@@ -93,7 +93,7 @@ describe('importRows', () => {
     await importRows([row()], io);
     store.set('h-1', { ...store.get('h-1'), status: 'reviewed', reviewed_by: 'Ana' });
     const r = await importRows([row(), row({ id: 'h-2' })], io);
-    expect(r).toEqual({ inserted: 1, updated: 0, unchanged: 1 });
+    expect(r).toEqual({ inserted: 1, updated: 0, unchanged: 1, resultOnly: 0 });
     expect(store.get('h-1')).toMatchObject({ status: 'reviewed', reviewed_by: 'Ana' });
     expect(store.get('h-2')).toMatchObject({ status: 'draft', reviewed_by: null });
   });

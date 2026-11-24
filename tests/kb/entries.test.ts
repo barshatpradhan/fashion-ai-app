@@ -35,6 +35,12 @@ describe('content/kb/entries.csv', () => {
     expect(rows.filter((r) => r.title.startsWith('[DEV]')).map((r) => r.id)).toEqual([]);
   });
 
+  // The Concept image is briefed from this line; without it the model guessed (a tote came out as a fringed tank top).
+  it('every redesign says what the finished piece looks like', () => {
+    const missing = rows.filter((r) => r.kind === 'redesign' && !(r.result ?? '').trim()).map((r) => r.id);
+    expect(missing).toEqual([]);
+  });
+
   it('has a sourced history entry for every Named Style', () => {
     for (const style of NAMED_STYLES) {
       const h = entries.filter((e) => e.kind === 'history' && e.tags.includes(style));

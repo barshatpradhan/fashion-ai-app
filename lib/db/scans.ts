@@ -224,6 +224,7 @@ export function toKbEntry(r: Record<string, unknown>): KbEntry {
     tools: typeof r.tools === 'string' && r.tools ? r.tools.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
     steps: (r.steps as string[] | null) ?? undefined,
     sources: (r.sources as KbEntry['sources'] | null) ?? undefined,
+    result: (r.result as string | null) ?? undefined,
     status: r.status as KbEntry['status'],
   };
 }

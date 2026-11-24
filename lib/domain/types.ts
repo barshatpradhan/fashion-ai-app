@@ -34,6 +34,8 @@ export type KbEntry = {
   tools?: string[];
   steps?: string[];
   sources?: { citation: string; url: string; accessed: string }[];
+  /** Redesign only: what the finished piece looks like. Briefs the Concept image; never shown as a claim. */
+  result?: string;
   status: 'draft' | 'reviewed';
 };
 
