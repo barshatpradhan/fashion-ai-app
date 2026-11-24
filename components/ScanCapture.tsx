@@ -66,11 +66,17 @@ export function ScanCapture({ working, step, preview, recent, onFile, onOpenRece
           // eslint-disable-next-line @next/next/no-img-element -- local object URL
           <img src={preview} alt="Your garment photo" data-preview className={s.preview} />
         ) : (
-          <div className={s.empty}>
+          <button
+            type="button"
+            className={s.empty}
+            aria-label="Add a photo"
+            disabled={working}
+            onClick={() => (mode === 'photo' ? camera.current : files.current)?.click()}
+          >
             <UploadIcon />
-            <p className={s.emptyTitle}>Drop a photo here</p>
-            <p className={s.emptyHint}>Lay the piece flat or hang it in good light. The garment only, no faces, please.</p>
-          </div>
+            <span className={s.emptyTitle}>Click to upload a photo</span>
+            <span className={s.emptyHint}>or drop one here. Lay the piece flat or hang it in good light. The garment only, no faces, please.</span>
+          </button>
         )}
 
         {working ? (

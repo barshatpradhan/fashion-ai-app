@@ -33,6 +33,7 @@
 
 .corner {
   position: absolute;
+  z-index: 1; /* above the frame's hover tint */
   width: 40px;
   height: 40px;
   border: 3px solid var(--slate);
@@ -51,17 +52,41 @@
   filter: var(--drop-1);
 }
 
+/* The empty frame is the upload button: the whole area inside the brackets takes a click or tap. */
 .empty {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  max-width: 28ch;
+  padding: var(--space-7) var(--space-6);
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  font: inherit;
   text-align: center;
   color: var(--steel);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.empty:hover:not(:disabled) {
+  background: var(--surface-soft);
+}
+
+.empty:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: -6px;
+}
+
+.empty > * {
+  max-width: 30ch;
 }
 
 .emptyTitle {
+  display: block;
   margin: var(--space-1) 0 0;
   font-weight: 600;
   font-size: var(--text-base);
@@ -69,6 +94,7 @@
 }
 
 .emptyHint {
+  display: block;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--muted);

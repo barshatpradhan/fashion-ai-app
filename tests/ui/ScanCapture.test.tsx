@@ -27,9 +27,27 @@ function setup(over: Partial<React.ComponentProps<typeof ScanCapture>> = {}) {
 describe('ScanCapture', () => {
   it('shows an empty viewfinder that invites a photo', () => {
     const { container } = setup();
-    expect(screen.getByText('Drop a photo here')).toBeTruthy();
+    expect(screen.getByText('Click to upload a photo')).toBeTruthy();
     expect(container.querySelectorAll('[data-corner]')).toHaveLength(4);
     expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('clicking the empty viewfinder opens the picker for the chosen source', () => {
+    const { container } = setup();
+    const camera = container.querySelector('input[capture="environment"]') as HTMLInputElement;
+    const files = container.querySelector('input#garment-photo') as HTMLInputElement;
+    const camClick = vi.spyOn(camera, 'click');
+    const fileClick = vi.spyOn(files, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Add a photo' }));
+    expect(camClick).toHaveBeenCalledTimes(1); // Photo is the default source (camera on phones, picker elsewhere)
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add a photo' }));
+    expect(fileClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('the viewfinder is not a button while a photo is being read', () => {
+    setup({ working: true, step: 'Reading the garment', preview: 'blob:x' });
+    expect(screen.queryByRole('button', { name: 'Add a photo' })).toBeNull();
   });
 
   it('switches the shutter between camera and file picker', () => {
