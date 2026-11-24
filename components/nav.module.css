@@ -17,6 +17,19 @@
 .tab[aria-current='page'] { color: var(--slate); font-weight: 600; }
 .tab[aria-current='page']::before { content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; background: var(--slate); border-radius: 0 0 2px 2px; }
 
+/* Account controls: Log in / Sign up for guests, Log out for accounts (header on mobile, top nav from tablet). */
+.account { display: flex; align-items: center; gap: var(--space-2); }
+.authLink { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-2); border: 0; background: transparent; font: inherit; font-size: var(--text-sm); color: var(--slate); text-decoration: none; cursor: pointer; }
+.authLink:hover { text-decoration: underline; text-underline-offset: 4px; }
+.authLink:disabled { opacity: 0.6; cursor: default; }
+.authLink:focus-visible { outline: 2px solid var(--deep); outline-offset: 3px; }
+.profileLink { display: inline-flex; align-items: center; gap: var(--space-2); }
+.initial { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius-pill); background: var(--slate); color: var(--white); font: 600 var(--text-xs)/1 var(--font-body); letter-spacing: 0; text-transform: uppercase; }
+.profileName { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Tablet top nav is tight: the Scan call-to-action returns at desktop width (Scan stays in the links). */
+.scanCta { display: none; }
+@media (min-width: 1200px) { .scanCta { display: inline-flex; } }
+
 @media (min-width: 768px) {
   .header, .tabs { display: none; }
   .top { display: flex; }

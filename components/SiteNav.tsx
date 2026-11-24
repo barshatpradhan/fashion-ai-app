@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, type ReactNode } from 'react';
+import { useNavAccount, type NavAccount } from '@/lib/auth/useNavAccount';
+import { logOut } from '@/lib/auth/flows';
+import { browserLogOutDeps } from '@/lib/auth/browserPort';
 import ui from './ui.module.css';
 import n from './nav.module.css';
 import { Logo } from './Logo';
@@ -29,22 +32,73 @@ const LINKS: { href: Tab; label: string; icon: ReactNode }[] = [
   { href: '/profile', label: 'Profile', icon: <svg {...svg}><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6" /></svg> },
 ];
 
+/** Log in / Sign up for guests, Log out for accounts; nothing until the session is known. */
+function AccountControls({ account, onLogOut, busy }: { account: NavAccount; onLogOut: () => void; busy: boolean }) {
+  if (account.state === 'guest') {
+    return (
+      <>
+        <Link href="/login" className={n.authLink}>Log in</Link>
+        <Link href="/signup" className={`${ui.button} ${ui.ghost} ${n.small}`}>Sign up</Link>
+      </>
+    );
+  }
+  if (account.state === 'account') {
+    return (
+      <button type="button" className={n.authLink} onClick={onLogOut} disabled={busy} aria-busy={busy || undefined}>
+        {busy ? 'Logging out…' : 'Log out'}
+      </button>
+    );
+  }
+  return null;
+}
+
 export function SiteNav() {
   const active = activeTab(usePathname() ?? '');
+  const router = useRouter();
+  const account = useNavAccount();
+  const [busy, setBusy] = useState(false);
   const cur = (href: Tab) => (active === href ? ('page' as const) : undefined);
+
+  async function onLogOut() {
+    setBusy(true);
+    try {
+      await logOut(browserLogOutDeps());
+      router.push('/');
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const profileLink = (l: (typeof LINKS)[number]) =>
+    account.state === 'account' ? (
+      <Link key={l.href} href={l.href} className={`${n.link} ${n.profileLink}`} aria-current={cur(l.href)} aria-label={`Profile, ${account.name}`}>
+        <span className={n.initial} aria-hidden="true">{account.initial}</span>
+        <span className={n.profileName}>{account.name}</span>
+      </Link>
+    ) : (
+      <Link key={l.href} href={l.href} className={n.link} aria-current={cur(l.href)}>{l.label}</Link>
+    );
+
   return (
     <>
       <header className={n.header}>
         <Link href="/" className={n.logoLink} aria-label="REVIVO home"><Logo /></Link>
+        <div className={n.account}>
+          <AccountControls account={account} onLogOut={() => void onLogOut()} busy={busy} />
+        </div>
       </header>
       <nav className={n.top} aria-label="Main">
         <Link href="/" className={n.logoLink} aria-label="REVIVO home"><Logo /></Link>
         <div className={n.links}>
-          {LINKS.map((l) => (
+          {LINKS.map((l) => (l.href === '/profile' ? profileLink(l) : (
             <Link key={l.href} href={l.href} className={n.link} aria-current={cur(l.href)}>{l.label}</Link>
-          ))}
+          )))}
         </div>
-        <Link href="/scan" className={`${ui.button} ${n.small}`}>Scan a garment</Link>
+        <div className={n.account}>
+          <AccountControls account={account} onLogOut={() => void onLogOut()} busy={busy} />
+          <Link href="/scan" className={`${ui.button} ${n.small} ${n.scanCta}`}>Scan a garment</Link>
+        </div>
       </nav>
       <nav className={n.tabs} aria-label="Tabs">
         {LINKS.map((l) => (

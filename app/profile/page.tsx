@@ -6,6 +6,7 @@ import { activityDate, activityLabel } from '@/lib/ui/profile';
 import type { ProfileView } from '@/lib/db/profile';
 import type { AccountView } from '@/lib/auth/account';
 import { logOut } from '@/lib/auth/flows';
+import { PROFILE_UPDATED_EVENT } from '@/lib/auth/useNavAccount';
 import { browserLogOutDeps } from '@/lib/auth/browserPort';
 import { demoNoPaymentProvider } from '@/lib/billing/paymentProvider';
 import { AllowanceBadge } from '@/components/AllowanceBadge';
@@ -95,7 +96,7 @@ export default function ProfilePage() {
             <AccountSection
               displayName={p.account.displayName}
               memberSince={p.account.memberSince}
-              onSaved={() => { void refresh(); router.refresh(); }}
+              onSaved={() => { void refresh(); window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT)); }}
               onLogOut={() => void leave('You are logged out. You can keep browsing as a guest.')}
               loggingOut={loggingOut}
             />
