@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  prepareImage, removeBackground, BG_REMOVAL_TIMEOUT_MS, UnsupportedImageError, TooLargeImageError, MAX_INPUT_BYTES, JPEG_QUALITY, MAX_EDGE,
+  prepareImage, removeBackground, preloadBackgroundRemoval, BG_REMOVAL_CONFIG, BG_REMOVAL_TIMEOUT_MS, UnsupportedImageError, TooLargeImageError, MAX_INPUT_BYTES, JPEG_QUALITY, MAX_EDGE,
   type ImageIO, type Decoded,
 } from '@/lib/image/prepare';
 
@@ -165,5 +165,35 @@ describe('removeBackground', () => {
   it('returns null when the library cannot be loaded', async () => {
     const out = await removeBackground(jpeg, async () => { throw new Error('chunk load failed'); });
     expect(out).toBeNull();
+  });
+});
+
+// Regression: inference ran on the main thread (no cross-origin isolation, so no wasm threads), freezing the
+// page in one 36.9 s task; the 12 s timeout could not even fire. WebGPU in a worker measured no long tasks.
+describe('background removal config', () => {
+  it('runs on WebGPU in a worker (the library falls back to wasm where WebGPU is missing)', () => {
+    expect(BG_REMOVAL_CONFIG).toMatchObject({ device: 'gpu', proxyToWorker: true, output: { format: 'image/png' } });
+  });
+
+  it('removeBackground passes that config to the library', async () => {
+    const jpeg = new Blob([new Uint8Array([1])], { type: 'image/jpeg' });
+    const lib = vi.fn(async () => new Blob([new Uint8Array([7])], { type: 'image/png' }));
+    await removeBackground(jpeg, async () => lib);
+    expect(lib).toHaveBeenCalledWith(jpeg, BG_REMOVAL_CONFIG);
+  });
+});
+
+// The runtime and model are ~111 MB from the library CDN (measured 30 s here); fetching them when /scan
+// opens, while the user picks a photo, keeps that wait out of the scan itself.
+describe('preloadBackgroundRemoval', () => {
+  it('preloads with the same config used for removal', async () => {
+    const preload = vi.fn(async () => {});
+    await preloadBackgroundRemoval(async () => preload);
+    expect(preload).toHaveBeenCalledWith(BG_REMOVAL_CONFIG);
+  });
+
+  it('never throws: a failed preload just means removal loads on demand', async () => {
+    await expect(preloadBackgroundRemoval(async () => async () => { throw new Error('offline'); })).resolves.toBeUndefined();
+    await expect(preloadBackgroundRemoval(async () => { throw new Error('chunk load failed'); })).resolves.toBeUndefined();
   });
 });

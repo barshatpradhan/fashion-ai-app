@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { browserClient, ensureSession } from '@/lib/db/browser';
-import { prepareImage, removeBackground, UnsupportedImageError, TooLargeImageError } from '@/lib/image/prepare';
+import { prepareImage, removeBackground, preloadBackgroundRemoval, UnsupportedImageError, TooLargeImageError } from '@/lib/image/prepare';
 import { MESSAGES, messageForError, isExpectedOutcome } from '@/lib/ui/messages';
 import { ResultView, type AnalyzeResponse, type ScanSource } from '@/components/ResultView';
 import ui from '@/components/ui.module.css';
@@ -24,6 +24,12 @@ export default function ScanPage() {
   // Anonymous start: no sign-up wall. Premium access is decided server-side (locked Recipes arrive redacted).
   useEffect(() => {
     ensureSession().catch((err) => console.warn('session start failed', err));
+  }, []);
+
+  // Fetch the background-removal model while the user picks a photo (skipped when the browser asks to save data).
+  useEffect(() => {
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (!conn?.saveData) void preloadBackgroundRemoval();
   }, []);
 
   useEffect(() => () => {

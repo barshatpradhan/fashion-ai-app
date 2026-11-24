@@ -143,12 +143,42 @@ export async function prepareImage(file: File, overrides: Partial<ImageIO> = {})
   return { jpeg, width, height, hash };
 }
 
-type RemoveBg = (image: Blob, config?: { output?: { format?: 'image/png'; quality?: number } }) => Promise<Blob>;
+/**
+ * WebGPU in a worker. Without it inference runs on the main thread (the page is not cross-origin isolated,
+ * so wasm gets no threads): one measured scan froze the page for 36.9 s and the timeout below could not fire.
+ * Where WebGPU is missing the library falls back to wasm on its own.
+ */
+export const BG_REMOVAL_CONFIG = {
+  device: 'gpu',
+  proxyToWorker: true,
+  output: { format: 'image/png' },
+} as const;
+type BgConfig = typeof BG_REMOVAL_CONFIG;
 
-/** Loaded on demand: the model and WASM runtime are large and only needed after a photo is picked. */
+type RemoveBg = (image: Blob, config?: BgConfig) => Promise<Blob>;
+type Preload = (config?: BgConfig) => Promise<void>;
+
+/** Loaded on demand: the model and WASM runtime are large and only needed on the scan page. */
 async function loadImgly(): Promise<RemoveBg> {
   const mod = await import('@imgly/background-removal');
-  return mod.removeBackground as RemoveBg;
+  return mod.removeBackground as unknown as RemoveBg;
+}
+async function loadImglyPreload(): Promise<Preload> {
+  const mod = await import('@imgly/background-removal');
+  return mod.preload as unknown as Preload;
+}
+
+/**
+ * Fetch the runtime and model (~111 MB from the library CDN) before a photo is picked, so that wait
+ * is not part of the scan. Never throws: on failure removal simply loads on demand.
+ */
+export async function preloadBackgroundRemoval(load: () => Promise<Preload> = loadImglyPreload): Promise<void> {
+  try {
+    const preload = await load();
+    await preload(BG_REMOVAL_CONFIG);
+  } catch (err) {
+    console.warn('background removal preload failed; it will load on demand', err);
+  }
 }
 
 /** Model download + inference can hang on a slow stage network; past this the original photo is used. */
@@ -170,7 +200,7 @@ export async function removeBackground(
   });
   const work = (async () => {
     const run = await load();
-    const out = await run(jpeg, { output: { format: 'image/png' } });
+    const out = await run(jpeg, BG_REMOVAL_CONFIG);
     return out && out.size > 0 ? out : null;
   })();
   try {
